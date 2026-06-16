@@ -74,40 +74,44 @@ internal static class RandomizedExecutableLauncher
             return;
         }
 
-        try
+        foreach (var file in Directory.EnumerateFiles(tempRoot))
         {
-            Directory.Delete(tempRoot, recursive: true);
-            return;
-        }
-        catch (IOException)
-        {
-            // A previous randomized run may still be active; clean what is safe below.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // A previous randomized run may still be active; clean what is safe below.
+            try { File.Delete(file); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         foreach (var directory in Directory.EnumerateDirectories(tempRoot))
         {
-            if (!IsRandomizedDirectoryName(directory) || !ContainsRandomizedExecutable(directory))
-            {
-                continue;
-            }
-
             try
             {
                 Directory.Delete(directory, recursive: true);
+                continue;
             }
-            catch (IOException)
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+
+            // 整个目录删不掉时，逐个文件清理能删的部分
+            try
             {
-                // A previous randomized run may still be active.
+                foreach (var file in Directory.EnumerateFiles(directory))
+                {
+                    try { File.Delete(file); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
             }
-            catch (UnauthorizedAccessException)
-            {
-                // Leave locked or protected files alone.
-            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+
+            try { Directory.Delete(directory, recursive: false); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
+
+        try { Directory.Delete(tempRoot, recursive: false); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 
     private static string CreateRandomizedExecutable(string sourcePath)
@@ -140,8 +144,10 @@ internal static class RandomizedExecutableLauncher
 
     private static string GetTemporaryRoot(string sourcePath)
     {
-        var directory = Path.GetDirectoryName(sourcePath) ?? AppContext.BaseDirectory;
-        return Path.Combine(directory, TemporaryDirectoryName);
+        var normalized = sourcePath.ToUpperInvariant();
+        var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(normalized));
+        var folderName = Convert.ToHexString(hashBytes)[..RandomNameLength];
+        return Path.Combine(Path.GetTempPath(), folderName, TemporaryDirectoryName);
     }
 
     private static void CopyRuntimeFiles(string sourceDirectory, string targetDirectory)
