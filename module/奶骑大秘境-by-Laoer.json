@@ -104,7 +104,7 @@
       "Condition": "法术失败 == 4 && spells.制裁之锤 == 0",
       "Unit": 0,
       "Spell": "制裁之锤",
-      "Hotkey": "X",
+      "Hotkey": "",
       "Step": ""
     },
     {
