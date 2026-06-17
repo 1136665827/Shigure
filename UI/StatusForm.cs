@@ -49,7 +49,7 @@ public sealed class StatusForm : Form
 
         Text = "设置";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(760, 560);
+        MinimumSize = new Size(1800, 1200);
         Size = new Size(920, 640);
         BackColor = UiTheme.Background;
         ForeColor = UiTheme.Text;

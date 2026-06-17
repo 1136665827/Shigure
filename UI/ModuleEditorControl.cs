@@ -518,7 +518,8 @@ public sealed class ModuleEditorControl : UserControl
 
         _adjustmentFieldColumn.Name = "Field";
         _adjustmentFieldColumn.HeaderText = "数值";
-        _adjustmentFieldColumn.Width = 160;
+        _adjustmentFieldColumn.Width = 260;
+        _adjustmentFieldColumn.MinimumWidth = 200;
         _adjustmentFieldColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _adjustmentFieldColumn.FlatStyle = FlatStyle.Flat;
         _adjustmentsGrid.Columns.Add(_adjustmentFieldColumn);
@@ -542,7 +543,8 @@ public sealed class ModuleEditorControl : UserControl
         // "类型"列加在集合末尾以保留 Rows.Add 的位置参数(启用/数值/调整/条件), 再用 DisplayIndex 显示到"数值"前。
         _adjustmentTypeColumn.Name = "Type";
         _adjustmentTypeColumn.HeaderText = "类型";
-        _adjustmentTypeColumn.Width = 84;
+        _adjustmentTypeColumn.Width = 120;
+        _adjustmentTypeColumn.MinimumWidth = 100;
         _adjustmentTypeColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _adjustmentTypeColumn.FlatStyle = FlatStyle.Flat;
         foreach (var option in AdjustmentTypeOptions)
