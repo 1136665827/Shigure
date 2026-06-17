@@ -50,7 +50,7 @@
             "step": 22,
             "type": "int"
         },
-         "目标施法": {
+        "目标施法": {
             "step": 23,
             "type": "int"
         },
@@ -326,42 +326,6 @@
             "step": 23,
             "type": "int"
         },
-        "飞旋之土": {
-            "step": 24,
-            "type": "int"
-        },
-        "潮汐奔涌": {
-            "step": 25,
-            "type": "int"
-        },
-        "风暴涌流": {
-            "step": 26,
-            "type": "int"
-        },
-        "涌流层数": {
-            "step": 27,
-            "type": "int"
-        },
-        "生命释放": {
-            "step": 28,
-            "type": "int"
-        },
-        "升腾": {
-            "step": 29,
-            "type": "int"
-        },
-        "涌流图腾时间": {
-            "step": 30,
-            "type": "int"
-        },
-        "倾盆大雨": {
-            "step": 56,
-            "type": "int"
-        },
-        "倾盆大雨层数": {
-            "step": 57,
-            "type": "int"
-        },
         "目标施法": {
             "step": 58,
             "type": "int"
@@ -394,18 +358,55 @@
             "step": 65,
             "type": "int"
         },
-
-        "激流层数": {
-            "step": "bar",
-            "bar": 1,
-            "type": "int"
-        },
-        "治疗之泉图腾层数": {
-            "step": "bar",
-            "bar": 2,
-            "type": "int"
+        "auras": {
+            "飞旋之土": {
+                "step": 24,
+                "type": "int"
+            },
+            "潮汐奔涌": {
+                "step": 25,
+                "type": "int"
+            },
+            "风暴涌流": {
+                "step": 26,
+                "type": "int"
+            },
+            "涌流层数": {
+                "step": 27,
+                "type": "int"
+            },
+            "生命释放": {
+                "step": 28,
+                "type": "int"
+            },
+            "升腾": {
+                "step": 29,
+                "type": "int"
+            },
+            "涌流图腾时间": {
+                "step": 30,
+                "type": "int"
+            },
+            "倾盆大雨": {
+                "step": 56,
+                "type": "int"
+            },
+            "倾盆大雨层数": {
+                "step": 57,
+                "type": "int"
+            }
         },
         "spells": {
+            "激流层数": {
+                "step": "bar",
+                "bar": 1,
+                "type": "int"
+            },
+            "治疗之泉图腾层数": {
+                "step": "bar",
+                "bar": 2,
+                "type": "int"
+            },
             "风剪": {
                 "step": 31,
                 "type": "int"

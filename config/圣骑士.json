@@ -46,26 +46,6 @@
             "step": 24,
             "type": "int"
         },
-        "神圣意志": {
-            "step": 25,
-            "type": "int"
-        },
-        "圣光灌注": {
-            "step": 26,
-            "type": "int"
-        },
-        "灌注层数": {
-            "step": 27,
-            "type": "int"
-        },
-        "神性层数": {
-            "step": 28,
-            "type": "int"
-        },
-        "美德道标": {
-            "step": 29,
-            "type": "int"
-        },
         "爆发开关": {
             "step": 30,
             "type": "int"
@@ -77,6 +57,28 @@
         "目标施法可打断": {
             "step": 49,
             "type": "int"
+        },
+        "auras": {
+            "神圣意志": {
+                "step": 25,
+                "type": "int"
+            },
+            "圣光灌注": {
+                "step": 26,
+                "type": "int"
+            },
+            "灌注层数": {
+                "step": 27,
+                "type": "int"
+            },
+            "神性层数": {
+                "step": 28,
+                "type": "int"
+            },
+            "美德道标": {
+                "step": 29,
+                "type": "int"
+            }
         },
         "spells": {
             "盲目之光": {
@@ -182,42 +184,6 @@
             "step": 21,
             "type": "int"
         },
-        "神圣意志": {
-            "step": 22,
-            "type": "int"
-        },
-        "神圣壁垒": {
-            "step": 23,
-            "type": "int"
-        },
-        "圣洁武器": {
-            "step": 24,
-            "type": "int"
-        },
-        "闪耀之光": {
-            "step": 25,
-            "type": "int"
-        },
-        "闪光层数": {
-            "step": 26,
-            "type": "int"
-        },
-        "军备类型": {
-            "step": 27,
-            "type": "int"
-        },
-        "奉献": {
-            "step": 28,
-            "type": "int"
-        },
-        "复仇之怒": {
-            "step": 29,
-            "type": "int"
-        },
-        "圣光之锤": {
-            "step": 30,
-            "type": "int"
-        },
         "目标距离": {
             "step": 31,
             "type": "int"
@@ -253,6 +219,44 @@
         "焦点引导可打断": {
             "step": 58,
             "type": "int"
+        },
+        "auras": {
+            "神圣意志": {
+                "step": 22,
+                "type": "int"
+            },
+            "神圣壁垒": {
+                "step": 23,
+                "type": "int"
+            },
+            "圣洁武器": {
+                "step": 24,
+                "type": "int"
+            },
+            "闪耀之光": {
+                "step": 25,
+                "type": "int"
+            },
+            "闪光层数": {
+                "step": 26,
+                "type": "int"
+            },
+            "军备类型": {
+                "step": 27,
+                "type": "int"
+            },
+            "奉献": {
+                "step": 28,
+                "type": "int"
+            },
+            "复仇之怒": {
+                "step": 29,
+                "type": "int"
+            },
+            "圣光之锤": {
+                "step": 30,
+                "type": "int"
+            }
         },
         "spells": {
             "盲目之光": {
@@ -342,22 +346,6 @@
             "step": 22,
             "type": "int"
         },
-        "神圣意志": {
-            "step": 25,
-            "type": "int"
-        },
-        "复仇之怒": {
-            "step": 26,
-            "type": "int"
-        },
-        "处决宣判": {
-            "step": 27,
-            "type": "int"
-        },
-        "圣光之锤": {
-            "step": 28,
-            "type": "int"
-        },
         "敌人人数": {
             "step": 29,
             "type": "int"
@@ -397,6 +385,24 @@
         "焦点引导可打断": {
             "step": 55,
             "type": "int"
+        },
+        "auras": {
+            "神圣意志": {
+                "step": 25,
+                "type": "int"
+            },
+            "复仇之怒": {
+                "step": 26,
+                "type": "int"
+            },
+            "处决宣判": {
+                "step": 27,
+                "type": "int"
+            },
+            "圣光之锤": {
+                "step": 28,
+                "type": "int"
+            }
         },
         "spells": {
             "盲目之光": {

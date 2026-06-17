@@ -57,6 +57,7 @@
             "step": 29,
             "type": "int"
         },
+        "auras": {},
         "spells": {
             "净除": {
                 "step": 31,
@@ -173,6 +174,7 @@
             "step": 30,
             "type": "int"
         },
+        "auras": {},
         "spells": {
             "净除": {
                 "step": 31,

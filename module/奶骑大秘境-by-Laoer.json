@@ -77,54 +77,6 @@
     },
     {
       "Enabled": true,
-      "Condition": "法术失败 == 1 && spells.盲目之光 == 0",
-      "Unit": 0,
-      "Spell": "盲目之光",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "法术失败 == 2 && spells.光环掌握 == 0",
-      "Unit": 0,
-      "Spell": "光环掌握",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "法术失败 == 3 && spells.自由祝福 == 0",
-      "Unit": 0,
-      "Spell": "自由祝福",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "法术失败 == 4 && spells.制裁之锤 == 0",
-      "Unit": 0,
-      "Spell": "制裁之锤",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "法术失败 == 5 && spells.保护祝福 == 0",
-      "Unit": 0,
-      "Spell": "保护祝福",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "法术失败 == 6 && spells.圣盾术 == 0",
-      "Unit": 0,
-      "Spell": "圣盾术",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
       "Condition": "法术失败 == 7 && spells.圣洁鸣钟 == 0",
       "Unit": 1,
       "Spell": "圣洁鸣钟",
@@ -133,17 +85,9 @@
     },
     {
       "Enabled": true,
-      "Condition": "法术失败 == 16 && spells.灰烬觉醒 == 0",
+      "Condition": "",
       "Unit": 0,
-      "Spell": "灰烬觉醒",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "法术失败 == 24 && spells.美德道标 == 0",
-      "Unit": 0,
-      "Spell": "美德道标",
+      "Spell": "插入法术",
       "Hotkey": "",
       "Step": ""
     },
@@ -213,7 +157,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "!施法 && 神性层数 > 0 && 最低血量 < 50",
+      "Condition": "施法 == 0 && auras.神性层数 > 0 && 最低血量 < 50",
       "UnitName": "最低单位",
       "Spell": "圣光术",
       "Hotkey": "",
@@ -221,7 +165,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "美德道标 > 0 && spells.圣洁鸣钟 == 0 && 神圣能量 <= 2 && HP80 >= 3",
+      "Condition": "auras.美德道标 > 0 && spells.圣洁鸣钟 == 0 && 神圣能量 <= 2 && HP80 >= 3",
       "Unit": 1,
       "Spell": "圣洁鸣钟",
       "Hotkey": "",
@@ -229,7 +173,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "美德道标 == 0 && spells.圣洁鸣钟 == 0 && 神圣能量 <= 2 && HP75 >= 3",
+      "Condition": "auras.美德道标 == 0 && spells.圣洁鸣钟 == 0 && 神圣能量 <= 2 && HP75 >= 3",
       "Unit": 1,
       "Spell": "圣洁鸣钟",
       "Hotkey": "",
@@ -245,7 +189,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 >= 3 && 无火血量 <= 80 || 神圣意志 > 0 && 无火血量 <= 80",
+      "Condition": "神圣能量 >= 3 && 无火血量 <= 80 || auras.神圣意志 > 0 && 无火血量 <= 80",
       "UnitName": "无火最低",
       "Spell": "荣耀圣令",
       "Hotkey": "",
@@ -253,7 +197,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 >= 3 && 最低血量 <= 75 || 神圣意志 > 0 && 最低血量 <= 75",
+      "Condition": "神圣能量 >= 3 && 最低血量 <= 75 || auras.神圣意志 > 0 && 最低血量 <= 75",
       "UnitName": "最低单位",
       "Spell": "荣耀圣令",
       "Hotkey": "",
@@ -261,7 +205,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 >= 3 && HP90 >= 3 || 神圣意志 > 0 && HP90 >= 3",
+      "Condition": "神圣能量 >= 3 && HP90 >= 3 || auras.神圣意志 > 0 && HP90 >= 3",
       "Unit": 0,
       "Spell": "黎明之光",
       "Hotkey": "",
@@ -269,7 +213,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 == 5 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 目标距离 <= 5 && 圣光灌注 > 0 || 神圣能量 == 5 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 目标距离 <= 5 && 神圣意志 > 0 || 神圣能量 == 5 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 目标距离 <= 5 && spells.神圣震击 == 0 && spells.震击充能 == 0",
+      "Condition": "神圣能量 == 5 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 目标距离 <= 5 && auras.圣光灌注 > 0 || 神圣能量 == 5 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 目标距离 <= 5 && auras.圣光灌注 > 0 || 神圣能量 == 5 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 目标距离 <= 5 && spells.神圣震击 == 0 && spells.震击充能 == 0",
       "Unit": 0,
       "Spell": "正义盾击",
       "Hotkey": "",
@@ -277,7 +221,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 <= 4 && 神圣意志 == 0 && !施法 && !移动 && 最低血量 < 50 && 能量值 >= 60 && 神圣能量 <= 1 || 神圣能量 <= 4 && 神圣意志 == 0 && !施法 && !移动 && 最低血量 < 50 && 能量值 >= 60 && 神圣能量 == 2 && spells.审判 >= 1",
+      "Condition": "神圣能量 <= 4 && auras.神圣意志 == 0 && 施法 == 0 && 移动 == false && 最低血量 < 50 && 能量值 >= 60 && 神圣能量 <= 1 || 神圣能量 <= 4 && auras.神圣意志 == 0 && 施法 == false && 移动 == false && 最低血量 < 50 && 能量值 >= 60 && 神圣能量 == 2 && spells.审判 >= 1",
       "UnitName": "最低单位",
       "Spell": "圣光术",
       "Hotkey": "",
@@ -285,7 +229,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 <= 4 && 神圣意志 == 0 && !施法 && 圣光灌注 > 0 && 最低血量 <= 90",
+      "Condition": "神圣能量 <= 4 && auras.神圣意志 == 0 && 施法 == false && auras.圣光灌注 > 0 && 最低血量 <= 90",
       "UnitName": "最低单位",
       "Spell": "圣光闪现",
       "Hotkey": "",
@@ -293,7 +237,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 <= 4 && 神圣意志 == 0 && spells.神圣震击 == 0 && !施法 && 圣光灌注 == 0 && 最低血量 < 90",
+      "Condition": "神圣能量 <= 4 && auras.神圣意志 == 0 && spells.神圣震击 == 0 && 施法 == false && auras.圣光灌注 == 0 && 最低血量 < 90",
       "UnitName": "最低单位",
       "Spell": "神圣震击",
       "Hotkey": "",
@@ -301,7 +245,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 <= 4 && 神圣意志 == 0 && !施法 && !移动 && 最低血量 < 50 && 能量值 >= 60",
+      "Condition": "神圣能量 <= 4 && auras.神圣意志 == 0 && 施法 == false && 移动 == false && 最低血量 < 50 && 能量值 >= 60",
       "UnitName": "最低单位",
       "Spell": "圣光术",
       "Hotkey": "",
@@ -309,7 +253,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 <= 4 && 神圣意志 == 0 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 神圣能量 == 2 && spells.审判 == 0",
+      "Condition": "神圣能量 <= 4 && auras.神圣意志 == 0 && 战斗时间 > 0 && 目标类型 in (1, 2, 3) && 神圣能量 == 2 && spells.审判 == 0",
       "Unit": 0,
       "Spell": "审判",
       "Hotkey": "",
@@ -317,7 +261,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "神圣能量 <= 4 && 神圣意志 == 0 && !施法 && !移动 && 最低血量 <= 90 && 圣光灌注 == 0",
+      "Condition": "神圣能量 <= 4 && auras.神圣意志 == 0 && 施法 == false && 移动 == false && 最低血量 <= 90 && auras.圣光灌注 == 0",
       "UnitName": "最低单位",
       "Spell": "圣光闪现",
       "Hotkey": "",
@@ -333,7 +277,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && 神圣能量 <= 4 && !施法 && spells.神圣震击 == 0 && 神圣能量 >= 2",
+      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && 神圣能量 <= 4 && 施法 == 0 && spells.神圣震击 == 0 && 神圣能量 >= 2",
       "Unit": 0,
       "Spell": "神圣震击",
       "Hotkey": "",
@@ -341,7 +285,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && 神圣能量 <= 4 && !施法 && spells.神圣震击 == 0 && spells.震击充能 == 0",
+      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && 神圣能量 <= 4 && 施法 == 0 && spells.神圣震击 == 0 && spells.震击充能 == 0",
       "Unit": 0,
       "Spell": "神圣震击",
       "Hotkey": "",

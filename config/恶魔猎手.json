@@ -107,6 +107,7 @@
             "step": 29,
             "type": "int"
         },
+        "auras": {},
         "spells": {
             "黑暗": {
                 "step": 40,
@@ -179,11 +180,6 @@
         }
     },
     "2": {
-        "灵魂残片": {
-            "step": "bar",
-            "bar": 1,
-            "type": "int"
-        },
         "投掷利刃": {
             "step": "bar",
             "bar": 2,
@@ -206,10 +202,6 @@
         },
         "敌人人数": {
             "step": 21,
-            "type": "int"
-        },
-        "烈火烙印buff": {
-            "step": 22,
             "type": "int"
         },
         "目标施法": {
@@ -244,10 +236,22 @@
             "step": 30,
             "type": "int"
         },
-        "无羁邪怒": {
-            "step": 31,
-            "type": "int"
+        "auras": {
+            "烈火烙印buff": {
+                "step": 22,
+                "type": "int"
+            },
+            "灵魂残片": {
+                "step": "bar",
+                "bar": 1,
+                "type": "int"
+            },
+            "无羁邪怒": {
+                "step": 31,
+                "type": "int"
+            }
         },
+     
         "spells": {
             "黑暗": {
                 "step": 40,
@@ -384,6 +388,7 @@
             "step": 29,
             "type": "int"
         },
+        "auras": {},
         "spells": {
             "黑暗": {
                 "step": 40,
