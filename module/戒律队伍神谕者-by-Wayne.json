@@ -138,7 +138,7 @@
       "Hotkey": "",
       "Step": ""
     },
-        {
+    {
       "Enabled": true,
       "Condition": "首领战 == 71 && 目标施法可打断 == 0 && 目标施法 <= 20",
       "Unit": 0,
@@ -180,7 +180,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "插入法术 != \"\"",
+      "Condition": "",
       "Unit": 0,
       "Spell": "插入法术",
       "Hotkey": "",
@@ -204,35 +204,27 @@
     },
     {
       "Enabled": true,
-      "Condition": "auras.暗影愈合 >= 1 && auras.暗影愈合 == 2 && 最低单位 == true && 最低单位值 <= 75 && auras.圣光涌动 == 0 && 移动 == false",
+      "Condition": "auras.愈合层数 == 2 && auras.暗影愈合 >= 1 && 最低单位值 <= 75 && 最低单位 == true",
       "UnitName": "最低单位",
       "Spell": "快速治疗",
       "Hotkey": "",
-      "Step": ""
+      "Step": "",
+      "SubConditions": [
+        "移动 == false && auras.圣光涌动 == 0",
+        "auras.圣光涌动 > 0"
+      ]
     },
     {
       "Enabled": true,
-      "Condition": "auras.暗影愈合 == 2 && 最低单位 == true && 最低单位值 <= 75 && auras.圣光涌动 > 0",
+      "Condition": "auras.愈合层数 == 1 && auras.暗影愈合 >= 1 && 最低单位值 <= 65 && 最低单位 == true",
       "UnitName": "最低单位",
       "Spell": "快速治疗",
       "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "auras.暗影愈合 >= 1 && auras.暗影愈合 == 1 && 最低单位 == true && 最低单位值 <= 65 && auras.圣光涌动 == 0 && 移动 == false",
-      "UnitName": "最低单位",
-      "Spell": "快速治疗",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "auras.暗影愈合 == 1 && 最低单位 == true && 最低单位值 <= 65 && auras.圣光涌动 > 0",
-      "UnitName": "最低单位",
-      "Spell": "快速治疗",
-      "Hotkey": "",
-      "Step": ""
+      "Step": "",
+      "SubConditions": [
+        "移动 == false && auras.圣光涌动 == 0",
+        "auras.圣光涌动 > 0"
+      ]
     },
     {
       "Enabled": true,
@@ -268,51 +260,39 @@
     },
     {
       "Enabled": true,
-      "Condition": "spells.福音 == 0 && auras.福音层数 == 0 && C90 >= 3",
+      "Condition": "spells.福音 == 0 && auras.福音层数 == 0",
       "Unit": 0,
       "Spell": "福音",
       "Hotkey": "",
-      "Step": ""
+      "Step": "",
+      "SubConditions": [
+        "C90 >= 3",
+        "耀90 >= 2"
+      ]
     },
     {
       "Enabled": true,
-      "Condition": "spells.福音 == 0 && auras.福音层数 == 0 && 耀90 >= 2",
-      "Unit": 0,
-      "Spell": "福音",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "spells.真言术：耀 == 0 && auras.福音层数 > 0 && 耀层数 == 2 && 耀90 >= 2",
+      "Condition": "spells.真言术：耀 == 0 && auras.福音层数 > 0 && 耀层数 == 2",
       "Unit": 0,
       "Spell": "真言术：耀",
       "Hotkey": "",
-      "Step": ""
+      "Step": "",
+      "SubConditions": [
+        "耀90 >= 2",
+        "C85 >= 2"
+      ]
     },
     {
       "Enabled": true,
-      "Condition": "spells.真言术：耀 == 0 && auras.福音层数 > 0 && 耀层数 == 1 && 耀80 >= 2",
+      "Condition": "spells.真言术：耀 == 0 && auras.福音层数 > 0 && 耀层数 == 1",
       "Unit": 0,
       "Spell": "真言术：耀",
       "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "spells.真言术：耀 == 0 && auras.福音层数 > 0 && 耀层数 == 2 && C85 >= 2",
-      "Unit": 0,
-      "Spell": "真言术：耀",
-      "Hotkey": "",
-      "Step": ""
-    },
-    {
-      "Enabled": true,
-      "Condition": "spells.真言术：耀 == 0 && auras.福音层数 > 0 && 耀层数 == 1 && C80 >= 2",
-      "Unit": 0,
-      "Spell": "真言术：耀",
-      "Hotkey": "",
-      "Step": ""
+      "Step": "",
+      "SubConditions": [
+        "耀80 >= 2",
+        "C80 >= 2"
+      ]
     },
     {
       "Enabled": true,
@@ -388,7 +368,14 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && spells.暗言术：灭 == 0 && 有救赎数量 > 0",
+      "Condition": "战斗时间 == 0 || 目标类型 not in (1, 2, 3)",
+      "Spell": "暂停",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.暗言术：灭 == 0 && 有救赎数量 > 0",
       "Unit": 0,
       "Spell": "暗言术：灭",
       "Hotkey": "",
@@ -396,7 +383,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && spells.心灵震爆 == 0 && spells.暗影分流 == 0 && 有救赎数量 == 0 && 移动 == false",
+      "Condition": "spells.心灵震爆 == 0 && spells.暗影分流 == 0 && 有救赎数量 == 0 && 移动 == false",
       "Unit": 0,
       "Spell": "心灵震爆",
       "Hotkey": "",
@@ -404,7 +391,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && spells.苦修 == 0 && 苦修层数 == 2",
+      "Condition": "spells.苦修 == 0 && 苦修层数 == 2",
       "Unit": 0,
       "Spell": "苦修",
       "Hotkey": "",
@@ -412,7 +399,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && spells.苦修 == 0 && 苦修层数 == 1 && spells.苦修充能 <= 3",
+      "Condition": "spells.苦修 == 0 && 苦修层数 == 1 && spells.苦修充能 <= 3",
       "Unit": 0,
       "Spell": "苦修",
       "Hotkey": "",
@@ -420,7 +407,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3) && 移动 == false",
+      "Condition": "移动 == false",
       "Unit": 0,
       "Spell": "惩击",
       "Hotkey": "",

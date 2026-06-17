@@ -678,7 +678,7 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "RuleNumber",
-            HeaderText = "编号",
+            HeaderText = "#",
             Width = 48,
             MinimumWidth = 48,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
