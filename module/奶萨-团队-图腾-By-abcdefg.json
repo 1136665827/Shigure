@@ -1,0 +1,259 @@
+{
+  "Id": "新模块1-20260618110034803",
+  "Name": "奶萨-团队-图腾 By abcdefg",
+  "Enabled": true,
+  "Match": {
+    "ClassId": 7,
+    "SpecId": 3,
+    "PartyType": "1-40",
+    "HeroTalent": 3
+  },
+  "Units": [
+    {
+      "Name": "魔法单位",
+      "Kind": "UnitWithDispelType",
+      "Reverse": false,
+      "DispelType": 1
+    },
+    {
+      "Name": "诅咒单位",
+      "Kind": "UnitWithDispelType",
+      "Reverse": false,
+      "DispelType": 3
+    },
+    {
+      "Name": "无盾坦克",
+      "Kind": "UnitWithRoleWithoutAura",
+      "Role": 1,
+      "Reverse": false,
+      "AuraNames": [
+        "大地之盾"
+      ]
+    },
+    {
+      "Name": "无盾治疗",
+      "Kind": "UnitWithRoleWithoutAura",
+      "Role": 2,
+      "Reverse": false,
+      "AuraNames": [
+        "大地之盾"
+      ]
+    },
+    {
+      "Name": "最低单位",
+      "HealthName": "最低单位值",
+      "Kind": "LowestHealth",
+      "HealthThreshold": 101,
+      "Reverse": false
+    },
+    {
+      "Name": "无激流最低",
+      "HealthName": "无激流最低值",
+      "Kind": "LowestHealthWithoutAura",
+      "HealthThreshold": 101,
+      "Reverse": false,
+      "AuraNames": [
+        "激流"
+      ]
+    }
+  ],
+  "Counts": [
+    {
+      "Name": "C90",
+      "Kind": "UnitsBelowHealth",
+      "HealthThreshold": 90
+    },
+    {
+      "Name": "C80",
+      "Kind": "UnitsBelowHealth",
+      "HealthThreshold": 80
+    },
+    {
+      "Name": "C70",
+      "Kind": "UnitsBelowHealth",
+      "HealthThreshold": 70
+    },
+    {
+      "Name": "群疗限值数量",
+      "Kind": "UnitsBelowHealth",
+      "HealthThresholdField": "治疗限值"
+    }
+  ],
+  "ValueAdjustments": [
+    {
+      "Enabled": true,
+      "Condition": "",
+      "Field": "治疗限值",
+      "Delta": 0,
+      "Formula": "70 + (能量值 * 0.2)"
+    }
+  ],
+  "Rules": [
+    {
+      "Enabled": true,
+      "Condition": "延迟 > 0 || 引导 > 0",
+      "Spell": "暂停",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "",
+      "Spell": "插入法术",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "auras.倾盆大雨层数 >= 1 && 法术失败 == 46",
+      "Unit": 0,
+      "Spell": "治疗之雨",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "一键辅助 == 1",
+      "Unit": 0,
+      "Spell": "唤潮者的护卫",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "一键辅助 == 2",
+      "Unit": 0,
+      "Spell": "大地生命武器",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "一键辅助 == 3",
+      "Unit": 0,
+      "Spell": "天怒",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "一键辅助 == 4",
+      "Unit": 0,
+      "Spell": "水之护盾",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "目标类型 == 12 && spells.净化灵魂 == 0",
+      "Unit": 0,
+      "Spell": "净化灵魂",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.净化灵魂 == 0 && 魔法单位 == true && 首领战 in (4, 5)",
+      "UnitName": "魔法单位",
+      "Spell": "净化灵魂",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.净化灵魂 == 0 && 诅咒单位 == true",
+      "UnitName": "诅咒单位",
+      "Spell": "净化灵魂",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "战斗时间 > 0 && auras.风暴涌流 > 0",
+      "Unit": 0,
+      "Spell": "治疗之泉图腾",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.治疗之泉图腾层数 == 2 && C90 >= 2 && spells.治疗之泉图腾充能 <= 6",
+      "Unit": 0,
+      "Spell": "治疗之泉图腾",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.治疗之泉图腾层数 == 1 && C80 >= 3",
+      "Unit": 0,
+      "Spell": "治疗之泉图腾",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "无激流最低 == true",
+      "UnitName": "无激流最低",
+      "Spell": "激流",
+      "Hotkey": "",
+      "Step": "",
+      "SubConditions": [
+        "spells.激流层数 >= 2",
+        "spells.激流层数 == 1 && 无激流最低值 <= 90"
+      ]
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.生命释放 == 0 && 群疗限值数量 >= 3",
+      "UnitName": "最低单位",
+      "Spell": "生命释放",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "C90 >= 3",
+      "UnitName": "最低单位",
+      "Spell": "治疗链",
+      "Hotkey": "",
+      "Step": "",
+      "SubConditions": [
+        "auras.升腾 > 0",
+        "spells.升腾 >= 162"
+      ]
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.自然迅捷 == 0 && auras.生命释放 == 0 && C80 >= 4",
+      "Unit": 0,
+      "Spell": "自然迅捷",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "群疗限值数量 >= 3",
+      "UnitName": "最低单位",
+      "Spell": "治疗链",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "群疗限值数量 <= 2",
+      "UnitName": "最低单位",
+      "Spell": "治疗波",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "战斗时间 > 0 && 目标类型 in (1, 2, 3)",
+      "Unit": 0,
+      "Spell": "一键法术",
+      "Hotkey": "",
+      "Step": ""
+    }
+  ]
+}

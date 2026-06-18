@@ -1,6 +1,6 @@
 # Shigure
 
-Shigure 是 荒坂公司 (Arasaka Corporation) 开发的冲锋枪，有时人们只想把子弹全打出去，在硝烟过后品味眼前的一片狼藉。
+Shigure 是 荒坂公司（Arasaka Corporation）开发的冲锋枪，有时人们只想把子弹全打出去，在硝烟过后品味眼前的一片狼藉。
 
 ### 它需要配合 冬月电子（Fuyutsuki Electronics）的 [Fuyutsui](https://github.com/waynebian01/Fuyutsui)使用。
 

@@ -1,0 +1,56 @@
+{
+  "Id": "新模块1-20260617224608824",
+  "Name": "官方一键 冰DK",
+  "Enabled": true,
+  "Match": {
+    "ClassId": 6,
+    "SpecId": 2
+  },
+  "Units": [],
+  "Counts": [],
+  "ValueAdjustments": [],
+  "Rules": [
+    {
+      "Enabled": true,
+      "Condition": "引导 > 0",
+      "Spell": "暂停",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "",
+      "Spell": "插入法术",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "生命值 <= 40",
+      "Unit": 0,
+      "Spell": "灵界打击",
+      "Hotkey": "",
+      "Step": "",
+      "SubConditions": [
+        "auras.黑暗援助 > 0",
+        "能量值 >= 40"
+      ]
+    },
+    {
+      "Enabled": true,
+      "Condition": "spells.冰龙吐息 == 0 && 能量值 >= 60 && 爆发开关 == 1",
+      "Unit": 0,
+      "Spell": "冰龙吐息",
+      "Hotkey": "",
+      "Step": ""
+    },
+    {
+      "Enabled": true,
+      "Condition": "",
+      "Unit": 0,
+      "Spell": "一键法术",
+      "Hotkey": "",
+      "Step": ""
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "Id": "新模块1-20260617152514709",
+  "Name": "牧师测试模块",
+  "Enabled": true,
+  "Match": {
+    "ClassId": 5,
+    "SpecId": 1,
+    "PartyType": "0",
+    "HeroTalent": 1
+  },
+  "Units": [],
+  "Counts": [],
+  "ValueAdjustments": [
+    {
+      "Enabled": true,
+      "Condition": "施法技能 == 29",
+      "Field": "auras.愈合层数",
+      "Delta": 10,
+      "Formula": ""
+    }
+  ],
+  "Rules": [
+    {
+      "Enabled": true,
+      "Condition": "auras.暗影愈合 == 10",
+      "Unit": 0,
+      "Spell": "苦修",
+      "Hotkey": "",
+      "Step": ""
+    }
+  ]
+}
