@@ -225,7 +225,7 @@ internal static class UiTheme
         listBox.BorderStyle = BorderStyle.FixedSingle;
         listBox.CheckOnClick = true;
         listBox.IntegralHeight = false;
-        listBox.ItemHeight = 24;
+        listBox.ItemHeight = 30;
     }
 
     public static void StyleComboBox(ComboBox comboBox)
@@ -271,7 +271,7 @@ internal static class UiTheme
         listBox.ForeColor = Text;
         listBox.BorderStyle = BorderStyle.None;
         listBox.DrawMode = DrawMode.OwnerDrawFixed;
-        listBox.ItemHeight = 30;
+        listBox.ItemHeight = 36;
         listBox.IntegralHeight = false;
 
         listBox.DrawItem += (_, e) =>
@@ -322,7 +322,7 @@ internal static class UiTheme
         listView.BorderStyle = BorderStyle.None;
         listView.OwnerDraw = true;
         listView.ShowItemToolTips = true;
-        listView.SmallImageList = new ImageList { ImageSize = new Size(1, 26) };
+        listView.SmallImageList = new ImageList { ImageSize = new Size(1, 32) };
         typeof(Control)
             .GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic)
             ?.SetValue(listView, true);
@@ -390,20 +390,20 @@ internal static class UiTheme
         grid.EnableHeadersVisualStyles = false;
         grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
         grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-        grid.ColumnHeadersHeight = 32;
+        grid.ColumnHeadersHeight = 36;
         grid.ColumnHeadersDefaultCellStyle.BackColor = Field;
         grid.ColumnHeadersDefaultCellStyle.ForeColor = Muted;
         grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Field;
         grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Muted;
-        grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(6, 0, 6, 0);
+        grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
         grid.DefaultCellStyle.BackColor = Surface;
         grid.DefaultCellStyle.ForeColor = Text;
         grid.DefaultCellStyle.SelectionBackColor = Hover;
         grid.DefaultCellStyle.SelectionForeColor = Text;
-        grid.DefaultCellStyle.Padding = new Padding(6, 0, 6, 0);
+        grid.DefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
         grid.AlternatingRowsDefaultCellStyle.BackColor = RowAlt;
         grid.AlternatingRowsDefaultCellStyle.ForeColor = Text;
-        grid.RowTemplate.Height = 30;
+        grid.RowTemplate.Height = 38;
         grid.RowHeadersVisible = false;
         grid.AllowUserToResizeRows = false;
         grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;

@@ -114,12 +114,12 @@ public sealed class ModuleEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Background,
-            Padding = new Padding(0, 0, 10, 0),
+            Padding = new Padding(0, 0, 14, 0),
             ColumnCount = 1,
             RowCount = 2
         };
         sidebar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
         _moduleList.Dock = DockStyle.Fill;
         UiTheme.StyleListBox(_moduleList, Font);
@@ -138,12 +138,12 @@ public sealed class ModuleEditorControl : UserControl
 
         var addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
         addButton.Width = 72;
-        addButton.Height = 30;
+        addButton.Height = 34;
         addButton.Click += (_, _) => AddModule();
 
         var reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
         reloadButton.Width = 72;
-        reloadButton.Height = 30;
+        reloadButton.Height = 34;
         reloadButton.Click += (_, _) => LoadModules();
 
         buttons.Controls.Add(addButton);
@@ -159,14 +159,14 @@ public sealed class ModuleEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(8, 0, 0, 4),
+            Padding = new Padding(10, 0, 0, 6),
             ColumnCount = 1,
             RowCount = 4
         };
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
         editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
 
         editor.Controls.Add(BuildNameRow(), 0, 0);
         editor.Controls.Add(BuildMatchRow(), 0, 1);
@@ -180,13 +180,13 @@ public sealed class ModuleEditorControl : UserControl
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 8, 0, 6),
+            Margin = new Padding(0, 12, 0, 8),
             Padding = new Padding(0),
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
             RowCount = 2
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var tabBar = new TableLayoutPanel
@@ -319,13 +319,13 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(10),
+            Padding = new Padding(14),
             Margin = new Padding(0)
         };
 
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
 
         panel.Controls.Add(CreateSectionLabel("条件动态数值"), 0, 0);
@@ -344,7 +344,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 1,
-            Padding = new Padding(10),
+            Padding = new Padding(14),
             Margin = new Padding(0)
         };
 
@@ -361,7 +361,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 2,
             RowCount = 1,
-            Padding = new Padding(10),
+            Padding = new Padding(14),
             Margin = new Padding(0)
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -407,7 +407,7 @@ public sealed class ModuleEditorControl : UserControl
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(6, 0, 0, 0),
+            Margin = new Padding(8, 0, 0, 0),
             Padding = new Padding(0)
         };
         buttons.Resize += (_, _) => LayoutUnitActionButtons(buttons);
@@ -437,16 +437,16 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 4,
             RowCount = 2,
-            Padding = new Padding(10, 8, 10, 2),
-            Margin = new Padding(0, 0, 0, 8)
+            Padding = new Padding(12, 10, 12, 4),
+            Margin = new Padding(0, 0, 0, 10)
         };
         // 名称/作者各占剩余宽度的一半, 两个输入框等宽并铺满窗口。
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         row.Controls.Add(CreateLabel("名称"), 0, 0);
         UiTheme.StyleTextBox(_nameBox);
@@ -487,7 +487,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 8,
             RowCount = 2,
-            Padding = new Padding(10, 8, 10, 8),
+            Padding = new Padding(12, 10, 12, 10),
             Margin = new Padding(0)
         };
         foreach (var label in matchLabels)
@@ -531,7 +531,7 @@ public sealed class ModuleEditorControl : UserControl
         {
             Name = "Enabled",
             HeaderText = "启用",
-            Width = 100,
+            Width = 68,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None
         });
 
@@ -602,7 +602,7 @@ public sealed class ModuleEditorControl : UserControl
         {
             Name = "Enabled",
             HeaderText = "启用",
-            Width = 86,
+            Width = 68,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None
         });
 
@@ -653,7 +653,7 @@ public sealed class ModuleEditorControl : UserControl
         {
             Name = "Enabled",
             HeaderText = "启用",
-            Width = 120,
+            Width = 68,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None
         });
         _spellColumn.Name = "Spell";
@@ -2297,7 +2297,7 @@ public sealed class ModuleEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0),
-            Padding = new Padding(10, 0, 10, 0)
+            Padding = new Padding(12, 0, 12, 0)
         };
 
         var hint = new Label
@@ -2319,7 +2319,7 @@ public sealed class ModuleEditorControl : UserControl
             WrapContents = false,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0),
-            Padding = new Padding(0, 6, 0, 6)
+            Padding = new Padding(0, 8, 0, 8)
         };
 
         _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
@@ -2743,8 +2743,8 @@ public sealed class ModuleEditorControl : UserControl
         var button = UiTheme.CreateButton(text, backColor, foreColor);
         button.AutoSize = false;
         button.AutoEllipsis = true;
-        button.Height = 32;
-        button.Margin = new Padding(0, 0, 0, bottomGap ? 6 : 0);
+        button.Height = 36;
+        button.Margin = new Padding(0, 0, 0, bottomGap ? 8 : 0);
         button.Padding = new Padding(0);
         button.TextAlign = ContentAlignment.MiddleCenter;
         return button;

@@ -385,13 +385,13 @@ public sealed class MainForm : Form, IMessageFilter
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 2,
             RowCount = 2,
-            Padding = new Padding(12, 12, 12, 6),
-            Margin = new Padding(0, 0, 0, 10)
+            Padding = new Padding(16, 16, 16, 10),
+            Margin = new Padding(0, 0, 0, 14)
         };
         settingsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
         settingsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
 
         Label CreateSettingLabel(string text) => new()
         {
@@ -399,7 +399,7 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
             ForeColor = UiTheme.Muted,
-            Margin = new Padding(0, 0, 10, 12)
+            Margin = new Padding(0, 0, 12, 14)
         };
 
         const int settingControlWidth = 190;
@@ -433,12 +433,12 @@ public sealed class MainForm : Form, IMessageFilter
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 2,
             RowCount = 2,
-            Padding = new Padding(12, 12, 12, 10),
+            Padding = new Padding(16, 16, 16, 14),
             Margin = new Padding(0)
         };
         moduleInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
         moduleInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        moduleInfo.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        moduleInfo.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
         moduleInfo.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         _moduleComboBox = new ComboBox();

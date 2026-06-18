@@ -61,11 +61,11 @@ public sealed class StatusForm : Form
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Background,
-            Padding = new Padding(14),
+            Padding = new Padding(18),
             RowCount = 2,
             ColumnCount = 1
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         Controls.Add(root);
 
@@ -98,14 +98,14 @@ public sealed class StatusForm : Form
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
             BackColor = UiTheme.Background,
-            Margin = new Padding(0, 0, 0, 8)
+            Margin = new Padding(0, 0, 0, 12)
         };
 
         _contentHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(12),
+            Padding = new Padding(16),
             Margin = new Padding(0)
         };
 
@@ -166,11 +166,11 @@ public sealed class StatusForm : Form
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 3,
-            Padding = new Padding(10),
-            Margin = new Padding(0, 0, isLast ? 0 : 8, 0)
+            Padding = new Padding(14),
+            Margin = new Padding(0, 0, isLast ? 0 : 12, 0)
         };
+        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         section.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
-        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
         section.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         section.Controls.Add(new Label
@@ -194,7 +194,7 @@ public sealed class StatusForm : Form
         }, 0, 1);
 
         content.Dock = DockStyle.Fill;
-        content.Margin = new Padding(0, 8, 0, 0);
+        content.Margin = new Padding(0, 12, 0, 0);
         section.Controls.Add(content, 0, 2);
         return section;
     }
@@ -256,12 +256,12 @@ public sealed class StatusForm : Form
         {
             Text = text,
             AutoSize = false,
-            Size = new Size(88, 32),
+            Size = new Size(96, 38),
             TextAlign = ContentAlignment.MiddleCenter,
             FlatStyle = FlatStyle.Flat,
             BackColor = UiTheme.Background,
             ForeColor = UiTheme.Muted,
-            Margin = new Padding(0, 0, 7, 0),
+            Margin = new Padding(0, 0, 9, 0),
             Padding = new Padding(0),
             Cursor = Cursors.Hand,
             TabStop = false
@@ -301,7 +301,7 @@ public sealed class StatusForm : Form
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(12)
+            Padding = new Padding(18)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -312,7 +312,7 @@ public sealed class StatusForm : Form
             AutoSize = true,
             ForeColor = UiTheme.Text,
             Font = new Font(Font.FontFamily, 18F, FontStyle.Bold),
-            Margin = new Padding(0, 0, 0, 18)
+            Margin = new Padding(0, 0, 0, 22)
         };
         panel.Controls.Add(title, 0, 0);
 
@@ -374,11 +374,11 @@ public sealed class StatusForm : Form
             Text = name,
             AutoSize = false,
             Width = 104,
-            Height = 22,
+            Height = 26,
             ForeColor = UiTheme.Muted,
             AutoEllipsis = true,
             TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0, 0, 16, 10)
+            Margin = new Padding(0, 0, 18, 14)
         }, 0, row);
         panel.Controls.Add(new Label
         {
@@ -386,7 +386,7 @@ public sealed class StatusForm : Form
             AutoSize = true,
             MaximumSize = new Size(580, 0),
             ForeColor = UiTheme.Text,
-            Margin = new Padding(0, 0, 0, 10)
+            Margin = new Padding(0, 0, 0, 14)
         }, 1, row);
     }
 
