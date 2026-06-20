@@ -58,6 +58,7 @@ public sealed class AuraIconRecognizer : IDisposable
     private const int MinLocalScanHeight = 240;
     private const int MaxLocalizedMisses = 2;
     private const int FullScanInterval = 10;
+    private const int MaxAuraStackBarValue = 20;
     private const double MinEdgeMatchRatio = 0.82;
     private const double MinWhiteMatchRatio = 0.62;
     private const double MinStatusBarEncodedRatio = 0.25;
@@ -400,9 +401,10 @@ public sealed class AuraIconRecognizer : IDisposable
             }
 
             using var icon = capture.Clone(detected.IconBounds, PixelFormat.Format32bppArgb);
-            var iconHash = ComputeDHash(icon);
+            using var matchIcon = CreateMatchIcon(icon);
+            var iconHash = ComputeDHash(matchIcon);
             var savedIconPath = saveIcons ? SaveAuraIcon(icon, iconHash, auraDirectory) : null;
-            var candidates = RecognizeIcon(icon, iconHash, templates);
+            var candidates = RecognizeIcon(matchIcon, iconHash, templates);
             var best = candidates.FirstOrDefault();
 
             slots.Add(new AuraSlotRecognition(
@@ -476,7 +478,7 @@ public sealed class AuraIconRecognizer : IDisposable
             .Select(match => new AuraRecognitionCandidate(
                 match.Template.Name,
                 match.HashDistance,
-                TemplateSimilarity(icon, match.Template.Bitmap),
+                TemplateSimilarity(icon, match.Template.MatchBitmap),
                 match.Template.Path))
             .OrderByDescending(candidate => candidate.TemplateScore)
             .ThenBy(candidate => candidate.HashDistance)
@@ -505,11 +507,13 @@ public sealed class AuraIconRecognizer : IDisposable
             {
                 using var source = Image.FromFile(path);
                 var bitmap = new Bitmap(source);
+                var matchBitmap = CreateMatchIcon(bitmap);
                 templates.Add(new AuraTemplate(
                     name,
                     path,
-                    Convert.ToUInt64(hash, 16),
-                    bitmap));
+                    ComputeDHash(matchBitmap),
+                    bitmap,
+                    matchBitmap));
             }
             catch
             {
@@ -594,20 +598,20 @@ public sealed class AuraIconRecognizer : IDisposable
             return false;
         }
 
-        var hasEncodedStatusBar = HasEncodedStatusBar(pixels, width, height, x, y, slotWidth, slotHeight, rowR, index);
         if (MatchRatioHorizontal(pixels, width, x, y, slotWidth, color) < MinEdgeMatchRatio
-            || (!hasEncodedStatusBar && MatchRatioHorizontal(pixels, width, x, y + slotHeight - 1, slotWidth, color) < MinEdgeMatchRatio)
             || MatchRatioVertical(pixels, width, x, y, slotHeight, color) < MinEdgeMatchRatio
             || MatchRatioVertical(pixels, width, x + slotWidth - 1, y, slotHeight, color) < MinEdgeMatchRatio)
         {
             return false;
         }
 
+        var scale = Math.Max(slotWidth, slotHeight) / (double)BaseSlotSize;
+        var expectedBorderWidth = ScaleValue(BaseBorderWidth, scale);
         var maxBorderWidth = Math.Max(2, Math.Min(slotWidth, slotHeight) / 4);
         var topBorder = MeasureTopBorder(pixels, width, x, y, slotWidth, color, maxBorderWidth);
-        var bottomBorder = hasEncodedStatusBar
-            ? MeasureEncodedStatusBarHeight(pixels, width, height, x, y, slotWidth, slotHeight, rowR, index, maxBorderWidth)
-            : MeasureBottomBorder(pixels, width, x, y, slotWidth, slotHeight, color, maxBorderWidth);
+        var bottomBorder = FallbackIfZero(
+            MeasureBottomBorder(pixels, width, x, y, slotWidth, slotHeight, color, maxBorderWidth),
+            expectedBorderWidth);
         var leftBorder = MeasureLeftBorder(pixels, width, x, y, slotHeight, color, maxBorderWidth);
         var rightBorder = MeasureRightBorder(pixels, width, x, y, slotWidth, slotHeight, color, maxBorderWidth);
         if (topBorder <= 0 || bottomBorder <= 0 || leftBorder <= 0 || rightBorder <= 0)
@@ -631,7 +635,6 @@ public sealed class AuraIconRecognizer : IDisposable
             return false;
         }
 
-        var scale = Math.Max(slotWidth, slotHeight) / (double)BaseSlotSize;
         var expectedWhiteWidth = ScaleValue(BaseWhiteBorderWidth, scale);
         var maxWhiteWidth = Math.Max(1, expectedWhiteWidth + 1);
         var whiteLeft = FallbackIfZero(MeasureWhiteLeft(pixels, width, innerBounds, maxWhiteWidth), expectedWhiteWidth);
@@ -650,9 +653,7 @@ public sealed class AuraIconRecognizer : IDisposable
         }
 
         var borderWidth = Math.Max(1, (topBorder + bottomBorder + leftBorder + rightBorder) / 4);
-        var stackB = hasEncodedStatusBar
-            ? ReadStatusBarStackB(pixels, width, height, slotBounds, innerBounds, rowR, index, remainingB)
-            : remainingB;
+        var stackB = ReadStatusBarStackB(pixels, width, height, slotBounds, innerBounds, rowR, index, remainingB);
         slot = new DetectedAuraSlot(rowR, index, remainingB, stackB, slotBounds, iconBounds, borderWidth, scale);
         return true;
     }
@@ -752,25 +753,30 @@ public sealed class AuraIconRecognizer : IDisposable
         int index,
         int remainingB)
     {
-        var startY = Math.Max(innerBounds.Bottom, slotBounds.Bottom - Math.Max(2, slotBounds.Height / 6));
-        var endY = Math.Min(height, slotBounds.Bottom);
+        var scanPadding = Math.Max(4, slotBounds.Height / 4);
+        var startY = Math.Max(0, innerBounds.Bottom);
+        var endY = Math.Min(height, slotBounds.Bottom + scanPadding);
         var startX = Math.Max(0, innerBounds.Left);
         var endX = Math.Min(width, innerBounds.Right);
         int? fallback = null;
         for (var y = startY; y < endY; y++)
         {
             var whiteEnd = -1;
+            var whiteCount = 0;
+            var encodedCount = 0;
             for (var x = startX; x < endX; x++)
             {
                 var color = GetArgb(pixels, width, x, y);
                 if (IsWhite(GetArgb(pixels, width, x, y)))
                 {
                     whiteEnd = x;
+                    whiteCount++;
                     continue;
                 }
 
                 if (IsEncodedSlotColorFor(color, rowR, index))
                 {
+                    encodedCount++;
                     var value = GetB(color);
                     if (whiteEnd >= 0)
                     {
@@ -782,6 +788,12 @@ public sealed class AuraIconRecognizer : IDisposable
                         fallback ??= value;
                     }
                 }
+            }
+
+            if (whiteCount >= Math.Max(2, (endX - startX) * 0.85)
+                && encodedCount == 0)
+            {
+                return MaxAuraStackBarValue;
             }
         }
 
@@ -1063,6 +1075,26 @@ public sealed class AuraIconRecognizer : IDisposable
         return Math.Max(0, Math.Min(1, (correlation + 1) / 2));
     }
 
+    private static Bitmap CreateMatchIcon(Bitmap icon)
+    {
+        var normalized = new Bitmap(icon);
+        var maskWidth = Math.Max(6, normalized.Width / 3);
+        var maskHeight = Math.Max(6, normalized.Height / 3);
+        var left = Math.Max(0, normalized.Width - maskWidth);
+        var top = Math.Max(0, normalized.Height - maskHeight);
+        using var graphics = Graphics.FromImage(normalized);
+        using var brush = new SolidBrush(SampleReplacementColor(normalized, left, top));
+        graphics.FillRectangle(brush, left, top, normalized.Width - left, normalized.Height - top);
+        return normalized;
+    }
+
+    private static Color SampleReplacementColor(Bitmap bitmap, int left, int top)
+    {
+        var sampleX = Math.Clamp(left - 1, 0, bitmap.Width - 1);
+        var sampleY = Math.Clamp(top - 1, 0, bitmap.Height - 1);
+        return bitmap.GetPixel(sampleX, sampleY);
+    }
+
     private static ulong ComputeDHash(Bitmap bitmap)
     {
         var gray = ToGrayscale(bitmap, 9, 8);
@@ -1188,22 +1220,25 @@ public sealed class AuraIconRecognizer : IDisposable
 
     private sealed class AuraTemplate : IDisposable
     {
-        public AuraTemplate(string name, string path, ulong dHash, Bitmap bitmap)
+        public AuraTemplate(string name, string path, ulong dHash, Bitmap bitmap, Bitmap matchBitmap)
         {
             Name = name;
             Path = path;
             DHash = dHash;
             Bitmap = bitmap;
+            MatchBitmap = matchBitmap;
         }
 
         public string Name { get; }
         public string Path { get; }
         public ulong DHash { get; }
         public Bitmap Bitmap { get; }
+        public Bitmap MatchBitmap { get; }
 
         public void Dispose()
         {
             Bitmap.Dispose();
+            MatchBitmap.Dispose();
         }
     }
 }
