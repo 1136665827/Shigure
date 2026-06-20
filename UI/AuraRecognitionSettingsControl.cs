@@ -70,7 +70,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         ForeColor = UiTheme.Text;
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
-        _scanButton = UiTheme.CreateButton("手动扫描", UiTheme.Accent, Color.Black);
+        _scanButton = UiTheme.CreateButton("缓存图标", UiTheme.Accent, Color.Black);
         _toggleAuraImportButton = UiTheme.CreateButton("启用识别", UiTheme.Field, UiTheme.Text);
         _refreshTemplatesButton = UiTheme.CreateButton("刷新图标", UiTheme.Field, UiTheme.Text);
         _openTemplateDirectoryButton = UiTheme.CreateButton("打开目录", UiTheme.Field, UiTheme.Text);
@@ -84,10 +84,10 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         _scopeLabel = CreateInfoLabel("分类: 0/0");
         _selectedHashLabel = CreateInfoLabel("未选择光环");
         _nameStatusLabel = CreateInfoLabel("自定义名称: 0 个");
-        _slotList = UiTheme.CreateListView(Font, ("#", 46), ("图标", 64), ("名称", 170), ("类型", 70), ("时间", 64), ("dHash", 142), ("距离", 64), ("相似度", 72), ("截图", 160), ("区域", 150));
+        _slotList = UiTheme.CreateListView(Font, ("#", 46), ("图标", 64), ("名称", 170), ("类型", 70), ("层数", 64), ("时间", 64), ("dHash", 142), ("距离", 64), ("相似度", 72), ("截图", 160), ("区域", 150));
         _slotList.SmallImageList = _slotIconList;
         _slotList.DrawSubItem += DrawSlotIconSubItem;
-        _savedIconList = UiTheme.CreateListView(Font, ("图标", 64), ("名称", 170), ("dHash", 150), ("文件", 150), ("已保存", 72));
+        _savedIconList = UiTheme.CreateListView(Font, ("图标", 64), ("名称", 170), ("dHash", 220), ("文件", 240), ("已保存", 42));
         _savedIconList.HeaderStyle = ColumnHeaderStyle.Clickable;
         _savedIconList.SmallImageList = _savedIconImageList;
         _savedIconList.DrawSubItem += DrawSavedIconSubItem;
@@ -135,12 +135,12 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         root.Controls.Add(BuildResultsPane(), 0, 1);
         root.Controls.Add(BuildDetailsPane(), 0, 2);
 
-        _scanButton.Click += (_, _) => Scan();
+        _scanButton.Click += (_, _) => Scan(saveTempIcons: true);
         _toggleAuraImportButton.Click += (_, _) => ToggleAuraImport();
         _refreshTemplatesButton.Click += (_, _) => RefreshTemplateInfo();
         _openTemplateDirectoryButton.Click += (_, _) => OpenTemplateDirectory();
         _saveNameButton.Click += (_, _) => SaveSelectedAuraName();
-        _realtimeScanTimer.Tick += (_, _) => Scan(isRealtimeTick: true);
+        _realtimeScanTimer.Tick += (_, _) => Scan(isRealtimeTick: true, saveTempIcons: false);
         _hashDistanceTrackBar.ValueChanged += (_, _) =>
         {
             _hashDistanceValueLabel.Text = $"最大距离: {_hashDistanceTrackBar.Value}";
@@ -184,6 +184,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         LoadAuraNames();
         ClearSelectedAura();
         RefreshTemplateInfo();
+        EnableAuraImportByDefault();
     }
 
     private Control BuildToolbar()
@@ -569,8 +570,8 @@ public sealed class AuraRecognitionSettingsControl : UserControl
     {
         _detailsBox.Text =
             $"识别库来自 {AuraIconRecognizer.DefaultAuraDirectory}\\职业ID\\专精ID：AurasHash.json 保存“中文名称 -> 多个 dHash”的对象映射，同目录的 dHash.png 作为匹配图标。" + Environment.NewLine +
-            $"启用识别后会每 {RealtimeScanIntervalMs}ms 实时扫描并导入光环列表；手动扫描只在点击按钮时执行。定位只使用新布局的彩色槽位框：R=2 为增益，R=3 为减益，G 为第几个光环，B 为剩余时间值。" + Environment.NewLine +
-            $"每次扫描会把裁剪出的图标保存到 {AuraIconRecognizer.DefaultTempAuraDirectory}\\职业ID\\专精ID，文件名为 dHash.png；相同 dHash 已存在时会跳过写入。" + Environment.NewLine +
+            $"启用识别默认开启，会每 {RealtimeScanIntervalMs}ms 实时扫描并导入光环列表；实时扫描只识别图标，不保存临时图标。定位使用新布局的彩色槽位框：R=2 为增益，R=3 为减益，G 为第几个光环，边框 B 为剩余时间；每个图标下方 StatusBar 白色右侧第一个颜色的 B 会作为层数导入。" + Environment.NewLine +
+            $"手动扫描会把裁剪出的图标保存到 {AuraIconRecognizer.DefaultTempAuraDirectory}\\职业ID\\专精ID，文件名为 dHash.png；相同 dHash 已存在时会跳过写入。" + Environment.NewLine +
             $"“已有图标”会列出 tmp 里的待整理图标；保存名称后只会把对应图标复制到 {AuraIconRecognizer.DefaultAuraDirectory}\\职业ID\\专精ID，并写入当前分类目录的 AurasHash.json。职业或专精未知时会使用 0/0。";
         return BuildSection("说明", _detailsBox, "本页用于调试定位与图标候选，不会影响现有设置");
     }
@@ -615,7 +616,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         return section;
     }
 
-    private void Scan(bool isRealtimeTick = false)
+    private void Scan(bool isRealtimeTick = false, bool saveTempIcons = false)
     {
         if (_isScanning)
         {
@@ -623,22 +624,24 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         }
 
         _isScanning = true;
-        _scanButton.Enabled = false;
-        _refreshTemplatesButton.Enabled = false;
         if (!isRealtimeTick)
         {
+            _scanButton.Enabled = false;
+            _refreshTemplatesButton.Enabled = false;
             _summaryLabel.Text = "正在扫描...";
         }
 
         try
         {
+            var previousScope = _activeScope;
             UpdateActiveScope();
+            var scopeChanged = previousScope != _activeScope;
             LoadAuraNames();
             var tempAuraDirectory = GetScopedTempAuraDirectory();
             var matchAuraDirectory = GetScopedAuraDirectory();
             var recognizer = GetOrCreateRecognizer(matchAuraDirectory, tempAuraDirectory);
-            _lastResult = recognizer.Scan();
-            ApplyResult(_lastResult);
+            _lastResult = recognizer.Scan(saveIcons: saveTempIcons);
+            ApplyResult(_lastResult, refreshSavedIcons: saveTempIcons || !isRealtimeTick || scopeChanged);
         }
         catch (Exception ex)
         {
@@ -647,8 +650,11 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         finally
         {
             _isScanning = false;
-            _scanButton.Enabled = true;
-            _refreshTemplatesButton.Enabled = true;
+            if (!isRealtimeTick)
+            {
+                _scanButton.Enabled = true;
+                _refreshTemplatesButton.Enabled = true;
+            }
         }
     }
 
@@ -663,13 +669,22 @@ public sealed class AuraRecognitionSettingsControl : UserControl
             _summaryLabel.Text = _lastResult is null
                 ? $"光环识别已启用，实时扫描频率 {RealtimeScanIntervalMs}ms"
                 : $"光环识别已启用，已导入最近扫描结果，实时扫描频率 {RealtimeScanIntervalMs}ms";
-            Scan(isRealtimeTick: true);
+            Scan(isRealtimeTick: true, saveTempIcons: false);
             return;
         }
 
         _realtimeScanTimer.Stop();
         PublishRecognizedAuras([]);
         _summaryLabel.Text = "光环识别已关闭，实时扫描已停止，已移除导入结果";
+    }
+
+    private void EnableAuraImportByDefault()
+    {
+        _auraImportEnabled = true;
+        UpdateAuraImportButton();
+        _realtimeScanTimer.Start();
+        _summaryLabel.Text = $"光环识别已启用，实时扫描频率 {RealtimeScanIntervalMs}ms";
+        Scan(isRealtimeTick: true, saveTempIcons: false);
     }
 
     private void UpdateAuraImportButton()
@@ -705,7 +720,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         _recognizerSignature = null;
     }
 
-    private void ApplyResult(AuraRecognitionScanResult result)
+    private void ApplyResult(AuraRecognitionScanResult result, bool refreshSavedIcons = true)
     {
         _summaryLabel.Text = result.Message;
         _anchorLabel.Text = result.MarkerFound && result.MarkerLocation is { } marker
@@ -733,6 +748,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
                     string.Empty,
                     GetAuraDisplayName(slot),
                     slot.Row,
+                    slot.StackB.ToString(),
                     slot.RemainingB.ToString(),
                     hash,
                     slot.HashDistance?.ToString() ?? "-",
@@ -767,7 +783,10 @@ public sealed class AuraRecognitionSettingsControl : UserControl
             _suppressSlotSelectionChanged = false;
         }
 
-        RefreshSavedIconList(selectedHash ?? _currentSelectedHash);
+        if (refreshSavedIcons)
+        {
+            RefreshSavedIconList(selectedHash ?? _currentSelectedHash);
+        }
         if (_slotList.Items.Count == 0)
         {
             ClearSelectedAura();
@@ -808,11 +827,16 @@ public sealed class AuraRecognitionSettingsControl : UserControl
             return;
         }
 
+        var preserveRenameText = _renameBox.Focused
+            && string.Equals(_currentSelectedHash, selected.Hash, StringComparison.OrdinalIgnoreCase);
         _currentSelectedHash = selected.Hash;
         _selectedHashLabel.Text = selected.Description;
         _renameBox.Enabled = true;
         _saveNameButton.Enabled = true;
-        _renameBox.Text = selected.EditName;
+        if (!preserveRenameText)
+        {
+            _renameBox.Text = selected.EditName;
+        }
         SetPreviewImage(LoadPreviewImage(selected.IconPath));
         UpdateSelectedCandidates();
     }
@@ -1051,6 +1075,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
 
             auras.Add(new RecognizedAuraInfo(
                 name.Trim(),
+                slot.StackB,
                 slot.RemainingB,
                 slot.Row,
                 slot.Index,
@@ -1087,12 +1112,13 @@ public sealed class AuraRecognitionSettingsControl : UserControl
 
     private string? AddSlotIcon(AuraSlotRecognition slot)
     {
-        if (string.IsNullOrWhiteSpace(slot.SavedIconPath) || !File.Exists(slot.SavedIconPath))
+        var iconPath = GetBestTemplateIconPath(slot);
+        if (iconPath is null)
         {
             return null;
         }
 
-        var key = AuraIconRecognizer.FormatHash(slot.IconHash);
+        var key = $"{AuraIconRecognizer.FormatHash(slot.IconHash)}|{Path.GetFullPath(iconPath)}";
         if (_slotIconList.Images.ContainsKey(key))
         {
             return key;
@@ -1100,13 +1126,19 @@ public sealed class AuraRecognitionSettingsControl : UserControl
 
         try
         {
-            _slotIconList.Images.Add(key, CreateListIcon(slot.SavedIconPath));
+            _slotIconList.Images.Add(key, CreateListIcon(iconPath));
             return key;
         }
         catch
         {
             return null;
         }
+    }
+
+    private static string? GetBestTemplateIconPath(AuraSlotRecognition slot)
+    {
+        var path = slot.Candidates.FirstOrDefault()?.TemplatePath;
+        return !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? path : null;
     }
 
     private void RefreshSavedIconList(string? selectedHash = null)
@@ -1511,7 +1543,7 @@ public sealed class AuraRecognitionSettingsControl : UserControl
         => hash.Length <= 8 ? hash : hash[..8];
 
     private string FormatSlotToolTip(AuraSlotRecognition slot)
-        => $"{slot.Row} #{slot.Index}  名称: {GetAuraDisplayName(slot)}  dHash: {AuraIconRecognizer.FormatHash(slot.IconHash)}  Icon: {FormatRectangle(slot.IconBounds)}  截图: {slot.SavedIconPath ?? "-"}";
+        => $"{slot.Row} #{slot.Index}  名称: {GetAuraDisplayName(slot)}  层数: {slot.StackB}  剩余B: {slot.RemainingB}  dHash: {AuraIconRecognizer.FormatHash(slot.IconHash)}  Icon: {FormatRectangle(slot.IconBounds)}  截图: {slot.SavedIconPath ?? "-"}";
 
     private sealed record SavedAuraIcon(string Hash, string Path);
 

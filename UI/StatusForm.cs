@@ -78,7 +78,7 @@ public sealed class StatusForm : Form
         _aboutHost = CreatePageHost();
 
         _stateList = UiTheme.CreateListView(Font, ("#", 56), ("名称", 150), ("值", 130));
-        _auraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 140), ("值", 100));
+        _auraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 140), ("时间", 82), ("层数", 82));
         _dynamicUnitList = UiTheme.CreateListView(Font, ("类型", 86), ("名称", 120), ("值", 160));
         _spellList = UiTheme.CreateListView(Font, ("#", 56), ("技能", 150), ("状态", 110));
 
@@ -537,7 +537,13 @@ public sealed class StatusForm : Form
             foreach (var (key, value) in snapshot.State.Auras)
             {
                 index++;
-                items.Add(new ListViewItem(new[] { index.ToString(), key, UiTheme.FormatValue(value) }));
+                items.Add(new ListViewItem(new[]
+                {
+                    index.ToString(),
+                    key,
+                    UiTheme.FormatValue(value),
+                    FormatAuraStacks(null)
+                }));
             }
         }
 
@@ -548,7 +554,8 @@ public sealed class StatusForm : Form
             {
                 index.ToString(),
                 $"[识别] {aura.Name}",
-                UiTheme.FormatValue(aura.Value)
+                UiTheme.FormatValue(aura.Time),
+                FormatAuraStacks(aura.Value)
             })
             {
                 ToolTipText = FormatRecognizedAuraToolTip(aura)
@@ -558,7 +565,7 @@ public sealed class StatusForm : Form
 
         if (items.Count == 0)
         {
-            items.Add(new ListViewItem(new[] { "-", "光环", "无数据" }));
+            items.Add(new ListViewItem(new[] { "-", "光环", "无数据", "-" }));
         }
 
         ReplaceItems(_auraList, items);
@@ -654,8 +661,11 @@ public sealed class StatusForm : Form
     private static string FormatRecognizedAuraToolTip(RecognizedAuraInfo aura)
     {
         var template = aura.TemplateScore is null ? "-" : aura.TemplateScore.Value.ToString("0.000");
-        return $"识别光环  {aura.Row} #{aura.Index}  值: {aura.Value}  dHash: {aura.Hash}  距离: {aura.HashDistance?.ToString() ?? "-"}  相似度: {template}";
+        return $"识别光环  {aura.Row} #{aura.Index}  时间: {aura.Time}  层数: {FormatAuraStacks(aura.Value)}  dHash: {aura.Hash}  距离: {aura.HashDistance?.ToString() ?? "-"}  相似度: {template}";
     }
+
+    private static string FormatAuraStacks(int? stacks)
+        => stacks is > 0 ? $"{stacks.Value}层" : "1层";
 
     private static void ReplaceItems(ListView listView, IReadOnlyList<ListViewItem> items)
     {

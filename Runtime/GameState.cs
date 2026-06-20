@@ -93,7 +93,7 @@ public sealed class GameState
             return Auras.TryGetValue(normalized["aura.".Length..], out var value) ? value : null;
         }
 
-        if (RecognizedAuraFields.TryGetName(normalized, out var recognizedAuraName))
+        if (RecognizedAuraFields.TryGetLookupKey(normalized, out var recognizedAuraName))
         {
             return RecognizedAuras.TryGetValue(recognizedAuraName, out var value) ? value : 0;
         }

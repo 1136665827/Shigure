@@ -138,18 +138,24 @@ public static class ConditionExpression
 /// </summary>
 public sealed class ConditionEditorForm : Form
 {
-    private const int ConnectorWidth = 90;
-    private const int CategoryWidth = 110;
-    private const int FieldWidth = 270;
+    private const int ConnectorWidth = 100;
+    private const int CategoryWidth = 140;
+    private const int FieldWidth = 230;
     private const int OpWidth = 90;
-    private const int ValueWidth = 170;
+    private const int RecognizedAuraMetricWidth = 110;
+    private const int ValueWidth = 130;
     private const int DeleteWidth = 36;
-    private const int RowTotalWidth = ConnectorWidth + CategoryWidth + FieldWidth + OpWidth + ValueWidth + DeleteWidth;
+    private const int RowTotalWidth = ConnectorWidth + CategoryWidth + FieldWidth + OpWidth + RecognizedAuraMetricWidth + ValueWidth + DeleteWidth;
 
     private static readonly string[] AllOperators = ["==", "!=", ">", ">=", "<", "<=", "in", "not in"];
     private static readonly string[] TextOperators = ["==", "!=", "in", "not in"];
     private static readonly string[] BoolOperators = ["==", "!="];
     private static readonly CategoryItem RecognizedAuraCategory = new("识别光环", ConditionFieldCategory.RecognizedAura);
+    private static readonly RecognizedAuraMetricItem[] RecognizedAuraMetricItems =
+    [
+        new("时间", RecognizedAuraMetric.Time),
+        new("层数", RecognizedAuraMetric.Stacks)
+    ];
     private static readonly CategoryItem[] CategoryItems =
     [
         new("状态", ConditionFieldCategory.State),
@@ -423,13 +429,14 @@ public sealed class ConditionEditorForm : Form
             Height = 24,
             BackColor = UiTheme.Background,
             Margin = new Padding(0),
-            ColumnCount = 6,
+            ColumnCount = 7,
             RowCount = 1
         };
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ConnectorWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, CategoryWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FieldWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OpWidth));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, RecognizedAuraMetricWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ValueWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DeleteWidth));
 
@@ -437,8 +444,9 @@ public sealed class ConditionEditorForm : Form
         header.Controls.Add(CreateHeaderLabel("类型"), 1, 0);
         header.Controls.Add(CreateHeaderLabel("字段"), 2, 0);
         header.Controls.Add(CreateHeaderLabel("判断"), 3, 0);
-        header.Controls.Add(CreateHeaderLabel("值"), 4, 0);
-        header.Controls.Add(CreateHeaderLabel(string.Empty), 5, 0);
+        header.Controls.Add(CreateHeaderLabel("分类"), 4, 0);
+        header.Controls.Add(CreateHeaderLabel("值"), 5, 0);
+        header.Controls.Add(CreateHeaderLabel(string.Empty), 6, 0);
         return header;
     }
 
@@ -561,13 +569,14 @@ public sealed class ConditionEditorForm : Form
             Height = 34,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0, 1, 0, 5),
-            ColumnCount = 6,
+            ColumnCount = 7,
             RowCount = 1
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ConnectorWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, CategoryWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FieldWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OpWidth));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, RecognizedAuraMetricWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ValueWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DeleteWidth));
 
@@ -597,6 +606,12 @@ public sealed class ConditionEditorForm : Form
         opBox.Dock = DockStyle.Fill;
         opBox.Margin = new Padding(0, 2, 8, 2);
 
+        var metricBox = new ComboBox();
+        UiTheme.StyleComboBox(metricBox);
+        metricBox.Items.AddRange(RecognizedAuraMetricItems);
+        metricBox.Dock = DockStyle.Fill;
+        metricBox.Margin = new Padding(0, 2, 8, 2);
+
         var valueHost = new Panel
         {
             Dock = DockStyle.Fill,
@@ -615,12 +630,15 @@ public sealed class ConditionEditorForm : Form
         panel.Controls.Add(categoryBox, 1, 0);
         panel.Controls.Add(fieldBox, 2, 0);
         panel.Controls.Add(opBox, 3, 0);
-        panel.Controls.Add(valueHost, 4, 0);
-        panel.Controls.Add(deleteButton, 5, 0);
+        panel.Controls.Add(metricBox, 4, 0);
+        panel.Controls.Add(valueHost, 5, 0);
+        panel.Controls.Add(deleteButton, 6, 0);
 
-        var row = new ConditionRow(panel, connectorBox, categoryBox, fieldBox, opBox, valueHost);
+        var row = new ConditionRow(panel, connectorBox, categoryBox, fieldBox, opBox, metricBox, valueHost);
+        SelectRecognizedAuraMetric(row, term?.Field);
         SelectCategory(row, ResolveCategory(term?.Field));
         PopulateFields(row, term?.Field);
+        UpdateRecognizedAuraMetricVisibility(row);
         PopulateOps(row, term?.Op);
         CreateValueControl(row, term?.Value, preserveRaw: true);
 
@@ -628,6 +646,7 @@ public sealed class ConditionEditorForm : Form
         categoryBox.SelectedIndexChanged += (_, _) =>
         {
             PopulateFields(row, null);
+            UpdateRecognizedAuraMetricVisibility(row);
             OnFieldChanged(row);
             UpdatePreview();
         };
@@ -649,6 +668,7 @@ public sealed class ConditionEditorForm : Form
             OnOperatorChanged(row);
             UpdatePreview();
         };
+        metricBox.SelectedIndexChanged += (_, _) => UpdatePreview();
         deleteButton.Click += (_, _) => RemoveRow(row);
 
         _rows.Add(row);
@@ -768,6 +788,32 @@ public sealed class ConditionEditorForm : Form
         }
 
         row.CategoryBox.SelectedIndex = 0;
+    }
+
+    private static void SelectRecognizedAuraMetric(ConditionRow row, string? fieldName)
+    {
+        var metric = RecognizedAuraMetric.Stacks;
+        if (!string.IsNullOrWhiteSpace(fieldName)
+            && RecognizedAuraFields.TryParse(fieldName, out _, out var parsedMetric))
+        {
+            metric = parsedMetric;
+        }
+
+        for (var i = 0; i < row.MetricBox.Items.Count; i++)
+        {
+            if (row.MetricBox.Items[i] is RecognizedAuraMetricItem item && item.Metric == metric)
+            {
+                row.MetricBox.SelectedIndex = i;
+                return;
+            }
+        }
+
+        row.MetricBox.SelectedIndex = 0;
+    }
+
+    private static void UpdateRecognizedAuraMetricVisibility(ConditionRow row)
+    {
+        row.MetricBox.Visible = row.SelectedCategory?.Category == ConditionFieldCategory.RecognizedAura;
     }
 
     private static int FindFieldIndex(ComboBox fieldBox, string fieldName)
@@ -980,6 +1026,11 @@ public sealed class ConditionEditorForm : Form
         public override string ToString() => Display;
     }
 
+    private sealed record RecognizedAuraMetricItem(string Display, RecognizedAuraMetric Metric)
+    {
+        public override string ToString() => Display;
+    }
+
     private sealed record FieldItem(string Name, string Display, ConditionFieldType Type, ConditionFieldCategory Category, bool IsCustom)
     {
         public override string ToString() => Display;
@@ -991,6 +1042,7 @@ public sealed class ConditionEditorForm : Form
         ComboBox categoryBox,
         ComboBox fieldBox,
         ComboBox opBox,
+        ComboBox metricBox,
         Panel valueHost)
     {
         public TableLayoutPanel Panel { get; } = panel;
@@ -998,10 +1050,16 @@ public sealed class ConditionEditorForm : Form
         public ComboBox CategoryBox { get; } = categoryBox;
         public ComboBox FieldBox { get; } = fieldBox;
         public ComboBox OpBox { get; } = opBox;
+        public ComboBox MetricBox { get; } = metricBox;
         public Panel ValueHost { get; } = valueHost;
         public Control? ValueControl { get; set; }
 
         public CategoryItem? SelectedCategory => CategoryBox.SelectedItem as CategoryItem;
+        public RecognizedAuraMetric SelectedMetric =>
+            MetricBox.SelectedItem is RecognizedAuraMetricItem item
+                ? item.Metric
+                : RecognizedAuraMetric.Stacks;
+
         public FieldItem? SelectedField
         {
             get
@@ -1014,7 +1072,7 @@ public sealed class ConditionEditorForm : Form
                     {
                         return selected with
                         {
-                            Name = RecognizedAuraFields.ToFieldName(selected.Name),
+                            Name = RecognizedAuraFields.ToFieldName(selected.Name, SelectedMetric),
                             Type = ConditionFieldType.Int,
                             Category = ConditionFieldCategory.RecognizedAura,
                             IsCustom = false
@@ -1025,17 +1083,20 @@ public sealed class ConditionEditorForm : Form
                     var name = RecognizedAuraFields.TryGetName(text, out var parsedName)
                         ? parsedName.Trim()
                         : text;
-                    if (name.Length == 0 || RecognizedAuraFields.IsBarePrefix(name))
+                    if (name.Length == 0
+                        || RecognizedAuraFields.IsBarePrefix(text)
+                        || RecognizedAuraFields.IsBarePrefix(name))
                     {
                         return null;
                     }
 
-                    var fieldName = RecognizedAuraFields.ToFieldName(name);
+                    var fieldName = RecognizedAuraFields.ToFieldName(name, SelectedMetric);
                     var isCustom = true;
                     foreach (var candidateObject in FieldBox.Items)
                     {
                         if (candidateObject is FieldItem candidate
-                            && string.Equals(candidate.Name, fieldName, StringComparison.OrdinalIgnoreCase))
+                            && RecognizedAuraFields.TryGetName(candidate.Name, out var candidateName)
+                            && string.Equals(candidateName, name, StringComparison.OrdinalIgnoreCase))
                         {
                             isCustom = candidate.IsCustom;
                             break;

@@ -281,7 +281,13 @@ public sealed class ShigureRuntime
         {
             foreach (var (name, value) in recognizedAuras.OrderBy(kv => kv.Key, StringComparer.CurrentCultureIgnoreCase))
             {
-                values.Add(new DynamicValueSnapshot("识别光环", name, FormatSnapshotValue(value)));
+                if (!RecognizedAuraFields.TryDescribeLookupKey(name, out var auraName, out var metric))
+                {
+                    continue;
+                }
+
+                var suffix = metric == RecognizedAuraMetric.Time ? "时间" : "层数";
+                values.Add(new DynamicValueSnapshot("识别光环", $"{auraName} {suffix}", FormatSnapshotValue(value)));
             }
         }
 

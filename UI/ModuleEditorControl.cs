@@ -2296,14 +2296,8 @@ public sealed class ModuleEditorControl : UserControl
             }
         }
 
-        foreach (var aura in _recognizedAuras)
+        foreach (var name in LoadRecognizedAuraConditionNames(classId, specId))
         {
-            var name = aura.Name.Trim();
-            if (name.Length == 0 || name == "-")
-            {
-                continue;
-            }
-
             var fieldName = RecognizedAuraFields.ToFieldName(name);
             if (seen.Add(fieldName))
             {
@@ -2313,6 +2307,23 @@ public sealed class ModuleEditorControl : UserControl
 
         return fields;
     }
+
+    private static IReadOnlyList<string> LoadRecognizedAuraConditionNames(int? classId, int? specId)
+    {
+        var directory = Path.Combine(
+            AuraIconRecognizer.DefaultAuraDirectory,
+            NormalizeAuraScopeValue(classId).ToString(),
+            NormalizeAuraScopeValue(specId).ToString());
+        return AuraNameStore.Load(AuraNameStore.GetNameFilePath(directory))
+            .Values
+            .Select(name => name.Trim())
+            .Where(name => name.Length > 0 && name != "-")
+            .Distinct(StringComparer.CurrentCulture)
+            .OrderBy(name => name, StringComparer.CurrentCulture)
+            .ToList();
+    }
+
+    private static int NormalizeAuraScopeValue(int? value) => value is > 0 and <= 255 ? value.Value : 0;
 
     private Control BuildActionRow()
     {

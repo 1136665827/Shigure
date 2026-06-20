@@ -22,6 +22,7 @@ public sealed record AuraSlotRecognition(
     string Row,
     int Index,
     int RemainingB,
+    int StackB,
     ulong IconHash,
     Rectangle SlotBounds,
     Rectangle IconBounds,
@@ -59,6 +60,7 @@ public sealed class AuraIconRecognizer : IDisposable
     private const int FullScanInterval = 10;
     private const double MinEdgeMatchRatio = 0.82;
     private const double MinWhiteMatchRatio = 0.62;
+    private const double MinStatusBarEncodedRatio = 0.25;
 
     private readonly string _windowTitle;
     private readonly string _templateDirectory;
@@ -104,7 +106,7 @@ public sealed class AuraIconRecognizer : IDisposable
     public static string DefaultTempAuraDirectory => Path.Combine(AppPaths.BaseDirectory, "tmp", "auras");
     public static string DefaultAuraDirectory => Path.Combine(AppPaths.BaseDirectory, "auras");
 
-    public AuraRecognitionScanResult Scan()
+    public AuraRecognitionScanResult Scan(bool saveIcons = true)
     {
         var hwnd = NativeMethods.FindWindow(null, _windowTitle);
         if (hwnd == 0 || NativeMethods.IsIconic(hwnd))
@@ -163,7 +165,7 @@ public sealed class AuraIconRecognizer : IDisposable
 
         RegisterScanHit(detectedSlots, captureOffset, width, height);
 
-        var slots = OffsetSlots(ScanSlots(capture, detectedSlots, templates), captureOffset);
+        var slots = OffsetSlots(ScanSlots(capture, detectedSlots, templates, saveIcons), captureOffset);
         var message = templates.Count == 0
             ? "已定位新布局，已命名图标为空"
             : slots.Count == 0
@@ -373,17 +375,21 @@ public sealed class AuraIconRecognizer : IDisposable
     private List<AuraSlotRecognition> ScanSlots(
         Bitmap capture,
         IReadOnlyList<DetectedAuraSlot> detectedSlots,
-        IReadOnlyList<AuraTemplate> templates)
+        IReadOnlyList<AuraTemplate> templates,
+        bool saveIcons)
     {
         var slots = new List<AuraSlotRecognition>();
         var auraDirectory = _auraDirectory;
-        try
+        if (saveIcons)
         {
-            Directory.CreateDirectory(auraDirectory);
-        }
-        catch
-        {
-            auraDirectory = string.Empty;
+            try
+            {
+                Directory.CreateDirectory(auraDirectory);
+            }
+            catch
+            {
+                auraDirectory = string.Empty;
+            }
         }
 
         foreach (var detected in detectedSlots)
@@ -395,7 +401,7 @@ public sealed class AuraIconRecognizer : IDisposable
 
             using var icon = capture.Clone(detected.IconBounds, PixelFormat.Format32bppArgb);
             var iconHash = ComputeDHash(icon);
-            var savedIconPath = SaveAuraIcon(icon, iconHash, auraDirectory);
+            var savedIconPath = saveIcons ? SaveAuraIcon(icon, iconHash, auraDirectory) : null;
             var candidates = RecognizeIcon(icon, iconHash, templates);
             var best = candidates.FirstOrDefault();
 
@@ -403,6 +409,7 @@ public sealed class AuraIconRecognizer : IDisposable
                 RowName(detected.RowR),
                 detected.Index,
                 detected.RemainingB,
+                detected.StackB,
                 iconHash,
                 detected.SlotBounds,
                 detected.IconBounds,
@@ -587,8 +594,9 @@ public sealed class AuraIconRecognizer : IDisposable
             return false;
         }
 
+        var hasEncodedStatusBar = HasEncodedStatusBar(pixels, width, height, x, y, slotWidth, slotHeight, rowR, index);
         if (MatchRatioHorizontal(pixels, width, x, y, slotWidth, color) < MinEdgeMatchRatio
-            || MatchRatioHorizontal(pixels, width, x, y + slotHeight - 1, slotWidth, color) < MinEdgeMatchRatio
+            || (!hasEncodedStatusBar && MatchRatioHorizontal(pixels, width, x, y + slotHeight - 1, slotWidth, color) < MinEdgeMatchRatio)
             || MatchRatioVertical(pixels, width, x, y, slotHeight, color) < MinEdgeMatchRatio
             || MatchRatioVertical(pixels, width, x + slotWidth - 1, y, slotHeight, color) < MinEdgeMatchRatio)
         {
@@ -597,7 +605,9 @@ public sealed class AuraIconRecognizer : IDisposable
 
         var maxBorderWidth = Math.Max(2, Math.Min(slotWidth, slotHeight) / 4);
         var topBorder = MeasureTopBorder(pixels, width, x, y, slotWidth, color, maxBorderWidth);
-        var bottomBorder = MeasureBottomBorder(pixels, width, x, y, slotWidth, slotHeight, color, maxBorderWidth);
+        var bottomBorder = hasEncodedStatusBar
+            ? MeasureEncodedStatusBarHeight(pixels, width, height, x, y, slotWidth, slotHeight, rowR, index, maxBorderWidth)
+            : MeasureBottomBorder(pixels, width, x, y, slotWidth, slotHeight, color, maxBorderWidth);
         var leftBorder = MeasureLeftBorder(pixels, width, x, y, slotHeight, color, maxBorderWidth);
         var rightBorder = MeasureRightBorder(pixels, width, x, y, slotWidth, slotHeight, color, maxBorderWidth);
         if (topBorder <= 0 || bottomBorder <= 0 || leftBorder <= 0 || rightBorder <= 0)
@@ -640,7 +650,10 @@ public sealed class AuraIconRecognizer : IDisposable
         }
 
         var borderWidth = Math.Max(1, (topBorder + bottomBorder + leftBorder + rightBorder) / 4);
-        slot = new DetectedAuraSlot(rowR, index, remainingB, slotBounds, iconBounds, borderWidth, scale);
+        var stackB = hasEncodedStatusBar
+            ? ReadStatusBarStackB(pixels, width, height, slotBounds, innerBounds, rowR, index, remainingB)
+            : remainingB;
+        slot = new DetectedAuraSlot(rowR, index, remainingB, stackB, slotBounds, iconBounds, borderWidth, scale);
         return true;
     }
 
@@ -673,6 +686,106 @@ public sealed class AuraIconRecognizer : IDisposable
         return rowR is BuffRowR or DebuffRowR
             && index >= 1
             && index <= maxSlotsPerRow;
+    }
+
+    private static bool IsEncodedSlotColorFor(int argb, int rowR, int index)
+        => GetR(argb) == rowR && GetG(argb) == index;
+
+    private static bool HasEncodedStatusBar(
+        int[] pixels,
+        int width,
+        int height,
+        int x,
+        int y,
+        int slotWidth,
+        int slotHeight,
+        int rowR,
+        int index)
+    {
+        if (slotWidth <= 0 || slotHeight <= 0 || y + slotHeight > height)
+        {
+            return false;
+        }
+
+        for (var offset = 1; offset <= Math.Min(6, slotHeight); offset++)
+        {
+            if (EncodedSlotRatioHorizontal(pixels, width, x, y + slotHeight - offset, slotWidth, rowR, index) >= MinStatusBarEncodedRatio)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int MeasureEncodedStatusBarHeight(
+        int[] pixels,
+        int width,
+        int height,
+        int x,
+        int y,
+        int slotWidth,
+        int slotHeight,
+        int rowR,
+        int index,
+        int maxBorderWidth)
+    {
+        var border = 0;
+        while (border < maxBorderWidth
+            && y + slotHeight - 1 - border >= 0
+            && y + slotHeight - 1 - border < height
+            && EncodedSlotRatioHorizontal(pixels, width, x, y + slotHeight - 1 - border, slotWidth, rowR, index) >= MinStatusBarEncodedRatio)
+        {
+            border++;
+        }
+
+        return border;
+    }
+
+    private static int ReadStatusBarStackB(
+        int[] pixels,
+        int width,
+        int height,
+        Rectangle slotBounds,
+        Rectangle innerBounds,
+        int rowR,
+        int index,
+        int remainingB)
+    {
+        var startY = Math.Max(innerBounds.Bottom, slotBounds.Bottom - Math.Max(2, slotBounds.Height / 6));
+        var endY = Math.Min(height, slotBounds.Bottom);
+        var startX = Math.Max(0, innerBounds.Left);
+        var endX = Math.Min(width, innerBounds.Right);
+        int? fallback = null;
+        for (var y = startY; y < endY; y++)
+        {
+            var whiteEnd = -1;
+            for (var x = startX; x < endX; x++)
+            {
+                var color = GetArgb(pixels, width, x, y);
+                if (IsWhite(GetArgb(pixels, width, x, y)))
+                {
+                    whiteEnd = x;
+                    continue;
+                }
+
+                if (IsEncodedSlotColorFor(color, rowR, index))
+                {
+                    var value = GetB(color);
+                    if (whiteEnd >= 0)
+                    {
+                        return value;
+                    }
+
+                    if (value > 0 && value != remainingB)
+                    {
+                        fallback ??= value;
+                    }
+                }
+            }
+        }
+
+        return fallback ?? 0;
     }
 
     private static int CountRunRight(int[] pixels, int width, int x, int y, int color, int maxCount)
@@ -865,6 +978,25 @@ public sealed class AuraIconRecognizer : IDisposable
         return matches / (double)length;
     }
 
+    private static double EncodedSlotRatioHorizontal(int[] pixels, int width, int x, int y, int length, int rowR, int index)
+    {
+        if (length <= 0)
+        {
+            return 0;
+        }
+
+        var matches = 0;
+        for (var dx = 0; dx < length; dx++)
+        {
+            if (IsEncodedSlotColorFor(GetArgb(pixels, width, x + dx, y), rowR, index))
+            {
+                matches++;
+            }
+        }
+
+        return matches / (double)length;
+    }
+
     private static double WhiteRatioHorizontal(int[] pixels, int width, int x, int y, int length)
     {
         if (length <= 0)
@@ -1048,6 +1180,7 @@ public sealed class AuraIconRecognizer : IDisposable
         int RowR,
         int Index,
         int RemainingB,
+        int StackB,
         Rectangle SlotBounds,
         Rectangle IconBounds,
         int BorderWidth,
