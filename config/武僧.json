@@ -535,6 +535,39 @@
         },
         "auras": {},
         "spells": {
+            "乾元之巅_层数": {
+                "step": "bar",
+                "bar": 1,
+                "type": "int"
+            },
+            "业报之触": {
+                "step": 24,
+                "type": "int"
+            },
+            "旭日东升踢": {
+                "step": 25,
+                "type": "int"
+            },
+            "乾元之巅": {
+                "step": 26,
+                "type": "int"
+            },
+            "清创生血": {
+                "step": 27,
+                "type": "int"
+            },
+            "升龙霸": {
+                "step": 28,
+                "type": "int"
+            },
+            "翔龙在天": {
+                "step": 29,
+                "type": "int"
+            },
+            "怒雷破": {
+                "step": 30,
+                "type": "int"
+            },
             "轮回之触": {
                 "step": 31,
                 "type": "int"

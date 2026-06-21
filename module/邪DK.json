@@ -45,7 +45,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "生命值 <= 30 && 能量值 >= 40",
+      "Condition": "生命值 <= 30 && 符文能量 >= 40",
       "Unit": 0,
       "Spell": "灵界打击",
       "Hotkey": "",
@@ -201,7 +201,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 能量值 >= 30 && 敌人人数 < 3",
+      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 符文能量 >= 30 && 敌人人数 < 3",
       "Unit": 0,
       "Spell": "凋零缠绕",
       "Hotkey": "",
@@ -209,7 +209,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 能量值 >= 30 && 敌人人数 >= 3",
+      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 符文能量 >= 30 && 敌人人数 >= 3",
       "Unit": 0,
       "Spell": "扩散",
       "Hotkey": "",
@@ -229,7 +229,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "移动 == false && spells.凋零层数 > 0 && 能量值 < 90 && auras.亡者指挥官 > 0",
+      "Condition": "移动 == false && spells.凋零层数 > 0 && 符文能量 < 90 && auras.亡者指挥官 > 0",
       "Unit": 0,
       "Spell": "枯萎凋零",
       "Hotkey": "",
@@ -241,7 +241,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "符文 > 0 && spells.黑暗突变 >= 25 && 能量值 < 30",
+      "Condition": "符文 > 0 && spells.黑暗突变 >= 25 && 符文能量 < 30",
       "Unit": 0,
       "Spell": "天灾打击",
       "Hotkey": "",
@@ -255,8 +255,8 @@
       "Hotkey": "",
       "Step": "",
       "SubConditions": [
-        "auras.末日突降 >= 1 && 能量值 >= 15",
-        "能量值 >= 80"
+        "auras.末日突降 >= 1 && 符文能量 >= 15",
+        "符文能量 >= 80"
       ]
     },
     {
@@ -267,13 +267,13 @@
       "Hotkey": "",
       "Step": "",
       "SubConditions": [
-        "auras.末日突降 >= 1 && 能量值 >= 15",
-        "能量值 >= 80"
+        "auras.末日突降 >= 1 && 符文能量 >= 15",
+        "符文能量 >= 80"
       ]
     },
     {
       "Enabled": true,
-      "Condition": "符文 > 0 && 能量值 < 30 && auras.食尸鬼层数 > 6",
+      "Condition": "符文 > 0 && 符文能量 < 30 && auras.食尸鬼层数 > 6",
       "Unit": 0,
       "Spell": "天灾打击",
       "Hotkey": "",
@@ -281,7 +281,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 能量值 >= 30 && 敌人人数 >= 3",
+      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 符文能量 >= 30 && 敌人人数 >= 3",
       "Unit": 0,
       "Spell": "扩散",
       "Hotkey": "",
@@ -289,7 +289,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 能量值 >= 30 && 敌人人数 < 3",
+      "Condition": "auras.禁断知识 > 0 && auras.禁断知识 <= 5 && 符文能量 >= 30 && 敌人人数 < 3",
       "Unit": 0,
       "Spell": "凋零缠绕",
       "Hotkey": "",
@@ -317,7 +317,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "能量值 >= 30 && 敌人人数 >= 3",
+      "Condition": "符文能量 >= 30 && 敌人人数 >= 3",
       "Unit": 0,
       "Spell": "扩散",
       "Hotkey": "",
@@ -325,7 +325,7 @@
     },
     {
       "Enabled": true,
-      "Condition": "能量值 >= 30 && 敌人人数 < 3",
+      "Condition": "符文能量 >= 30 && 敌人人数 < 3",
       "Unit": 0,
       "Spell": "凋零缠绕",
       "Hotkey": "",
