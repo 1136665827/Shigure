@@ -55,6 +55,15 @@ def configure_console() -> None:
             stream.reconfigure(encoding="utf-8", errors="replace")
 
 
+def get_app_paths() -> tuple[Path, Path]:
+    if getattr(sys, "frozen", False):
+        exe_path = Path(sys.executable).resolve()
+        return exe_path.parent, exe_path
+
+    script_path = Path(__file__).resolve()
+    return script_path.parent, script_path
+
+
 def ask_new_name() -> str:
     while True:
         new_name = input("请输入新的项目名称（英文开头，只能包含英文字母/数字/下划线）: ").strip()
@@ -199,8 +208,7 @@ def open_publish_folder(root: Path) -> None:
 def main() -> int:
     configure_console()
 
-    root = Path(__file__).resolve().parent
-    script_path = Path(__file__).resolve()
+    root, script_path = get_app_paths()
 
     new_name = ask_new_name()
     should_rename = new_name != OLD_NAME
