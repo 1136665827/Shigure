@@ -1187,11 +1187,6 @@ public static class ModuleConditionEvaluator
             return state.Auras.TryGetValue(key["aura.".Length..], out var value) ? value : null;
         }
 
-        if (RecognizedAuraFields.TryGetLookupKey(key, out var recognizedAuraName))
-        {
-            return state.RecognizedAuras.TryGetValue(recognizedAuraName, out var value) ? value : 0;
-        }
-
         if (ModuleSpecialActions.IsFailedSpell(key))
         {
             return ModuleSpecialActions.GetFailedSpell(state, failedSpells);
