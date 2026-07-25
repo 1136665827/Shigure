@@ -42,7 +42,6 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ModuleUnit> _units = new();
     private readonly List<ModuleCountField> _counts = new();
     private readonly List<ModuleValueAdjustment> _valueAdjustments = new();
-    private IReadOnlyList<RecognizedAuraInfo> _recognizedAuras = Array.Empty<RecognizedAuraInfo>();
     // 程序化恢复列宽时置真, 避免 ColumnWidthChanged 把默认值回写覆盖用户保存的宽度。
     private bool _suppressColumnSave;
     private bool _suppressUnitsColumnResize;
@@ -84,13 +83,6 @@ public sealed class ModuleEditorControl : UserControl
         _keymapCatalog = KeymapCatalog.Load(baseDirectory);
         InitializeComponent();
         LoadModules();
-    }
-
-    public void SetRecognizedAuras(IReadOnlyList<RecognizedAuraInfo> auras)
-    {
-        _recognizedAuras = auras.Count == 0
-            ? Array.Empty<RecognizedAuraInfo>()
-            : auras.ToArray();
     }
 
     private void InitializeComponent()
@@ -2296,34 +2288,8 @@ public sealed class ModuleEditorControl : UserControl
             }
         }
 
-        foreach (var name in LoadRecognizedAuraConditionNames(classId, specId))
-        {
-            var fieldName = RecognizedAuraFields.ToFieldName(name);
-            if (seen.Add(fieldName))
-            {
-                fields.Add(new ConditionField(fieldName, name, ConditionFieldType.Int, ConditionFieldCategory.RecognizedAura));
-            }
-        }
-
         return fields;
     }
-
-    private static IReadOnlyList<string> LoadRecognizedAuraConditionNames(int? classId, int? specId)
-    {
-        var directory = Path.Combine(
-            AuraIconRecognizer.DefaultAuraDirectory,
-            NormalizeAuraScopeValue(classId).ToString(),
-            NormalizeAuraScopeValue(specId).ToString());
-        return AuraNameStore.Load(AuraNameStore.GetNameFilePath(directory))
-            .Values
-            .Select(name => name.Trim())
-            .Where(name => name.Length > 0 && name != "-")
-            .Distinct(StringComparer.CurrentCulture)
-            .OrderBy(name => name, StringComparer.CurrentCulture)
-            .ToList();
-    }
-
-    private static int NormalizeAuraScopeValue(int? value) => value is > 0 and <= 255 ? value.Value : 0;
 
     private Control BuildActionRow()
     {

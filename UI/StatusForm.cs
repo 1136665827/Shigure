@@ -6,14 +6,11 @@ namespace Shigure;
 public sealed class StatusForm : Form
 {
     private readonly List<(Button Button, Control View)> _navItems = new();
-    private IReadOnlyList<RecognizedAuraInfo> _recognizedAuras = Array.Empty<RecognizedAuraInfo>();
     private RenderSnapshot? _lastSnapshot;
     private bool _hasKnownBounds;
 
     private ListView _stateList = null!;
     private ListView _auraList = null!;
-    private ListView _recognizedBuffAuraList = null!;
-    private ListView _recognizedDebuffAuraList = null!;
     private ListView _dynamicUnitList = null!;
     private ListView _spellList = null!;
     private ListView _partyList = null!;
@@ -22,7 +19,6 @@ public sealed class StatusForm : Form
     private Panel _contentHost = null!;
     private Panel _settingsHost = null!;
     private Panel _moduleHost = null!;
-    private Panel _auraRecognitionHost = null!;
     private Panel _aboutHost = null!;
 
     public StatusForm()
@@ -76,13 +72,10 @@ public sealed class StatusForm : Form
 
         _settingsHost = CreatePageHost();
         _moduleHost = CreatePageHost();
-        _auraRecognitionHost = CreatePageHost();
         _aboutHost = CreatePageHost();
 
         _stateList = UiTheme.CreateListView(Font, ("#", 48), ("名称", 150), ("值", 130));
         _auraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 180), ("时间", 82), ("层数", 82));
-        _recognizedBuffAuraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 180), ("时间", 82), ("层数", 82));
-        _recognizedDebuffAuraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 180), ("时间", 82), ("层数", 82));
         _dynamicUnitList = UiTheme.CreateListView(Font, ("类型", 120), ("名称", 120), ("值", 160));
         _spellList = UiTheme.CreateListView(Font, ("#", 48), ("技能", 150), ("状态", 110));
 
@@ -119,7 +112,6 @@ public sealed class StatusForm : Form
 
         AddNavItem(nav, "通用", _settingsHost);
         AddNavItem(nav, "模块", _moduleHost);
-        AddNavItem(nav, "光环识别", _auraRecognitionHost);
         AddNavItem(nav, "状态", BuildStatusPage());
         AddNavItem(nav, "队伍", BuildSection("队伍", _partyList, "当前队伍单位与扫描到的字段摘要"));
         AddNavItem(nav, "逻辑", BuildSection("逻辑", _unitInfoList, "运行时推荐目标与调试值"));
@@ -161,67 +153,10 @@ public sealed class StatusForm : Form
         statusSplit.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         statusSplit.Controls.Add(BuildSection("状态", _stateList, "基础字段与当前模块", isLast: false), 0, 0);
-        statusSplit.Controls.Add(BuildSection("光环", BuildAuraStatusPane(), "光环层数与持续状态", isLast: false), 1, 0);
+        statusSplit.Controls.Add(BuildSection("光环", _auraList, "光环层数与持续状态", isLast: false), 1, 0);
         statusSplit.Controls.Add(BuildSection("技能", _spellList, "冷却与可用状态", isLast: false), 2, 0);
         statusSplit.Controls.Add(BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值"), 3, 0);
         return statusSplit;
-    }
-
-    private Control BuildAuraStatusPane()
-    {
-        var split = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
-            ColumnCount = 1,
-            RowCount = 2,
-            Margin = new Padding(0)
-        };
-        split.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
-        split.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
-
-        _auraList.Margin = new Padding(0);
-        split.Controls.Add(_auraList, 0, 0);
-        split.Controls.Add(BuildRecognizedAuraPane(), 0, 1);
-        return split;
-    }
-
-    private Control BuildRecognizedAuraPane()
-    {
-        var panel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
-            ColumnCount = 1,
-            RowCount = 5,
-            Margin = new Padding(0, 12, 0, 0)
-        };
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 0));
-
-        panel.Controls.Add(CreateSubsectionLabel("识别光环 - 增益"), 0, 0);
-        panel.Controls.Add(_recognizedBuffAuraList, 0, 1);
-        panel.Controls.Add(CreateSubsectionLabel("识别光环 - 减益"), 0, 2);
-        panel.Controls.Add(_recognizedDebuffAuraList, 0, 3);
-
-        return panel;
-    }
-
-    private Label CreateSubsectionLabel(string text)
-    {
-        return new Label
-        {
-            Text = text,
-            Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Muted,
-            Font = new Font(Font.FontFamily, 9F, FontStyle.Bold, GraphicsUnit.Point),
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoEllipsis = true,
-            Margin = new Padding(0, 0, 0, 4)
-        };
     }
 
     private Control BuildSection(string title, Control content, string subtitle, bool isLast = true)
@@ -275,12 +210,6 @@ public sealed class StatusForm : Form
     {
         panel.Dock = DockStyle.Fill;
         _moduleHost.Controls.Add(panel);
-    }
-
-    public void AttachAuraRecognitionPanel(Control panel)
-    {
-        panel.Dock = DockStyle.Fill;
-        _auraRecognitionHost.Controls.Add(panel);
     }
 
     internal WindowBounds GetCachedBounds()
@@ -518,18 +447,6 @@ public sealed class StatusForm : Form
         UpdateLists(snapshot);
     }
 
-    public void SetRecognizedAuras(IReadOnlyList<RecognizedAuraInfo> auras)
-    {
-        _recognizedAuras = auras.Count == 0
-            ? Array.Empty<RecognizedAuraInfo>()
-            : auras.ToArray();
-
-        if (Visible)
-        {
-            UpdateAuraList(_lastSnapshot);
-        }
-    }
-
     public void AppendLog(string message)
     {
         if (_logTextBox.IsDisposed)
@@ -577,7 +494,6 @@ public sealed class StatusForm : Form
             foreach (var (key, value) in snapshot.State.Values)
             {
                 if (key is "spells" or "auras" or "group"
-                    || string.Equals(key, RecognizedAuraFields.StateKey, StringComparison.Ordinal)
                     || key.StartsWith('$'))
                 {
                     continue;
@@ -616,34 +532,6 @@ public sealed class StatusForm : Form
         }
 
         ReplaceItems(_auraList, items);
-        ReplaceItems(_recognizedBuffAuraList, BuildRecognizedAuraItems("增益"));
-        ReplaceItems(_recognizedDebuffAuraList, BuildRecognizedAuraItems("减益"));
-    }
-
-    private IReadOnlyList<ListViewItem> BuildRecognizedAuraItems(string rowName)
-    {
-        var items = new List<ListViewItem>();
-        var index = 0;
-        foreach (var aura in _recognizedAuras
-                     .Where(aura => string.Equals(aura.Row, rowName, StringComparison.Ordinal))
-                     .OrderBy(aura => aura.Index))
-        {
-            index++;
-            items.Add(new ListViewItem(new[]
-            {
-                index.ToString(),
-                aura.Name,
-                UiTheme.FormatValue(aura.Time),
-                FormatAuraStacks(aura.Value)
-            }));
-        }
-
-        if (items.Count == 0)
-        {
-            items.Add(new ListViewItem(new[] { "-", rowName, "无数据", "-" }));
-        }
-
-        return items;
     }
 
     private void UpdateDynamicUnitList(RenderSnapshot snapshot)
@@ -731,12 +619,6 @@ public sealed class StatusForm : Form
         }
 
         ReplaceItems(_unitInfoList, items);
-    }
-
-    private static string FormatRecognizedAuraToolTip(RecognizedAuraInfo aura)
-    {
-        var template = aura.TemplateScore is null ? "-" : aura.TemplateScore.Value.ToString("0.000");
-        return $"识别光环  {aura.Row} #{aura.Index}  时间: {aura.Time}  层数: {FormatAuraStacks(aura.Value)}  dHash: {aura.Hash}  距离: {aura.HashDistance?.ToString() ?? "-"}  相似度: {template}";
     }
 
     private static string FormatAuraStacks(int? stacks)
