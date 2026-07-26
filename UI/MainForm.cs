@@ -30,6 +30,7 @@ public sealed class MainForm : Form, IMessageFilter
     private ComboBox _moduleComboBox = null!;
     private Label _moduleFilterLabel = null!;
     private Label _moduleCountLabel = null!;
+    private Label _configSourceLabel = null!;
     private Button _settingsButton = null!;
     private string _toggleKeyName = "XBUTTON2";
     private string? _selectedModuleId;
@@ -374,9 +375,10 @@ public sealed class MainForm : Form, IMessageFilter
             Padding = new Padding(0),
             ColumnCount = 1,
             Margin = new Padding(0),
-            RowCount = 2
+            RowCount = 3
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -427,6 +429,50 @@ public sealed class MainForm : Form, IMessageFilter
         _modeComboBox.Margin = new Padding(0, 0, 0, 12);
         settingsGrid.Controls.Add(CreateSettingLabel("发送模式"), 0, 1);
         settingsGrid.Controls.Add(_modeComboBox, 1, 1);
+
+        var configPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            BackColor = UiTheme.SurfaceRaised,
+            ColumnCount = 2,
+            RowCount = 3,
+            Padding = new Padding(16, 16, 16, 14),
+            Margin = new Padding(0, 0, 0, 14)
+        };
+        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
+        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        configPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        configPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        configPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var configTitle = new Label
+        {
+            Text = "配置同步",
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        };
+        configPanel.Controls.Add(configTitle, 0, 0);
+        configPanel.SetColumnSpan(configTitle, 2);
+
+        _configSourceLabel = CreateInfoLabel("Fuyutsui class: 点击「更新配置」时从游戏窗口定位");
+        _configSourceLabel.Margin = new Padding(0, 4, 0, 10);
+        configPanel.Controls.Add(_configSourceLabel, 0, 1);
+        configPanel.SetColumnSpan(_configSourceLabel, 2);
+
+        var updateConfigButton = UiTheme.CreateButton("更新配置", UiTheme.Field, UiTheme.Text);
+        updateConfigButton.AutoSize = false;
+        updateConfigButton.Size = new Size(116, 38);
+        updateConfigButton.Padding = new Padding(8, 0, 8, 0);
+        updateConfigButton.TextAlign = ContentAlignment.MiddleCenter;
+        updateConfigButton.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        updateConfigButton.Margin = new Padding(0);
+        updateConfigButton.Click += async (_, _) => await UpdateConfigFromAddonAsync();
+        configPanel.Controls.Add(updateConfigButton, 0, 2);
+        configPanel.SetColumnSpan(updateConfigButton, 2);
 
         var moduleInfo = new TableLayoutPanel
         {
@@ -493,8 +539,70 @@ public sealed class MainForm : Form, IMessageFilter
         moduleInfo.Controls.Add(moduleStatus, 1, 1);
 
         panel.Controls.Add(settingsGrid, 0, 0);
-        panel.Controls.Add(moduleInfo, 0, 1);
+        panel.Controls.Add(configPanel, 0, 1);
+        panel.Controls.Add(moduleInfo, 0, 2);
         return panel;
+    }
+
+    private async Task UpdateConfigFromAddonAsync()
+    {
+        var windowTitle = _initialOptions.WindowTitle;
+        var classDirectory = WowAddonLocator.FindClassDirectory(windowTitle);
+        if (string.IsNullOrWhiteSpace(classDirectory))
+        {
+            _configSourceLabel.Text = $"Fuyutsui class: 未找到（请先打开「{windowTitle}」窗口）";
+            MessageBox.Show(
+                $"未找到「{windowTitle}」窗口下的 Interface\\AddOns\\Fuyutsui\\class 目录。\n请确认游戏已启动且已安装 Fuyutsui。",
+                "更新配置",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        _configSourceLabel.Text = $"Fuyutsui class: {classDirectory}";
+        var configDirectory = ConfigService.ResolveConfigPath(AppPaths.BaseDirectory);
+        if (!Directory.Exists(configDirectory))
+        {
+            MessageBox.Show($"配置目录不存在: {configDirectory}", "更新配置", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        try
+        {
+            UseWaitCursor = true;
+            var result = await Task.Run(() => FuyutsuiConfigConverter.UpdateFromClassDirectory(classDirectory, configDirectory));
+            _moduleEditor.ReloadCatalogs();
+            AppendLog($"已从 Fuyutsui 更新配置: {result.UpdatedFiles.Count} 个文件 ← {result.ClassDirectory}");
+            foreach (var warning in result.Warnings.Take(20))
+            {
+                AppendLog($"配置警告: {warning}");
+            }
+
+            if (_runtime is not null)
+            {
+                AppendLog("配置已更新, 重新启动运行");
+                await StopRuntimeAsync();
+                StartRuntime();
+            }
+
+            var warningText = result.Warnings.Count == 0
+                ? string.Empty
+                : $"\n警告 {result.Warnings.Count} 条（详见日志）。";
+            MessageBox.Show(
+                $"已更新 {result.UpdatedFiles.Count} 个职业配置。\n来源:\n{result.ClassDirectory}{warningText}",
+                "更新配置",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"更新配置失败: {ex.Message}");
+            MessageBox.Show(ex.Message, "更新配置失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            UseWaitCursor = false;
+        }
     }
 
     private void ApplyInitialOptions()

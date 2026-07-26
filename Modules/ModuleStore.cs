@@ -11,6 +11,7 @@ public sealed class ModuleDefinition
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = "新模块";
     public string Author { get; set; } = string.Empty;
+    public string RecommendedTalent { get; set; } = string.Empty;
     // 保存时写入当时的 Shigure 版本(AppInfo.Version)。
     public string Version { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
@@ -30,6 +31,7 @@ public sealed class ModuleDefinition
             Id = Id,
             Name = Name,
             Author = Author,
+            RecommendedTalent = RecommendedTalent,
             Version = Version,
             Enabled = Enabled,
             FilePath = FilePath,

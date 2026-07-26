@@ -75,7 +75,7 @@ public sealed class StatusForm : Form
         _aboutHost = CreatePageHost();
 
         _stateList = UiTheme.CreateListView(Font, ("#", 48), ("名称", 150), ("值", 130));
-        _auraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 180), ("时间", 82), ("层数", 82));
+        _auraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 180), ("值", 130));
         _dynamicUnitList = UiTheme.CreateListView(Font, ("类型", 120), ("名称", 120), ("值", 160));
         _spellList = UiTheme.CreateListView(Font, ("#", 48), ("技能", 150), ("状态", 110));
 
@@ -153,7 +153,7 @@ public sealed class StatusForm : Form
         statusSplit.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         statusSplit.Controls.Add(BuildSection("状态", _stateList, "基础字段与当前模块", isLast: false), 0, 0);
-        statusSplit.Controls.Add(BuildSection("光环", _auraList, "光环层数与持续状态", isLast: false), 1, 0);
+        statusSplit.Controls.Add(BuildSection("光环", _auraList, "光环数值状态", isLast: false), 1, 0);
         statusSplit.Controls.Add(BuildSection("技能", _spellList, "冷却与可用状态", isLast: false), 2, 0);
         statusSplit.Controls.Add(BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值"), 3, 0);
         return statusSplit;
@@ -520,15 +520,14 @@ public sealed class StatusForm : Form
                 {
                     index.ToString(),
                     key,
-                    UiTheme.FormatValue(value),
-                    FormatAuraStacks(null)
+                    UiTheme.FormatValue(value)
                 }));
             }
         }
 
         if (items.Count == 0)
         {
-            items.Add(new ListViewItem(new[] { "-", "光环", "无数据", "-" }));
+            items.Add(new ListViewItem(new[] { "-", "光环", "无数据" }));
         }
 
         ReplaceItems(_auraList, items);
@@ -620,9 +619,6 @@ public sealed class StatusForm : Form
 
         ReplaceItems(_unitInfoList, items);
     }
-
-    private static string FormatAuraStacks(int? stacks)
-        => stacks is > 0 ? $"{stacks.Value}层" : "1层";
 
     private static void ReplaceItems(ListView listView, IReadOnlyList<ListViewItem> items)
     {
