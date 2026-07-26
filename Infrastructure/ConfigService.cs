@@ -54,9 +54,9 @@ public sealed class ConfigService
         }
 
         var root = ReadObject(commonPath);
-        foreach (var (classId, className) in ClassNames.GetClasses())
+        foreach (var (classId, _) in ClassNames.GetClasses())
         {
-            var classPath = Path.Combine(configDirectory, $"{className}.json");
+            var classPath = Path.Combine(configDirectory, $"{ClassNames.GetConfigFileName(classId)}.json");
             if (!File.Exists(classPath))
             {
                 classPath = Path.Combine(configDirectory, $"{classId}.json");

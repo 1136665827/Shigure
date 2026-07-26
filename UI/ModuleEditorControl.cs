@@ -6,11 +6,13 @@ public sealed class ModuleEditorControl : UserControl
 {
     private readonly ModuleStore _moduleStore;
     private readonly Action _runtimeRestartRequested;
-    private readonly ConditionFieldCatalog _fieldCatalog;
-    private readonly KeymapCatalog _keymapCatalog;
+    private readonly string _baseDirectory;
+    private ConditionFieldCatalog _fieldCatalog;
+    private KeymapCatalog _keymapCatalog;
     private readonly ListBox _moduleList = new();
     private readonly TextBox _nameBox = new();
     private readonly TextBox _authorBox = new();
+    private readonly TextBox _recommendedTalentBox = new();
     private readonly ComboBox _classBox = new();
     private readonly ComboBox _specBox = new();
     private readonly ComboBox _partyTypeBox = new();
@@ -79,10 +81,17 @@ public sealed class ModuleEditorControl : UserControl
     {
         _moduleStore = moduleStore;
         _runtimeRestartRequested = runtimeRestartRequested;
+        _baseDirectory = baseDirectory;
         _fieldCatalog = ConditionFieldCatalog.Load(baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(baseDirectory);
         InitializeComponent();
         LoadModules();
+    }
+
+    public void ReloadCatalogs()
+    {
+        _fieldCatalog = ConditionFieldCatalog.Load(_baseDirectory);
+        _keymapCatalog = KeymapCatalog.Load(_baseDirectory);
     }
 
     private void InitializeComponent()
@@ -164,7 +173,8 @@ public sealed class ModuleEditorControl : UserControl
             RowCount = 4
         };
         editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        // 匹配行: 上边距10 + 首行32 + 推荐天赋行40(含与上行间距) + 下边距10。
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 98));
         editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
 
@@ -495,6 +505,11 @@ public sealed class ModuleEditorControl : UserControl
             row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, MeasureLabelColumnWidth(label, Font)));
             row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         }
+        // RowCount 会预置 Percent 样式, 必须 Clear 后再设 Absolute, 否则 Add 只追加到末尾不生效。
+        row.RowStyles.Clear();
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        // 略高于首行, 给推荐天赋行留出与下拉框的间距。
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
 
         ResetClassOptions(_classBox);
         ResetSpecOptions(_specBox, null);
@@ -516,6 +531,34 @@ public sealed class ModuleEditorControl : UserControl
         AddMatchField(row, "专精:", _specBox, 2);
         AddMatchField(row, "英雄天赋:", _heroTalentBox, 4);
         AddMatchField(row, "队伍类型:", _partyTypeBox, 6);
+
+        var recommendedTalentRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.SurfaceRaised,
+            ColumnCount = 2,
+            RowCount = 1,
+            // 与上方匹配下拉框留出间距。
+            Margin = new Padding(0, 8, 0, 0)
+        };
+        recommendedTalentRow.RowStyles.Clear();
+        recommendedTalentRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        recommendedTalentRow.ColumnStyles.Add(new ColumnStyle(
+            SizeType.Absolute,
+            MeasureLabelColumnWidth("推荐天赋", Font)));
+        recommendedTalentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        var recommendedTalentLabel = CreateLabel("推荐天赋:");
+        recommendedTalentLabel.AutoSize = false;
+        // 与输入框同上下边距, 保证文字与框水平中线对齐。
+        recommendedTalentLabel.Margin = new Padding(0, 2, 0, 2);
+        recommendedTalentRow.Controls.Add(recommendedTalentLabel, 0, 0);
+        UiTheme.StyleTextBox(_recommendedTalentBox);
+        _recommendedTalentBox.Dock = DockStyle.Fill;
+        _recommendedTalentBox.Margin = new Padding(0, 2, 0, 2);
+        recommendedTalentRow.Controls.Add(_recommendedTalentBox, 1, 0);
+        row.Controls.Add(recommendedTalentRow, 0, 1);
+        row.SetColumnSpan(recommendedTalentRow, 8);
+
         return row;
     }
 
@@ -2374,6 +2417,7 @@ public sealed class ModuleEditorControl : UserControl
     {
         _nameBox.Text = module.Name;
         _authorBox.Text = module.Author;
+        _recommendedTalentBox.Text = module.RecommendedTalent;
         SetEditorEnabled(hasModule: true);
         // 先填充动态单位/数量, 后续目标下拉与条件字段都依赖它们。
         _units.Clear();
@@ -2437,6 +2481,7 @@ public sealed class ModuleEditorControl : UserControl
         _selectedModule = null;
         _nameBox.Clear();
         _authorBox.Clear();
+        _recommendedTalentBox.Clear();
         _units.Clear();
         _counts.Clear();
         _valueAdjustments.Clear();
@@ -2549,6 +2594,7 @@ public sealed class ModuleEditorControl : UserControl
         module = _selectedModule!.Clone();
         module.Name = string.IsNullOrWhiteSpace(_nameBox.Text) ? "新模块" : _nameBox.Text.Trim();
         module.Author = _authorBox.Text.Trim();
+        module.RecommendedTalent = _recommendedTalentBox.Text.Trim();
         // 保存时记录当前 Shigure 版本。
         module.Version = AppInfo.Version;
         module.Match = new ModuleMatch
