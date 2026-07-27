@@ -66,7 +66,8 @@ public sealed class ModuleEditorControl : UserControl
     {
         "生命值",
         "职责",
-        "驱散"
+        "驱散",
+        "治疗吸收"
     };
     // 条件动态数值"类型"下拉: 决定"数值"可选项的过滤类别, 顺序与界面一致。
     private static readonly (string Text, ConditionFieldCategory Category)[] AdjustmentTypeOptions =

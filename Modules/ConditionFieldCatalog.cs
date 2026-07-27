@@ -138,6 +138,12 @@ public sealed class ConditionFieldCatalog
             }
         }
 
+        // 治疗吸收由网格扫描注入，不在 config 的 group 字段里声明。
+        if (seen.Add("治疗吸收"))
+        {
+            fields.Add(new ConditionField("治疗吸收", "治疗吸收", ConditionFieldType.Int));
+        }
+
         return fields;
     }
 
