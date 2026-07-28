@@ -32,11 +32,12 @@ internal static class LuaLiteParser
     public sealed class TableValue : Value
     {
         private readonly Dictionary<object, Value> _map = new();
+        private readonly Dictionary<object, string> _trailingComments = new();
         private readonly List<(object? Key, Value Value)> _entries = new();
 
         public IReadOnlyList<(object? Key, Value Value)> Entries => _entries;
 
-        public void Set(object? key, Value value)
+        public void Set(object? key, Value value, string? trailingComment = null)
         {
             if (key is null)
             {
@@ -46,11 +47,19 @@ internal static class LuaLiteParser
 
             _map[key] = value;
             _entries.Add((key, value));
+            if (!string.IsNullOrWhiteSpace(trailingComment))
+            {
+                _trailingComments[key] = trailingComment.Trim();
+            }
         }
 
         public bool TryGet(object key, out Value value) => _map.TryGetValue(key, out value!);
 
         public Value? Get(object key) => _map.TryGetValue(key, out var value) ? value : null;
+
+        /// <summary>表项同行 `--` 行注释（不含 `--` 前缀），无则 null。</summary>
+        public string? GetTrailingComment(object key)
+            => _trailingComments.TryGetValue(key, out var comment) ? comment : null;
 
         public IEnumerable<Value> IPairs()
         {
@@ -79,17 +88,32 @@ internal static class LuaLiteParser
     }
 
     public static TableValue? ExtractAssignedTable(string source, string assignmentName)
+        => TryExtractAssignedTable(source, assignmentName, out var table, out _, out _) ? table : null;
+
+    /// <summary>
+    /// 提取赋值表字面量，并返回表起止下标（含首尾大括号，endExclusive）。
+    /// </summary>
+    public static bool TryExtractAssignedTable(
+        string source,
+        string assignmentName,
+        out TableValue table,
+        out int tableStart,
+        out int tableEndExclusive)
     {
+        table = null!;
+        tableStart = -1;
+        tableEndExclusive = -1;
+
         var index = source.IndexOf(assignmentName, StringComparison.Ordinal);
         if (index < 0)
         {
-            return null;
+            return false;
         }
 
         var eq = source.IndexOf('=', index + assignmentName.Length);
         if (eq < 0)
         {
-            return null;
+            return false;
         }
 
         var cursor = eq + 1;
@@ -100,17 +124,27 @@ internal static class LuaLiteParser
 
         if (cursor >= source.Length || source[cursor] != '{')
         {
-            return null;
+            return false;
         }
 
         var parser = new Parser(source, cursor);
-        return parser.ParseValue() as TableValue;
+        if (parser.ParseValue() is not TableValue parsed)
+        {
+            return false;
+        }
+
+        table = parsed;
+        tableStart = cursor;
+        tableEndExclusive = parser.Position;
+        return true;
     }
 
     private sealed class Parser
     {
         private readonly string _text;
         private int _pos;
+
+        public int Position => _pos;
 
         public Parser(string text, int pos)
         {
@@ -211,21 +245,75 @@ internal static class LuaLiteParser
                     }
                 }
 
-                table.Set(key, value);
-                SkipTrivia();
-                if (_pos < _text.Length && _text[_pos] == ',')
-                {
-                    _pos++;
-                    continue;
-                }
-
-                if (_pos < _text.Length && _text[_pos] == ';')
-                {
-                    _pos++;
-                }
+                // 支持 `[37] = "…", -- 银月城生命药水` / `[37] = "…" -- 名称`
+                var trailingComment = CaptureEntryTrailingComment();
+                table.Set(key, value, trailingComment);
             }
 
             return table;
+        }
+
+        /// <summary>
+        /// 读取表项值后的分隔符与同行 `--` 注释。
+        /// 常见写法：`value, -- 名称` 或 `value -- 名称`（逗号可在下一行）。
+        /// </summary>
+        private string? CaptureEntryTrailingComment()
+        {
+            SkipSpacesAndTabs();
+            string? comment = null;
+
+            if (TryReadLineComment(out var beforeSeparator))
+            {
+                comment = beforeSeparator;
+            }
+
+            // 注释后可能换行再写逗号；也跳过值与逗号之间的空白。
+            SkipTrivia();
+            if (_pos < _text.Length && _text[_pos] is ',' or ';')
+            {
+                _pos++;
+                SkipSpacesAndTabs();
+                if (comment is null && TryReadLineComment(out var afterSeparator))
+                {
+                    comment = afterSeparator;
+                }
+            }
+
+            return string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+        }
+
+        private void SkipSpacesAndTabs()
+        {
+            while (_pos < _text.Length && _text[_pos] is ' ' or '\t')
+            {
+                _pos++;
+            }
+        }
+
+        /// <summary>若当前位置是行注释 `--`（非 `--[[`），消费并返回注释正文。</summary>
+        private bool TryReadLineComment(out string comment)
+        {
+            comment = string.Empty;
+            if (_pos + 1 >= _text.Length || _text[_pos] != '-' || _text[_pos + 1] != '-')
+            {
+                return false;
+            }
+
+            // 块注释交给 SkipTrivia，不当作名称来源。
+            if (_pos + 3 < _text.Length && _text[_pos + 2] == '[' && _text[_pos + 3] == '[')
+            {
+                return false;
+            }
+
+            _pos += 2;
+            var start = _pos;
+            while (_pos < _text.Length && _text[_pos] is not ('\r' or '\n'))
+            {
+                _pos++;
+            }
+
+            comment = _text[start.._pos];
+            return true;
         }
 
         private bool IsIdentifierAt(int start)

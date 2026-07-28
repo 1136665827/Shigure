@@ -81,6 +81,50 @@ public static class ClassNames
         [(13, 3)] = "增辉"
     };
 
+    private static readonly Dictionary<(int ClassId, int SpecId), string> SpecIconFileNames = new()
+    {
+        [(1, 1)] = "warrior-arms",
+        [(1, 2)] = "warrior-fury",
+        [(1, 3)] = "warrior-protection",
+        [(2, 1)] = "paladin-holy",
+        [(2, 2)] = "paladin-protection",
+        [(2, 3)] = "paladin-retribution",
+        [(3, 1)] = "hunter-beastmastery",
+        [(3, 2)] = "hunter-marksmanship",
+        [(3, 3)] = "hunter-survival",
+        [(4, 1)] = "rogue-assassination",
+        [(4, 2)] = "rogue-outlaw",
+        [(4, 3)] = "rogue-subtlety",
+        [(5, 1)] = "priest-discipline",
+        [(5, 2)] = "priest-holy",
+        [(5, 3)] = "priest-shadow",
+        [(6, 1)] = "deathknight-blood",
+        [(6, 2)] = "deathknight-frost",
+        [(6, 3)] = "deathknight-unholy",
+        [(7, 1)] = "shaman-elemental",
+        [(7, 2)] = "shaman-enhancement",
+        [(7, 3)] = "shaman-restoration",
+        [(8, 1)] = "mage-arcane",
+        [(8, 2)] = "mage-fire",
+        [(8, 3)] = "mage-frost",
+        [(9, 1)] = "warlock-affliction",
+        [(9, 2)] = "warlock-demonology",
+        [(9, 3)] = "warlock-destruction",
+        [(10, 1)] = "monk-brewmaster",
+        [(10, 2)] = "monk-mistweaver",
+        [(10, 3)] = "monk-windwalker",
+        [(11, 1)] = "druid-balance",
+        [(11, 2)] = "druid-feral",
+        [(11, 3)] = "druid-guardian",
+        [(11, 4)] = "druid-restoration",
+        [(12, 1)] = "demonhunter-havoc",
+        [(12, 2)] = "demonhunter-vengeance",
+        [(12, 3)] = "demonhunter-devourer",
+        [(13, 1)] = "evoker-devastation",
+        [(13, 2)] = "evoker-preservation",
+        [(13, 3)] = "evoker-augmentation"
+    };
+
     private static readonly Dictionary<(int ClassId, int SpecId, int HeroTalentId), string> HeroTalents = new()
     {
         [(1, 1, 1)] = "巨神兵",
@@ -206,6 +250,9 @@ public static class ClassNames
             .ToList();
     }
 
+    public static string? GetSpecIconFileName(int classId, int specId)
+        => SpecIconFileNames.GetValueOrDefault((classId, specId));
+
     public static IReadOnlyList<(int Id, string Name)> GetHeroTalents(int classId, int specId)
     {
         return HeroTalents
@@ -215,4 +262,3 @@ public static class ClassNames
             .ToList();
     }
 }
-
