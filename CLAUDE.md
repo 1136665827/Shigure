@@ -45,7 +45,7 @@ LogicRegistry.Run(classId, specId, ...)  Modules/LogicRegistry.cs
 KeySender.Send(hotkey)                    Input/KeySender.cs (+ Input/NativeMethods.cs Win32 互操作)
 ```
 
-UI 侧：[UI/MainForm.cs](UI/MainForm.cs) 是无边框置顶浮动条，托管 `ShigureRuntime` 和 [UI/StatusForm.cs](UI/StatusForm.cs)（七页签设置窗口）。运行时通过 `SnapshotUpdated` 事件推送 `RenderSnapshot` 给 UI 刷新。
+UI 侧：[UI/MainForm.cs](UI/MainForm.cs) 是无边框置顶浮动条，托管 `ShigureRuntime` 和 [UI/StatusForm.cs](UI/StatusForm.cs)（九页签设置窗口：通用/配置/宏/模块/状态/队伍/逻辑/日志/关于）。运行时通过 `SnapshotUpdated` 事件推送 `RenderSnapshot` 给 UI 刷新。
 
 ### 目录约定
 
@@ -54,7 +54,7 @@ App/            入口、启动参数、随机重启
 Runtime/        扫描、状态构建、主循环、快照
 Modules/        模块模型/存储/匹配/规则执行、条件求值(FormulaEvaluator)、字段目录、职业逻辑
 Input/          keymap 读取、按键发送、Win32 API
-Infrastructure/ 配置读取(ConfigService)、JSON 辅助、UI 缓存、路径
+Infrastructure/ 配置读取(ConfigService)、JSON 辅助、UI 缓存、路径、Fuyutsui 插件文件读写
 UI/             WinForms 界面、编辑器、主题
 config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .csproj 的 None+CopyToOutputDirectory)
 ```
@@ -65,10 +65,46 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 - 选择优先级：`ModuleStore.FindSelectedOrBestMatch` —— 先用 UI/参数选定的 `ModuleId`；否则取 `Match` 命中字段最多者（`ModuleMatch.Specificity` 越大越优先），并列按名称。`Match` 字段留空 = 任意。`PartyType` 数字会归一化为 `"1-40"`。
 - 动态单位/数量/动态数值的语义见 [README.md](README.md#动态单位与数量字段)；列表与编辑器的人类可读摘要统一走 [UI/UnitSummary.cs](UI/UnitSummary.cs)`.Describe(...)`（单一来源，勿再复制一份描述逻辑）。
 
+## Fuyutsui 插件集成（配置/宏页面）
+
+设置窗口的「配置」和「宏」两个页签编辑的是游戏内 Fuyutsui 插件的 Lua 文件，**不是** Shigure 本地的 config/keymap/module。整个子系统通过游戏进程窗口定位插件目录，读写 Lua 表字面量，保存后触发 Shigure 侧的 config/keymap 更新。
+
+### 定位
+
+[Infrastructure/WowAddonLocator.cs](Infrastructure/WowAddonLocator.cs) 通过 `FindWindow` → 进程路径 → 向上查找 `Interface\AddOns\Fuyutsui`。提供三个入口：`FindAddonRoot`、`FindClassDirectory`（`class/` 子目录）、`FindClassMacrosPath`（`core/classmacros.lua`）。
+
+### Lua 解析
+
+[Infrastructure/LuaLiteParser.cs](Infrastructure/LuaLiteParser.cs) 是轻量 Lua 表字面量解析器。关键方法 `TryExtractAssignedTable(source, assignmentName, out table, out start, out end)` 按赋值名定位 `{ ... }` 并返回解析结果 + 字符偏移量，用于 round-trip 编辑（只替换表字面量，保留文件其余部分）。支持行尾 `-- comment` 捕获（`CaptureEntryTrailingComment`）。
+
+### 配置存储（ClassBlocks）
+
+[Infrastructure/ClassBlocksStore.cs](Infrastructure/ClassBlocksStore.cs) 读写 `class/*.lua` 中的 `Fuyutsui.ClassBlocks` 表。每个职业一个 Lua 文件，按专精 ID 分块，包含：
+- **States**（状态字段）：分平面列表或按 `"状态"/"目标"/"焦点"` 分类（现代格式）
+- **Auras**（光环）：5 桶——玩家/目标有害/目标有益/焦点有害/焦点有益
+- **Spells**（法术）：ID、名称、充能、施法计数、强制已知、法术书
+- **Group**（队伍）：人数/生命百分比/角色/驱散 + 队伍光环列表
+
+字段名从 [Infrastructure/ClassStateCatalog.cs](Infrastructure/ClassStateCatalog.cs) 的静态目录验证，不允许自由输入。
+
+### 宏存储（ClassMacros）
+
+[Infrastructure/ClassMacrosStore.cs](Infrastructure/ClassMacrosStore.cs) 读写 `core/classmacros.lua` 中的 `Fuyutsui.ClassMacros` 表。每职业三组：
+- **DynamicSpells**：每项占 30 热键槽位
+- **StaticSpells / SpecialSpells**：稀疏索引条目（`SparseEntry`：index + text + 可选行尾注释）
+
+保存后 [Infrastructure/FuyutsuiKeymapConverter.cs](Infrastructure/FuyutsuiKeymapConverter.cs)`.UpdateFromClassMacros` 将 Lua 宏表转换为 `keymap/*.json`，把宏槽位映射到热键池（7 修饰符 × 35 键 = 245 组合/职业）。`DeriveSpellName` 解析 WoW 宏文本提取技能名。
+
+### UI 编辑器
+
+- [UI/ClassConfigEditorControl.cs](UI/ClassConfigEditorControl.cs)：左侧职业列表 + 右侧按专精切换的四页编辑器（状态/光环/法术/队伍），状态字段用 `ClassStateCatalog` 驱动的 `ComboBoxColumn`。
+- [UI/ClassMacrosEditorControl.cs](UI/ClassMacrosEditorControl.cs)：左侧职业列表 + 右侧三页编辑器（动态宏/静态宏/特殊宏），偏移提示显示槽位编号计算。
+- 两个编辑器均接受 `Func<string?>` 定位器 + `Func<Task>` 保存回调，由 `MainForm` 在构造时注入。保存流程：编辑器调 `Store.Save()` → 回调 `MainForm.UpdateConfigFromAddonAsync()` → 重新生成 config/keymap → 重启运行时。
+
 ## UI 约定
 
 - **暗色主题集中在 [UI/UiTheme.cs](UI/UiTheme.cs)**：新控件一律复用它（`CreateButton`/`StyleComboBox`/`StyleTextBox`/`StyleDataGridView`/`StyleListView` 与颜色常量 `Background/Surface/Field/Hover/Border/Text/Muted/Accent/Danger`），不要写裸色值或系统默认样式。
-- 编辑器：[UI/ModuleEditorControl.cs](UI/ModuleEditorControl.cs)（模块主编辑器：侧栏列表 + 规则表 + 动态单位列表 + 两个动态数值表，自定义标签栏切换三页）、弹窗 [UI/ConditionEditorForm.cs](UI/ConditionEditorForm.cs)（可视化条件，含 `ConditionExpression` 文本⇆比较项互转）、[UI/UnitEditorForm.cs](UI/UnitEditorForm.cs)、[UI/FormulaEditorForm.cs](UI/FormulaEditorForm.cs)。新弹窗按现有模式同时设 `AcceptButton`/`CancelButton`。
+- 编辑器：[UI/ModuleEditorControl.cs](UI/ModuleEditorControl.cs)（模块主编辑器：侧栏列表 + 规则表 + 动态单位列表 + 两个动态数值表，自定义标签栏切换三页）、[UI/ClassConfigEditorControl.cs](UI/ClassConfigEditorControl.cs)（配置编辑器）、[UI/ClassMacrosEditorControl.cs](UI/ClassMacrosEditorControl.cs)（宏编辑器）、弹窗 [UI/ConditionEditorForm.cs](UI/ConditionEditorForm.cs)（可视化条件，含 `ConditionExpression` 文本⇆比较项互转）、[UI/UnitEditorForm.cs](UI/UnitEditorForm.cs)、[UI/FormulaEditorForm.cs](UI/FormulaEditorForm.cs)。新弹窗按现有模式同时设 `AcceptButton`/`CancelButton`。三个编辑器 UserControl 均遵循相同模式：左侧列表 + 右侧分页编辑区 + `UiTheme` 样式。
 - **规则表 `_rulesGrid` 的列陷阱**：`FillEditor`/`OpenConditionEditor` 用**位置参数** `Rows.Add(enabled, spell, "", condition)`，按列集合索引前 4 列填值。所以新增列（如拖拽手柄 `Drag`）要**加到集合末尾**、再用 `DisplayIndex` 调显示位置，避免打乱前四列；单元格访问一律按列名（`Cells["Spell"]`）。
 - 规则重排：`▲▼` 单步（`MoveRule`）+ 手柄列拖拽（`MoveRuleByDrag`，读全表→重排→写回，复用 `ReadRuleRow`/`WriteRuleRow`）。三个 grid 都 `AllowUserToDeleteRows=false`，删除只走 `×` 列。
 

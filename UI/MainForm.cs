@@ -50,6 +50,8 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly StatusForm _statusForm;
     private readonly ModuleStore _moduleStore;
     private readonly ModuleEditorControl _moduleEditor;
+    private readonly ClassConfigEditorControl _classConfigEditor;
+    private readonly ClassMacrosEditorControl _classMacrosEditor;
     private readonly AppOptions _initialOptions;
     private readonly UiCacheState _uiCache;
     private readonly System.Windows.Forms.Timer _roundedCornerResizeTimer;
@@ -86,6 +88,14 @@ public sealed class MainForm : Form, IMessageFilter
         _statusForm.AttachSettingsPanel(BuildSettingsPanel());
         _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditor, AppPaths.BaseDirectory);
         _statusForm.AttachModuleEditor(_moduleEditor);
+        _classConfigEditor = new ClassConfigEditorControl(
+            () => WowAddonLocator.FindClassDirectory(_initialOptions.WindowTitle),
+            UpdateConfigFromAddonAsync);
+        _statusForm.AttachConfigEditor(_classConfigEditor);
+        _classMacrosEditor = new ClassMacrosEditorControl(
+            () => WowAddonLocator.FindClassMacrosPath(_initialOptions.WindowTitle),
+            UpdateConfigFromAddonAsync);
+        _statusForm.AttachMacrosEditor(_classMacrosEditor);
         _statusForm.FormClosing += (_, _) =>
         {
             CancelToggleKeyCapture();
@@ -458,7 +468,7 @@ public sealed class MainForm : Form, IMessageFilter
         configPanel.Controls.Add(configTitle, 0, 0);
         configPanel.SetColumnSpan(configTitle, 2);
 
-        _configSourceLabel = CreateInfoLabel("Fuyutsui class: 点击「更新配置」时从游戏窗口定位");
+        _configSourceLabel = CreateInfoLabel("Fuyutsui: 点击「更新配置」时同步 class 与 classmacros → keymap");
         _configSourceLabel.Margin = new Padding(0, 4, 0, 10);
         configPanel.Controls.Add(_configSourceLabel, 0, 1);
         configPanel.SetColumnSpan(_configSourceLabel, 2);
@@ -548,6 +558,7 @@ public sealed class MainForm : Form, IMessageFilter
     {
         var windowTitle = _initialOptions.WindowTitle;
         var classDirectory = WowAddonLocator.FindClassDirectory(windowTitle);
+        var classMacrosPath = WowAddonLocator.FindClassMacrosPath(windowTitle);
         if (string.IsNullOrWhiteSpace(classDirectory))
         {
             _configSourceLabel.Text = $"Fuyutsui class: 未找到（请先打开「{windowTitle}」窗口）";
@@ -559,7 +570,9 @@ public sealed class MainForm : Form, IMessageFilter
             return;
         }
 
-        _configSourceLabel.Text = $"Fuyutsui class: {classDirectory}";
+        _configSourceLabel.Text = string.IsNullOrWhiteSpace(classMacrosPath)
+            ? $"Fuyutsui class: {classDirectory}"
+            : $"Fuyutsui: {classDirectory} + classmacros.lua";
         var configDirectory = ConfigService.ResolveConfigPath(AppPaths.BaseDirectory);
         if (!Directory.Exists(configDirectory))
         {
@@ -567,15 +580,41 @@ public sealed class MainForm : Form, IMessageFilter
             return;
         }
 
+        var keymapDirectory = Path.Combine(AppPaths.BaseDirectory, "keymap");
+
         try
         {
             UseWaitCursor = true;
-            var result = await Task.Run(() => FuyutsuiConfigConverter.UpdateFromClassDirectory(classDirectory, configDirectory));
+            var result = await Task.Run(() =>
+            {
+                var configResult = FuyutsuiConfigConverter.UpdateFromClassDirectory(classDirectory, configDirectory);
+                FuyutsuiKeymapConverter.UpdateResult? keymapResult = null;
+                if (!string.IsNullOrWhiteSpace(classMacrosPath))
+                {
+                    keymapResult = FuyutsuiKeymapConverter.UpdateFromClassMacros(classMacrosPath, keymapDirectory);
+                }
+
+                return (Config: configResult, Keymap: keymapResult);
+            });
+
             _moduleEditor.ReloadCatalogs();
-            AppendLog($"已从 Fuyutsui 更新配置: {result.UpdatedFiles.Count} 个文件 ← {result.ClassDirectory}");
-            foreach (var warning in result.Warnings.Take(20))
+            AppendLog($"已从 Fuyutsui 更新配置: {result.Config.UpdatedFiles.Count} 个文件 ← {result.Config.ClassDirectory}");
+            foreach (var warning in result.Config.Warnings.Take(20))
             {
                 AppendLog($"配置警告: {warning}");
+            }
+
+            if (result.Keymap is { } keymap)
+            {
+                AppendLog($"已从 classmacros 更新 keymap: {keymap.UpdatedFiles.Count} 个文件 ← {keymap.ClassMacrosPath}");
+                foreach (var warning in keymap.Warnings.Take(20))
+                {
+                    AppendLog($"keymap 警告: {warning}");
+                }
+            }
+            else
+            {
+                AppendLog("未找到 core\\classmacros.lua，已跳过 keymap 更新");
             }
 
             if (_runtime is not null)
@@ -585,11 +624,15 @@ public sealed class MainForm : Form, IMessageFilter
                 StartRuntime();
             }
 
-            var warningText = result.Warnings.Count == 0
+            var warningCount = result.Config.Warnings.Count + (result.Keymap?.Warnings.Count ?? 0);
+            var warningText = warningCount == 0
                 ? string.Empty
-                : $"\n警告 {result.Warnings.Count} 条（详见日志）。";
+                : $"\n警告 {warningCount} 条（详见日志）。";
+            var keymapText = result.Keymap is { } km
+                ? $"\nkeymap: {km.UpdatedFiles.Count} 个文件\n{km.ClassMacrosPath}"
+                : "\nkeymap: 未更新（缺少 classmacros.lua）";
             MessageBox.Show(
-                $"已更新 {result.UpdatedFiles.Count} 个职业配置。\n来源:\n{result.ClassDirectory}{warningText}",
+                $"已更新 {result.Config.UpdatedFiles.Count} 个职业配置。\n来源:\n{result.Config.ClassDirectory}{keymapText}{warningText}",
                 "更新配置",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);

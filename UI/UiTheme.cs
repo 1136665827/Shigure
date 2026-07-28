@@ -6,6 +6,9 @@ namespace Shigure;
 
 internal static class UiTheme
 {
+    private static readonly Dictionary<int, Image?> ClassIcons = new();
+    private static readonly Dictionary<(int ClassId, int SpecId), Image?> SpecIcons = new();
+
     private const int DwmwaUseImmersiveDarkMode = 20;
     private const int DwmwaMicaEffect = 1029;
     private const int DwmwaSystemBackdropType = 38;
@@ -307,6 +310,265 @@ internal static class UiTheme
                 selected ? Text : Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         };
+    }
+
+    public static void StyleClassIconListBox(
+        ListBox listBox,
+        Func<object?, int?> classIdSelector)
+    {
+        listBox.BackColor = Surface;
+        listBox.ForeColor = Text;
+        listBox.BorderStyle = BorderStyle.None;
+        listBox.DrawMode = DrawMode.OwnerDrawFixed;
+        listBox.ItemHeight = 80;
+        listBox.IntegralHeight = false;
+
+        var hoveredIndex = -1;
+        listBox.DrawItem += (_, e) =>
+        {
+            if (e.Index < 0)
+            {
+                return;
+            }
+
+            var selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            var hovered = e.Index == hoveredIndex;
+            var backgroundColor = selected
+                ? Hover
+                : e.Index % 2 == 0
+                    ? listBox.BackColor
+                    : RowAlt;
+            using (var background = new SolidBrush(backgroundColor))
+            {
+                e.Graphics.FillRectangle(background, e.Bounds);
+            }
+
+            if (selected || hovered)
+            {
+                using var indicator = new SolidBrush(selected ? Color.White : Muted);
+                e.Graphics.FillRectangle(
+                    indicator,
+                    e.Bounds.Left,
+                    e.Bounds.Top + 12,
+                    4,
+                    e.Bounds.Height - 24);
+            }
+
+            var item = listBox.Items[e.Index];
+            var classId = classIdSelector(item);
+            var icon = classId is null ? null : GetClassIcon(classId.Value);
+            var iconSize = Math.Min(64, e.Bounds.Height - 8);
+            var visibleWidth = GetVisibleClientWidth(listBox);
+            var iconBounds = new Rectangle(
+                e.Bounds.Left + (visibleWidth - iconSize) / 2,
+                e.Bounds.Top + (e.Bounds.Height - iconSize) / 2,
+                iconSize,
+                iconSize);
+
+            if (icon is not null)
+            {
+                e.Graphics.DrawImage(icon, iconBounds);
+                using var border = new Pen(selected ? Accent : Border);
+                e.Graphics.DrawRectangle(border, iconBounds);
+            }
+            else
+            {
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    "?",
+                    listBox.Font,
+                    iconBounds,
+                    selected ? Text : Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+        };
+
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index == hoveredIndex)
+            {
+                return;
+            }
+
+            hoveredIndex = index;
+            listBox.Invalidate();
+        };
+        listBox.MouseLeave += (_, _) =>
+        {
+            hoveredIndex = -1;
+            listBox.Invalidate();
+        };
+    }
+
+    private static int GetVisibleClientWidth(Control control)
+    {
+        var visibleBounds = control.RectangleToScreen(control.ClientRectangle);
+        for (var parent = control.Parent; parent is not null; parent = parent.Parent)
+        {
+            visibleBounds = Rectangle.Intersect(
+                visibleBounds,
+                parent.RectangleToScreen(parent.ClientRectangle));
+        }
+
+        return Math.Max(0, visibleBounds.Width);
+    }
+
+    private static Image? GetClassIcon(int classId)
+    {
+        if (ClassIcons.TryGetValue(classId, out var cached))
+        {
+            return cached;
+        }
+
+        var fileName = ClassNames.GetConfigFileName(classId).ToLowerInvariant();
+        var resourceName = $"{typeof(UiTheme).Namespace}.Assets.Class.{fileName}.jpg";
+        using var stream = typeof(UiTheme).Assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            ClassIcons[classId] = null;
+            return null;
+        }
+
+        using var source = Image.FromStream(stream);
+        var icon = new Bitmap(source);
+        ClassIcons[classId] = icon;
+        return icon;
+    }
+
+    public static void StyleSpecIconListBox(
+        ListBox listBox,
+        Func<object?, (int ClassId, int SpecId)?> specIdSelector)
+    {
+        listBox.BackColor = Surface;
+        listBox.ForeColor = Text;
+        listBox.BorderStyle = BorderStyle.None;
+        listBox.DrawMode = DrawMode.OwnerDrawFixed;
+        listBox.ItemHeight = 80;
+        listBox.IntegralHeight = false;
+
+        var hoveredIndex = -1;
+        listBox.DrawItem += (_, e) =>
+        {
+            if (e.Index < 0)
+            {
+                return;
+            }
+
+            var selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            var hovered = e.Index == hoveredIndex;
+            var backgroundColor = selected
+                ? Hover
+                : hovered
+                    ? SurfaceRaised
+                    : e.Index % 2 == 0
+                        ? listBox.BackColor
+                        : RowAlt;
+            using (var background = new SolidBrush(backgroundColor))
+            {
+                e.Graphics.FillRectangle(background, e.Bounds);
+            }
+
+            if (selected || hovered)
+            {
+                using var indicator = new SolidBrush(selected ? Accent : Muted);
+                e.Graphics.FillRectangle(
+                    indicator,
+                    e.Bounds.Left,
+                    e.Bounds.Top + 12,
+                    4,
+                    e.Bounds.Height - 24);
+            }
+
+            var item = listBox.Items[e.Index];
+            var specIds = specIdSelector(item);
+            var icon = specIds is { } ids ? GetSpecIcon(ids.ClassId, ids.SpecId) : null;
+            var iconSize = Math.Min(56, e.Bounds.Height - 12);
+            var iconBounds = new Rectangle(
+                e.Bounds.Left + 12,
+                e.Bounds.Top + (e.Bounds.Height - iconSize) / 2,
+                iconSize,
+                iconSize);
+
+            if (icon is not null)
+            {
+                e.Graphics.DrawImage(icon, iconBounds);
+                using var border = new Pen(selected ? Accent : Border);
+                e.Graphics.DrawRectangle(border, iconBounds);
+            }
+            else
+            {
+                using var placeholder = new SolidBrush(Field);
+                e.Graphics.FillRectangle(placeholder, iconBounds);
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    "?",
+                    listBox.Font,
+                    iconBounds,
+                    selected ? Text : Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+
+            var textBounds = new Rectangle(
+                iconBounds.Right + 12,
+                e.Bounds.Top,
+                Math.Max(0, e.Bounds.Right - iconBounds.Right - 18),
+                e.Bounds.Height);
+            TextRenderer.DrawText(
+                e.Graphics,
+                item?.ToString() ?? string.Empty,
+                listBox.Font,
+                textBounds,
+                selected ? Text : Muted,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left |
+                TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine);
+        };
+
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index == hoveredIndex)
+            {
+                return;
+            }
+
+            hoveredIndex = index;
+            listBox.Invalidate();
+        };
+        listBox.MouseLeave += (_, _) =>
+        {
+            hoveredIndex = -1;
+            listBox.Invalidate();
+        };
+    }
+
+    private static Image? GetSpecIcon(int classId, int specId)
+    {
+        var key = (classId, specId);
+        if (SpecIcons.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var fileName = ClassNames.GetSpecIconFileName(classId, specId);
+        if (fileName is null)
+        {
+            SpecIcons[key] = null;
+            return null;
+        }
+
+        var resourceName = $"{typeof(UiTheme).Namespace}.Assets.Spec.{fileName}.jpg";
+        using var stream = typeof(UiTheme).Assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            SpecIcons[key] = null;
+            return null;
+        }
+
+        using var source = Image.FromStream(stream);
+        var icon = new Bitmap(source);
+        SpecIcons[key] = icon;
+        return icon;
     }
 
     public static void StyleListView(ListView listView, Font font)

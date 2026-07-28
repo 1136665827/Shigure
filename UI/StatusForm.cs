@@ -17,9 +17,11 @@ public sealed class StatusForm : Form
     private ListView _unitInfoList = null!;
     private TextBox _logTextBox = null!;
     private Panel _contentHost = null!;
-    private Panel _settingsHost = null!;
-    private Panel _moduleHost = null!;
-    private Panel _aboutHost = null!;
+        private Panel _settingsHost = null!;
+        private Panel _configHost = null!;
+        private Panel _macrosHost = null!;
+        private Panel _moduleHost = null!;
+        private Panel _aboutHost = null!;
 
     public StatusForm()
     {
@@ -71,6 +73,8 @@ public sealed class StatusForm : Form
         Controls.Add(root);
 
         _settingsHost = CreatePageHost();
+        _configHost = CreatePageHost();
+        _macrosHost = CreatePageHost();
         _moduleHost = CreatePageHost();
         _aboutHost = CreatePageHost();
 
@@ -111,6 +115,8 @@ public sealed class StatusForm : Form
         };
 
         AddNavItem(nav, "通用", _settingsHost);
+        AddNavItem(nav, "配置", _configHost);
+        AddNavItem(nav, "宏", _macrosHost);
         AddNavItem(nav, "模块", _moduleHost);
         AddNavItem(nav, "状态", BuildStatusPage());
         AddNavItem(nav, "队伍", BuildSection("队伍", _partyList, "当前队伍单位与扫描到的字段摘要"));
@@ -204,6 +210,18 @@ public sealed class StatusForm : Form
     {
         panel.Dock = DockStyle.Fill;
         _settingsHost.Controls.Add(panel);
+    }
+
+    public void AttachConfigEditor(Control panel)
+    {
+        panel.Dock = DockStyle.Fill;
+        _configHost.Controls.Add(panel);
+    }
+
+    public void AttachMacrosEditor(Control panel)
+    {
+        panel.Dock = DockStyle.Fill;
+        _macrosHost.Controls.Add(panel);
     }
 
     public void AttachModuleEditor(Control panel)
