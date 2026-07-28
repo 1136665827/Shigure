@@ -34,7 +34,7 @@ public sealed class ClassMacrosEditorControl : UserControl
         _resolveClassMacrosPath = resolveClassMacrosPath;
         _updateConfigAsync = updateConfigAsync;
         _reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
-        _saveButton = UiTheme.CreateButton("保存并更新配置", UiTheme.Accent, Color.Black);
+        _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
         InitializeComponent();
         ReloadFromAddon();
     }
@@ -69,13 +69,12 @@ public sealed class ClassMacrosEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 2,
             Padding = new Padding(12),
             Margin = new Padding(0, 0, 12, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
 
         panel.Controls.Add(new Label
         {
@@ -99,22 +98,6 @@ public sealed class ClassMacrosEditorControl : UserControl
             }
         };
         panel.Controls.Add(_classList, 0, 1);
-
-        var actions = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0, 10, 0, 0)
-        };
-        StyleActionButton(_reloadButton);
-        StyleActionButton(_saveButton);
-        _reloadButton.Click += (_, _) => ReloadFromAddon();
-        _saveButton.Click += async (_, _) => await SaveAndUpdateAsync();
-        actions.Controls.Add(_reloadButton);
-        actions.Controls.Add(_saveButton);
-        panel.Controls.Add(actions, 0, 2);
         return panel;
     }
 
@@ -133,12 +116,13 @@ public sealed class ClassMacrosEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 4,
             Margin = new Padding(0)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
 
         var header = new TableLayoutPanel
         {
@@ -172,10 +156,41 @@ public sealed class ClassMacrosEditorControl : UserControl
         _offsetLabel.Padding = new Padding(14, 0, 14, 0);
         _offsetLabel.Margin = new Padding(0);
         _offsetLabel.AutoEllipsis = true;
-        _offsetLabel.Text = "动态宏每项占 30 槽；static/special 的 [1] 对应全局热键偏移后的相对序号";
+        _offsetLabel.Text = "创建顺序：动态宏（每项 30 槽）→ 静态宏 → 特殊宏；空字符串保留槽位";
         root.Controls.Add(_offsetLabel, 0, 1);
 
         root.Controls.Add(BuildSectionTabs(), 0, 2);
+
+        var actionRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Surface,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(0, 8, 12, 12)
+        };
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 228));
+
+        var actions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = UiTheme.Surface,
+            Margin = new Padding(0)
+        };
+        StyleActionButton(_reloadButton);
+        StyleActionButton(_saveButton);
+        _reloadButton.Margin = new Padding(0, 0, 8, 0);
+        _saveButton.Margin = new Padding(0);
+        _reloadButton.Click += (_, _) => ReloadFromAddon();
+        _saveButton.Click += async (_, _) => await SaveAndUpdateAsync();
+        actions.Controls.Add(_reloadButton);
+        actions.Controls.Add(_saveButton);
+        actionRow.Controls.Add(actions, 1, 0);
+        root.Controls.Add(actionRow, 0, 3);
         return root;
     }
 
@@ -216,8 +231,8 @@ public sealed class ClassMacrosEditorControl : UserControl
         var pages = new Control[]
         {
             BuildDynamicPage(),
-            BuildSparsePage(_staticGrid, "相对序号", "内容（拼在 /cast 后）", "注释"),
-            BuildSparsePage(_specialGrid, "相对序号", "完整宏文本", "注释")
+            BuildArrayPage(_staticGrid, "法术/条件或完整宏（空字符串 = 占位）", "注释"),
+            BuildArrayPage(_specialGrid, "追加宏内容（空字符串 = 占位）", "注释")
         };
         foreach (var page in pages)
         {
@@ -327,7 +342,7 @@ public sealed class ClassMacrosEditorControl : UserControl
         return panel;
     }
 
-    private Control BuildSparsePage(DataGridView grid, string indexHeader, string textHeader, string commentHeader)
+    private Control BuildArrayPage(DataGridView grid, string textHeader, string commentHeader)
     {
         var panel = new TableLayoutPanel
         {
@@ -340,7 +355,13 @@ public sealed class ClassMacrosEditorControl : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
         ConfigureGrid(grid);
-        grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Index", HeaderText = indexHeader, Width = 90 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "Index",
+            HeaderText = "顺序",
+            Width = 72,
+            ReadOnly = true
+        });
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Text",
@@ -361,21 +382,21 @@ public sealed class ClassMacrosEditorControl : UserControl
         grid.CellValueChanged += (_, _) =>
         {
             MarkDirty();
-            if (ReferenceEquals(grid, _dynamicGrid))
-            {
-                UpdateOffsetHint();
-            }
+            UpdateOffsetHint();
         };
-        grid.UserAddedRow += (_, _) => MarkDirty();
+        grid.UserAddedRow += (_, _) =>
+        {
+            RenumberArrayRows(grid);
+            MarkDirty();
+            UpdateOffsetHint();
+        };
         grid.RowsRemoved += (_, _) =>
         {
             if (!_suppressUi)
             {
+                RenumberArrayRows(grid);
                 MarkDirty();
-                if (ReferenceEquals(grid, _dynamicGrid))
-                {
-                    UpdateOffsetHint();
-                }
+                UpdateOffsetHint();
             }
         };
     }
@@ -618,19 +639,21 @@ public sealed class ClassMacrosEditorControl : UserControl
                 _dynamicGrid.Rows.Add(name, "×");
             }
 
-            foreach (var entry in _currentMacros.StaticSpells)
+            for (var i = 0; i < _currentMacros.StaticSpells.Count; i++)
             {
+                var entry = _currentMacros.StaticSpells[i];
                 _staticGrid.Rows.Add(
-                    entry.Index.ToString(CultureInfo.InvariantCulture),
+                    (i + 1).ToString(CultureInfo.InvariantCulture),
                     entry.Text,
                     entry.Comment ?? "",
                     "×");
             }
 
-            foreach (var entry in _currentMacros.SpecialSpells)
+            for (var i = 0; i < _currentMacros.SpecialSpells.Count; i++)
             {
+                var entry = _currentMacros.SpecialSpells[i];
                 _specialGrid.Rows.Add(
-                    entry.Index.ToString(CultureInfo.InvariantCulture),
+                    (i + 1).ToString(CultureInfo.InvariantCulture),
                     entry.Text,
                     entry.Comment ?? "",
                     "×");
@@ -646,23 +669,25 @@ public sealed class ClassMacrosEditorControl : UserControl
 
     private void UpdateOffsetHint()
     {
-        var count = 0;
+        var dynamicCount = 0;
+        var staticCount = 0;
         if (_currentMacros is not null)
         {
-            // 优先用网格当前行数（含未提交编辑）
-            count = _dynamicGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow
-                && !string.IsNullOrWhiteSpace(r.Cells["Name"].Value?.ToString()));
-            if (count == 0 && !_dirty)
+            // 数组中的空字符串同样占槽，所以按实际行数计算。
+            dynamicCount = _dynamicGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
+            staticCount = _staticGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
+            if (!_dirty)
             {
-                count = _currentMacros.DynamicSpells.Count;
+                dynamicCount = _currentMacros.DynamicSpells.Count;
+                staticCount = _currentMacros.StaticSpells.Count;
             }
         }
 
-        var slots = count * 30;
-        var firstStatic = slots + 1;
-        _offsetLabel.Text = count == 0
-            ? "无动态宏：static/special 的 [1] = 全局热键 1"
-            : $"动态宏 {count} 项，占 {slots} 槽；static/special 的 [1] = 全局热键 {firstStatic}";
+        var dynamicSlots = dynamicCount * 30;
+        var firstStatic = dynamicSlots + 1;
+        var firstSpecial = dynamicSlots + staticCount + 1;
+        _offsetLabel.Text =
+            $"动态宏 {dynamicCount} 项，占 {dynamicSlots} 槽；静态宏 [1] = 全局 {firstStatic}；特殊宏 [1] = 全局 {firstSpecial}";
     }
 
     private void CommitCurrentFromUi()
@@ -687,11 +712,11 @@ public sealed class ClassMacrosEditorControl : UserControl
             }
         }
 
-        WriteSparseGrid(_staticGrid, _currentMacros.StaticSpells);
-        WriteSparseGrid(_specialGrid, _currentMacros.SpecialSpells);
+        WriteArrayGrid(_staticGrid, _currentMacros.StaticSpells);
+        WriteArrayGrid(_specialGrid, _currentMacros.SpecialSpells);
     }
 
-    private static void WriteSparseGrid(DataGridView grid, List<ClassMacrosStore.SparseEntry> target)
+    private static void WriteArrayGrid(DataGridView grid, List<ClassMacrosStore.ArrayEntry> target)
     {
         target.Clear();
         foreach (DataGridViewRow row in grid.Rows)
@@ -701,28 +726,14 @@ public sealed class ClassMacrosEditorControl : UserControl
                 continue;
             }
 
-            var indexText = row.Cells["Index"].Value?.ToString()?.Trim() ?? "";
             var text = row.Cells["Text"].Value?.ToString() ?? "";
             var comment = row.Cells["Comment"].Value?.ToString()?.Trim();
-            if (!int.TryParse(indexText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index))
+            target.Add(new ClassMacrosStore.ArrayEntry
             {
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(comment))
-            {
-                continue;
-            }
-
-            target.Add(new ClassMacrosStore.SparseEntry
-            {
-                Index = index,
                 Text = text.Replace("\r\n", "\n", StringComparison.Ordinal),
                 Comment = string.IsNullOrWhiteSpace(comment) ? null : comment
             });
         }
-
-        target.Sort((a, b) => a.Index.CompareTo(b.Index));
     }
 
     private async Task SaveAndUpdateAsync()
@@ -806,11 +817,9 @@ public sealed class ClassMacrosEditorControl : UserControl
         }
 
         grid.Rows.RemoveAt(e.RowIndex);
+        RenumberArrayRows(grid);
         MarkDirty();
-        if (ReferenceEquals(grid, _dynamicGrid))
-        {
-            UpdateOffsetHint();
-        }
+        UpdateOffsetHint();
     }
 
     private void MoveSelectedRow(DataGridView grid, int delta)
@@ -838,10 +847,25 @@ public sealed class ClassMacrosEditorControl : UserControl
         grid.ClearSelection();
         grid.Rows[target].Selected = true;
         grid.CurrentCell = grid.Rows[target].Cells[0];
+        RenumberArrayRows(grid);
         MarkDirty();
-        if (ReferenceEquals(grid, _dynamicGrid))
+        UpdateOffsetHint();
+    }
+
+    private static void RenumberArrayRows(DataGridView grid)
+    {
+        if (!grid.Columns.Contains("Index"))
         {
-            UpdateOffsetHint();
+            return;
+        }
+
+        var index = 1;
+        foreach (DataGridViewRow row in grid.Rows)
+        {
+            if (!row.IsNewRow)
+            {
+                row.Cells["Index"].Value = index++.ToString(CultureInfo.InvariantCulture);
+            }
         }
     }
 

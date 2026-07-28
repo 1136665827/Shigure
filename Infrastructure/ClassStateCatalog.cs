@@ -2,7 +2,7 @@ namespace Shigure;
 
 /// <summary>
 /// ClassBlocks states 可选字段目录。界面使用单级分类；
-/// 「状态 / 配置开关 / 物品 / 能量」在 Lua 中统一写入 ["状态"]。
+/// 保存时按 Lua 原格式写入同名分类表，并保持固定分类顺序。
 /// </summary>
 internal static class ClassStateCatalog
 {
@@ -16,9 +16,9 @@ internal static class ClassStateCatalog
     public static readonly string[] TopCategories =
     [
         CategoryState,
-        CategoryConfig,
-        CategoryItem,
         CategoryResource,
+        CategoryItem,
+        CategoryConfig,
         CategoryTarget,
         CategoryFocus
     ];
@@ -39,7 +39,7 @@ internal static class ClassStateCatalog
         ]),
         (CategoryItem,
         [
-            "大红冷却", "大蓝冷却", "治疗石冷却", "鲁莽药水冷却", "圣光潜力冷却"
+            "治疗药水", "魔法药水", "治疗石", "鲁莽药水", "圣光潜力"
         ]),
         (CategoryResource,
         [
@@ -99,9 +99,7 @@ internal static class ClassStateCatalog
     }
 
     public static string GetStorageCategory(string category)
-        => category is CategoryTarget or CategoryFocus
-            ? category
-            : CategoryState;
+        => category;
 
     private static string[] GetNames(string category)
         => Categories.FirstOrDefault(item =>

@@ -8,7 +8,7 @@ related:
   - "Keymap.md"
   - "AGENTS.md"
   - "AI_CODEBASE_GUIDE_zh-CN.md"
-purpose: "供 AI 理解、审查、新增职业宏时作为单一事实来源；说明 ClassMacros 三表规则与 CreateMacro 展开逻辑"
+purpose: "供 AI 理解、审查、新增职业宏时作为单一事实来源；说明 ClassMacros 三表规则、MacroBodies 查表与 CreateMacro 展开逻辑"
 ---
 
 # Fuyutsui `core/classmacros.lua`：AI 宏规则参考
@@ -18,7 +18,11 @@ purpose: "供 AI 理解、审查、新增职业宏时作为单一事实来源；
 
 ## 0. 一句话定义
 
-`classmacros.lua` 只提供数据表 `Fuyutsui.ClassMacros[classFile]`。  
+`classmacros.lua` 提供：
+
+1. `Fuyutsui.MacroBodies`：命名宏体查表（药水等）。
+2. `Fuyutsui.ClassMacros[classFile]`：各职业的三份**数组**列表。
+
 运行时由 `main.lua:LoadPlayerMacros()` 按 `UnitClassBase("player")` 取出当前职业，再调用：
 
 ```lua
@@ -27,31 +31,38 @@ Fuyutsui:CreateMacro(m.dynamicSpells, m.staticSpells, m.specialSpells)
 
 真正创建按钮、拼宏文本、绑定热键的逻辑在 `core/macro.lua`。
 
+**创建顺序（依次占键）**：`dynamicSpells`（每组 30 键）→ `staticSpells` → `specialSpells`。
+
 ## 1. AI 必须遵守的规则
 
 1. **键名必须是** `UnitClassBase` 返回值：`WARRIOR` / `PALADIN` / `HUNTER` / `ROGUE` / `PRIEST` / `DEATHKNIGHT` / `SHAMAN` / `MAGE` / `WARLOCK` / `MONK` / `DRUID` / `DEMONHUNTER` / `EVOKER`。
-2. 每个职业表**必须有**三个字段：`dynamicSpells`、`staticSpells`、`specialSpells`（可为空表 `{}`）。
-3. **需要点名队友/团队成员**的治疗、驱散、护盾等 → 放 `dynamicSpells`（数组，顺序敏感）。
-4. **普通单体施法**（目标默认、或条件写在法术名里）→ 放 `staticSpells[index]`，只写法术/条件字符串，**不要**自己加 `/cast `。
-5. **需要完整宏文本**（`/castsequence`、`/stopcasting`、`/cancelaura`、多行不以自动 `/cast` 开头等）→ 放 `specialSpells[index]`，**必须写完整命令**。
-6. **同序号冲突时**：`specialSpells[index]` **优先于** `staticSpells[index]`；被覆盖的 static 可删掉，或留注释说明原意。
-7. `staticSpells` / `specialSpells` 的 `index` 是**动态区之后的相对序号**，不是全局热键序号。
-8. 战斗中 `InCombatLockdown()` 时无法创建/修改安全按钮；改宏后需在脱战后 `/reload` 或等下次非战斗加载生效。
-9. 保持 Lua 5.1 / WoW 兼容；法术名用**本地化中文名**（与客户端一致），与现有表风格一致。
-10. 不要格式化整个文件；只改目标职业段落。
+2. 每个职业表**必须有**三个字段：`dynamicSpells`、`staticSpells`、`specialSpells`（可为空表 `{}`）。字段顺序建议与文件一致：dynamic → static → special。
+3. 三表一律用**数组**（`{"牺牲祝福", "代祷", "圣盾术"}`），**不要**再写 `[n] = "..."` 稀疏键值表。
+4. **需要点名队友/团队成员**的治疗、驱散、护盾等 → 放 `dynamicSpells`（数组，顺序敏感）。
+5. **普通单体施法**（目标默认、或条件写在法术名里）→ 放 `staticSpells`，只写法术/条件字符串，**不要**自己加 `/cast `。
+6. **完整宏文本**（`/castsequence`、`/stopcasting`、`/cancelaura` 等）→ 可直接写在 `staticSpells`（以 `/` 开头）或追加到 `specialSpells`；以 `/` 开头的字符串**不会**再加 `/cast `。
+7. 药水等复用宏体 → 在列表里写**名称**（如 `"银月城生命药水"`），并在 `Fuyutsui.MacroBodies` 中登记；创建时用表内值。
+8. 需要跳过某个槽位但不平移后续键 → 在数组对应位置写 `""`（占位，不创建按钮）。
+9. 战斗中 `InCombatLockdown()` 时无法创建/修改安全按钮；改宏后需在脱战后 `/reload` 或等下次非战斗加载生效。
+10. 保持 Lua 5.1 / WoW 兼容；法术名用**本地化中文名**（与客户端一致），与现有表风格一致。
+11. 不要格式化整个文件；只改目标职业段落。
 
 ## 2. 加载与消费链路
 
 ```text
-classmacros.lua          定义 Fuyutsui.ClassMacros
-        │
+classmacros.lua
+        │  MacroBodies（命名宏体）
+        │  ClassMacros[classFile]
+        ▼
 main.lua:LoadPlayerMacros()
         │  classFile = UnitClassBase("player")
         │  MacrosList = ClassMacros[classFile]
         ▼
 macro.lua:CreateMacro(dynamic, static, special)
-        │  按 macroKind[i] 生成按钮 s1..sN
-        │  SetOverrideBindingClick + macrotext
+        │  1. dynamic：每组 × 30 键
+        │  2. static：ipairs 依次占键（resolveMacroBody）
+        │  3. special：接在 static 后依次占键（resolveMacroBody）
+        │  SetOverrideBindingClick + macrotext → 按钮 s1..sN
         ▼
 玩家按覆盖热键 → SecureActionButton 执行宏
 ```
@@ -64,38 +75,41 @@ macro.lua:CreateMacro(dynamic, static, special)
 
 | 修饰键顺序 | 基础键（每组 39 个） |
 |---|---|
-| `CTRL` → `ALT` → `SHIFT` → `ALT-CTRL` → `ALT-SHIFT` → `CTRL-SHIFT` → `ALT-CTRL-SHIFT` | 小键盘 0–9 / 小数点 / ± / − / × / ÷；`F1–F3,F5–F12`（**无 F4**）；`, . / ; ' [ ] \`；`7 8 9 0 =` |
+| `CTRL` → `ALT` → `SHIFT` → `ALT-CTRL` → `ALT-SHIFT` → `CTRL-SHIFT` → `ALT-CTRL-SHIFT` | 小键盘 0–9 / 小数点 / + / − / × / ÷；`F1–F3,F5–F12`（**无 F4**）；`, . / ; ' [ ] \`；`7 8 9 0 =` |
 
 - 总槽位数 = `7 × 39 = 273`。
 - 按钮名：`s1`、`s2`、…（与 `macroKind` 下标一致）。
 - 人读对照表见 `Keymap.md`（ID 1 = `CTRL-NUMPAD1`，以此类推）。
 
-**AI 改宏时**：关心的是 `dynamic` 占用多少槽、以及 static/special 的相对 `index`；不必手算全局热键，除非要核对外部程序按键映射。
+**AI 改宏时**：关心的是 `dynamic` 占用多少槽、以及 static/special 数组下标对应的全局热键；不必手算，除非要核对外部程序按键映射。
 
 ## 4. 槽位分配算法（核心）
 
-对每个热键下标 `i = 1 .. #macroKind`：
+`CreateMacro` **按顺序推进槽位下标 `i`**（从 1 起），不再用「special 与 static 同序号互斥覆盖」：
 
 ```text
-dynamicSlots = #dynamicSpells * 30
+i = 1
 
-if i <= dynamicSlots then
-    -- 动态宏：按技能组 + raid 位展开（见 §5）
-else
-    index = i - dynamicSlots
-    if specialSpells[index] then
-        macroBody = specialSpells[index]          -- 原样使用
-    elseif staticSpells[index] then
-        macroBody = "/cast " .. staticSpells[index]  -- 自动加前缀
-    end
-end
+-- 1. dynamicSpells
+for each spell in dynamicSpells:
+    for raidIdx = 1..30:
+        按 §5 生成 macroBody（spell 为空则不建按钮）
+        占用 macroKind[i]，i = i + 1
 
-若 macroBody 非空 → 创建/更新按钮 s{i}
+-- 2. staticSpells
+for each entry in staticSpells:
+    macroBody = resolveMacroBody(entry)   -- "" → nil，不建按钮但仍占位
+    占用 macroKind[i]，i = i + 1
+
+-- 3. specialSpells
+for each entry in specialSpells:
+    macroBody = resolveMacroBody(entry)
+    占用 macroKind[i]，i = i + 1
 ```
 
 因此：
 
-| `dynamicSpells` 长度 | 动态占用槽 | static/special 的 `[1]` 对应全局 `i` |
+| `dynamicSpells` 长度 | 动态占用槽 | `staticSpells[1]` 对应全局 `i` |
 |---:|---:|---:|
 | 0 | 0 | 1 |
 | 1 | 30 | 31 |
@@ -103,7 +117,18 @@ end
 | 6 | 180 | 181 |
 | 7 | 210 | 211 |
 
-**新增或删除 `dynamicSpells` 条目会平移其后所有 static/special 的实际热键。** 改动态列表前必须评估这个偏移。
+**新增或删除 `dynamicSpells` 条目会平移其后所有 static/special 的实际热键。**  
+**在 `staticSpells` 中间插入/删除条目（含 `""`）同样会平移其后键位。**
+
+### 4.1 `resolveMacroBody(spell)`
+
+| 情况 | 结果 |
+|---|---|
+| `spell` 为 `nil` 或 `""` | 不创建宏（槽位仍前进） |
+| `Fuyutsui.MacroBodies[spell]` 存在，且值以 `/` 开头 | 原样使用表内值 |
+| `MacroBodies[spell]` 存在，值不以 `/` 开头 | `"/cast " .. 表内值` |
+| `spell` 本身以 `/` 开头 | 原样使用（完整宏文本） |
+| 其他 | `"/cast " .. spell` |
 
 ## 5. `dynamicSpells` 规则
 
@@ -139,11 +164,11 @@ dynamicSpells = { "法术A", "法术B", "法术C" }  -- 数组，1-based，顺�
 不适合：
 
 - 只打当前目标 / 自身 / 鼠标指向 / 焦点 → 用 `staticSpells` + 条件前缀。
-- 需要 sequence / stopcasting / cancelaura → 用 `specialSpells`。
+- 需要 sequence / stopcasting / cancelaura → 在 `staticSpells` 写以 `/` 开头的完整文本，或放入 `specialSpells`。
 
 ### 5.4 现有职业占用（便于估算偏移）
 
-| 职业键 | `#dynamicSpells` | 动态槽 | static `[1]` 的全局 `i` |
+| 职业键 | `#dynamicSpells` | 动态槽 | static 第 1 项的全局 `i` |
 |---|---:|---:|---:|
 | WARRIOR / HUNTER / ROGUE / DEATHKNIGHT / WARLOCK / DEMONHUNTER | 0 | 0 | 1 |
 | MAGE | 1 | 30 | 31 |
@@ -157,15 +182,19 @@ dynamicSpells = { "法术A", "法术B", "法术C" }  -- 数组，1-based，顺�
 
 ```lua
 staticSpells = {
-    [1] = "英勇投掷",
-    [5] = "[@mouseover]保护祝福",
-    [20] = "[spec:2]圣洁鸣钟;[spec:3]灰烬觉醒",
-    [37] = "item:241304\n/cast item:241305",  -- 会变成 /cast item:...\n/cast item:...
+    "英勇投掷",
+    "[@mouseover]保护祝福",
+    "[spec:2]圣洁鸣钟;[spec:3]灰烬觉醒",
+    "银月城生命药水",                          -- 走 MacroBodies
+    "/castsequence reset=0.3 真言术：耀,x",     -- 以 / 开头：完整宏
+    "",                                        -- 空串：占位跳过，不建按钮
 }
 ```
 
-- **稀疏表**合法：缺号表示该相对序号不建宏。
-- 值是**拼在 `/cast ` 后面的字符串**，不是完整宏（除非用 `\n` 续写后续行）。
+- **数组顺序 = 占键顺序**（接在 dynamic 区之后）。
+- 普通条目是**拼在 `/cast ` 后面的字符串**，不要自带前导 `/cast `。
+- 需要完整命令时，直接写以 `/` 开头的字符串。
+- `""` 保留槽位但不创建按钮（例如法师历史上空出的位置）。
 
 ### 6.2 常见写法（直接抄现有风格）
 
@@ -179,29 +208,54 @@ staticSpells = {
 | 专精分支 | `"[spec:2]圣洁鸣钟;[spec:3]灰烬觉醒"` | `/cast [spec:2]...` |
 | 天赋已知 | `"[known:116844,@cursor]平心之环;[known:198898]赤精之歌"` | `/cast [known:...]...` |
 | 姿态/形态 | `"[nostance:1]暗影形态"` | `/cast [nostance:1]暗影形态` |
-| 双物品一行 | `"item:241304\n/cast item:241305"` | `/cast item:241304` + 第二行 `/cast item:241305` |
+| 命名药水 | `"银月城生命药水"` | `/cast item:241304` + 第二行 `/cast item:241305`（见 MacroBodies） |
+| 完整宏 | `"/stopcasting"` | `/stopcasting`（不加 `/cast`） |
+| 占位跳过 | `""` | 不创建 |
 
-### 6.3 不要放进 static 的情况
+## 7. `Fuyutsui.MacroBodies`（命名宏体）
 
-若第一行**不能**以自动加的 `/cast ` 开头，或需要 `/castsequence`、`/stopcasting`、`/cancelaura` 等，改用 `specialSpells`。
+### 7.1 作用
 
-## 7. `specialSpells` 规则
-
-### 7.1 数据结构
+列表里写**可读名称**，实际宏体集中维护，避免多职业重复粘贴物品 ID。
 
 ```lua
-specialSpells = {
-    [36] = "/castsequence reset=0.3 真言术：耀,x",
-    [39] = "/stopcasting",
-    [17] = "/cancelaura [spec:4]猎豹形态\n/cast 万灵之召",
+Fuyutsui.MacroBodies = {
+    ["鲁莽药水"] = "item:241288\n/cast item:241289",
+    ["银月城生命药水"] = "item:241304\n/cast item:241305",
 }
 ```
 
-- 值是**完整 `macrotext`**，原样写入按钮，**不会**再加 `/cast `。
-- `index` 与 `staticSpells` 共用同一套相对序号。
-- 同 index 若 special 存在，static **被忽略**（可注释掉对应 static，如 DH 的恶魔变形 / 烈火烙印）。
+在 `staticSpells` / `specialSpells` 中写 `"银月城生命药水"` 即可；`resolveMacroBody` 会查表并（对非 `/` 开头的值）自动加 `/cast `。
 
-### 7.2 典型用途
+### 7.2 新增命名宏体
+
+1. 在 `MacroBodies` 增加 `["名称"] = "宏体片段或完整宏"`。
+2. 各职业数组中写 `"名称"`，不要再内联物品 ID。
+3. 若宏体已是完整命令（以 `/` 开头），查表后原样使用；否则前缀 `/cast `。
+
+## 8. `specialSpells` 规则
+
+### 8.1 数据结构
+
+```lua
+specialSpells = {
+    "/castsequence reset=0.5 死亡之握,x",
+    "/stopcasting",
+}
+```
+
+- 同样是**数组**，接在该职业**全部** `staticSpells` 之后依次占键。
+- 也走 `resolveMacroBody`：可用完整 `/...` 文本，或 MacroBodies 名称，或普通法术名（会加 `/cast`）。
+- 当前仓库多数职业 `specialSpells = {}`；历史上与 static 同槽的特殊宏（sequence / stopcasting 等）已直接写在 `staticSpells` 对应位置（以 `/` 开头），以保持键位。
+
+### 8.2 何时用 special 而不是写进 static
+
+| 选择 | 适用 |
+|---|---|
+| 写进 `staticSpells`（`/` 开头或 MacroBodies 名） | 需要固定在 static 区某一相对位置 |
+| 追加到 `specialSpells` | 明确接在 static **末尾之后**的额外宏 |
+
+### 8.3 典型完整宏
 
 | 模式 | 示例（文件中已有） |
 |---|---|
@@ -209,86 +263,106 @@ specialSpells = {
 | 停施法 | `"/stopcasting"` |
 | 取消光环再施法 | `"/cancelaura [spec:4]猎豹形态\n/cast 万灵之召"` |
 
-`castsequence ...,x` 中的 `x` 是占位，用于快速连按重置序列的常见写法；改此类宏时保持现有 reset 秒数风格，除非有明确需求。
+`castsequence ...,x` 中的 `x` 是占位，用于快速连按重置序列；改此类宏时保持现有 reset 秒数风格，除非有明确需求。
 
-## 8. 决策树：新技能放哪
+## 9. 决策树：新技能放哪
 
 ```text
 需要按队友/团队槽位点名？
   ├─ 是 → dynamicSpells（纯法术名；注意 +30 偏移）
-  └─ 否 → 能否写成「/cast + 一段条件/法术名」？
-            ├─ 是 → staticSpells[index]
-            └─ 否 → specialSpells[index]（完整宏文本）
+  └─ 否 → 是否已有 MacroBodies 名称？
+            ├─ 是 → staticSpells 写名称
+            └─ 否 → 能否写成「/cast + 一段条件/法术名」？
+                      ├─ 是 → staticSpells 写条件/法术名
+                      └─ 否 → staticSpells 写以 / 开头的完整宏
+                                （或追加到 specialSpells 末尾）
 ```
 
-同 index 既要特殊宏又想保留备注：special 写生效文本，static 删掉或改成注释。
+需要跳过某键：在数组该位置写 `""`。
 
-## 9. 修改检查清单（AI 改完自检）
+## 10. 修改检查清单（AI 改完自检）
 
 1. 职业键是否为正确的 `UnitClassBase` 字符串？
-2. 三个字段是否都在（空也要 `{}`）？
-3. 若改了 `dynamicSpells` 长度：是否意识到 static/special 实际热键整体平移？
-4. static 值是否**没有**多余的前导 `/cast `（双物品续行除外）？
-5. special 值是否**自带** `/` 命令？
-6. 同序号 special 是否故意覆盖 static？被覆盖项是否已注释说明？
-7. 条件语法是否与现有条目一致（`[@unit]`、`[spec:N]`、`[known:id]`、`[group:...]`）？
-8. 法术名是否与游戏客户端中文一致？
-9. 提醒：战斗中不会更新安全按钮；需脱战 `/reload` 验证。
+2. 三个字段是否都在（空也要 `{}`），且为**数组**而非 `[n]=` 稀疏表？
+3. 若改了 `dynamicSpells` 长度：是否意识到后续热键整体平移？
+4. 若在 `staticSpells` 中间插入/删除（含 `""`）：是否评估了后续键位？
+5. 普通 static 值是否**没有**多余的前导 `/cast `？
+6. 完整宏是否以 `/` 开头（或走 MacroBodies）？
+7. 药水等是否用 MacroBodies 名称，而不是内联 `item:...`？
+8. 条件语法是否与现有条目一致（`[@unit]`、`[spec:N]`、`[known:id]`、`[group:...]`）？
+9. 法术名是否与游戏客户端中文一致？
+10. 提醒：战斗中不会更新安全按钮；需脱战 `/reload` 验证。
 
-## 10. 最小示例
+## 11. 最小示例
 
-### 10.1 无动态（近战输出职业常见）
+### 11.1 无动态（近战输出职业常见）
 
 ```lua
 WARRIOR = {
     dynamicSpells = {},
-    specialSpells = {},
     staticSpells = {
-        [1] = "英勇投掷",
-        [38] = "拳击",
-        [39] = "[@focus]拳击",
+        "英勇投掷",
+        -- ...
+        "拳击",
+        "[@focus]拳击",
     },
+    specialSpells = {},
 }
 ```
 
-- `[1]` → 全局 `i=1` → `/cast 英勇投掷`
-- `[39]` → `/cast [@focus]拳击`
+- 第 1 项 → 全局 `i=1` → `/cast 英勇投掷`
+- 最后一项 → `/cast [@focus]拳击`
 
-### 10.2 有动态 + special 覆盖
+### 11.2 有动态 + 完整宏 + 命名药水
 
 ```lua
 PRIEST = {
     dynamicSpells = { "苦修", "快速治疗", "真言术：盾", "愈合祷言", "纯净术", "圣言术：静" },
-    -- 动态占 180 槽；此后 index 1 → 全局 i=181
-    specialSpells = {
-        [36] = "/castsequence reset=0.3 真言术：耀,x",
-        [39] = "/stopcasting",
-    },
+    -- 动态占 180 槽；static 第 1 项 → 全局 i=181
     staticSpells = {
-        [1] = "心灵震爆",
-        [37] = "item:241304\n/cast item:241305",
-        -- [36] / [39] 由 special 接管，不必在 static 重复
+        "心灵震爆",
+        -- ...
+        "圣言术：静",
+        "/castsequence reset=0.3 真言术：耀,x",  -- 完整宏，占 static 相对第 36 槽
+        "银月城生命药水",                         -- MacroBodies
+        "渐隐术",
+        "/stopcasting",
     },
+    specialSpells = {},
 }
 ```
 
-## 11. 与本文相关、但不要在这里改的东西
+### 11.3 空槽占位
+
+```lua
+-- 法师示例：数组中某处写 ""，该全局槽不建按钮，后续项仍按顺序占下一键
+staticSpells = {
+    "[@cursor]暴风雪",
+    "",              -- 占位
+    "奥术智慧",
+}
+```
+
+## 12. 与本文相关、但不要在这里改的东西
 
 | 文件 | 职责 | 改宏时 |
 |---|---|---|
-| `core/macro.lua` | 热键表、展开算法、安全按钮 | 仅当要改分配规则/键池时才动 |
+| `core/macro.lua` | 热键表、顺序占键、`resolveMacroBody`、安全按钮 | 仅当要改分配规则/键池时才动 |
 | `main.lua` | `LoadPlayerMacros` 选职业表 | 一般不动 |
 | `Keymap.md` | 人读热键 ID 对照 | 键池变更时同步 |
 | `core/keybinds.lua` / `config.lua` keymap | 动作条扫描 → 像素协议 | **另一套**按键编码，与 ClassMacros 覆盖绑定无关 |
 | `class/*.lua` | ClassBlocks 色块 | 不放宏 |
 
-## 12. 常见错误
+## 13. 常见错误
 
 | 错误 | 后果 |
 |---|---|
-| static 写成 `"/cast 火球术"` | 实际变成 `/cast /cast 火球术` |
-| special 只写 `"火球术"` | 无 `/` 命令，宏无效 |
+| 普通法术误加 `/cast ` 前缀 | 实际变成 `/cast /cast 火球术` |
+| 完整宏未以 `/` 开头且未进 MacroBodies | 被加上 `/cast `，命令错误 |
 | 把点名治疗放进 static | 无法按 raid/party 槽位点名 |
-| 在 `dynamicSpells` 中间插入技能却不评估偏移 | 后续所有按键语义错位 |
+| 仍使用 `[36] = "..."` 稀疏表 | 与当前 `ipairs` 顺序占键不兼容，中间空洞行为不符合预期 |
+| 药水内联 `item:...` 而不用 MacroBodies 名称 | 多职业重复、难统一改 ID |
+| 在 `dynamicSpells` 或 `staticSpells` 中间插入却不评估偏移 | 后续所有按键语义错位 |
 | 用错职业键（如 `DeathKnight`） | `LoadPlayerMacros` 取不到表，宏不创建 |
 | 假设战斗中改表立即生效 | `InCombatLockdown` 直接 return，按钮不更新 |
+| 误以为 special 与 static 仍按同序号覆盖 | 已改为顺序追加；同槽特殊宏应直接写在 static 对应位置 |
