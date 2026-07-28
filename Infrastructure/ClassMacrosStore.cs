@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using static Shigure.LuaLiteParser;
 
@@ -31,13 +30,12 @@ internal static class ClassMacrosStore
     public sealed class ClassMacros
     {
         public List<string> DynamicSpells { get; } = new();
-        public List<SparseEntry> StaticSpells { get; } = new();
-        public List<SparseEntry> SpecialSpells { get; } = new();
+        public List<ArrayEntry> StaticSpells { get; } = new();
+        public List<ArrayEntry> SpecialSpells { get; } = new();
     }
 
-    public sealed class SparseEntry
+    public sealed class ArrayEntry
     {
-        public int Index { get; set; }
         public string Text { get; set; } = string.Empty;
         public string? Comment { get; set; }
     }
@@ -101,41 +99,40 @@ internal static class ClassMacrosStore
         {
             foreach (var item in dynamic.IPairs())
             {
-                if (item is StringValue s && !string.IsNullOrWhiteSpace(s.Value))
+                if (item is StringValue s)
                 {
                     macros.DynamicSpells.Add(s.Value);
                 }
             }
         }
 
-        ReadSparse(classTable.GetTable("staticSpells"), macros.StaticSpells);
-        ReadSparse(classTable.GetTable("specialSpells"), macros.SpecialSpells);
+        ReadArray(classTable.GetTable("staticSpells"), macros.StaticSpells);
+        ReadArray(classTable.GetTable("specialSpells"), macros.SpecialSpells);
         return macros;
     }
 
-    private static void ReadSparse(TableValue? table, List<SparseEntry> target)
+    private static void ReadArray(TableValue? table, List<ArrayEntry> target)
     {
         if (table is null)
         {
             return;
         }
 
-        foreach (var (key, value) in table.Entries)
+        var index = 1;
+        foreach (var value in table.IPairs())
         {
-            if (key is not long index || value is not StringValue text)
+            if (value is not StringValue text)
             {
-                continue;
+                break;
             }
 
-            target.Add(new SparseEntry
+            target.Add(new ArrayEntry
             {
-                Index = (int)index,
                 Text = text.Value,
-                Comment = table.GetTrailingComment(key)
+                Comment = table.GetTrailingComment((long)index)
             });
+            index++;
         }
-
-        target.Sort((a, b) => a.Index.CompareTo(b.Index));
     }
 
     public static string SerializeClassMacros(MacrosDocument document)
@@ -203,17 +200,17 @@ internal static class ClassMacrosStore
             sb.AppendLine(" },");
         }
 
-        // specialSpells
-        WriteSparseTable(sb, "specialSpells", macros.SpecialSpells);
-
         // staticSpells
-        WriteSparseTable(sb, "staticSpells", macros.StaticSpells);
+        WriteArrayTable(sb, "staticSpells", macros.StaticSpells);
+
+        // specialSpells
+        WriteArrayTable(sb, "specialSpells", macros.SpecialSpells);
 
         sb.AppendLine("    },");
         sb.AppendLine();
     }
 
-    private static void WriteSparseTable(StringBuilder sb, string name, List<SparseEntry> entries)
+    private static void WriteArrayTable(StringBuilder sb, string name, List<ArrayEntry> entries)
     {
         if (entries.Count == 0)
         {
@@ -222,10 +219,9 @@ internal static class ClassMacrosStore
         }
 
         sb.Append("        ").Append(name).AppendLine(" = {");
-        foreach (var entry in entries.OrderBy(e => e.Index))
+        foreach (var entry in entries)
         {
-            sb.Append("            [").Append(entry.Index.ToString(CultureInfo.InvariantCulture))
-                .Append("] = \"").Append(Escape(entry.Text)).Append('"');
+            sb.Append("            \"").Append(Escape(entry.Text)).Append('"');
             if (!string.IsNullOrWhiteSpace(entry.Comment))
             {
                 sb.Append(", -- ").Append(entry.Comment.Trim());

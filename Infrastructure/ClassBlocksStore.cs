@@ -11,6 +11,15 @@ namespace Shigure;
 internal static class ClassBlocksStore
 {
     public const string AssignmentName = "Fuyutsui.ClassBlocks";
+    private static readonly string[] StateCategories =
+    [
+        ClassStateCatalog.CategoryState,
+        ClassStateCatalog.CategoryResource,
+        ClassStateCatalog.CategoryItem,
+        ClassStateCatalog.CategoryConfig,
+        ClassStateCatalog.CategoryTarget,
+        ClassStateCatalog.CategoryFocus
+    ];
 
     public sealed class ClassFileDocument
     {
@@ -28,9 +37,12 @@ internal static class ClassBlocksStore
         public List<string> FlatStates { get; } = new();
         public Dictionary<string, List<string>> CategorizedStates { get; } = new(StringComparer.Ordinal)
         {
-            ["状态"] = new List<string>(),
-            ["目标"] = new List<string>(),
-            ["焦点"] = new List<string>()
+            [ClassStateCatalog.CategoryState] = new List<string>(),
+            [ClassStateCatalog.CategoryResource] = new List<string>(),
+            [ClassStateCatalog.CategoryItem] = new List<string>(),
+            [ClassStateCatalog.CategoryConfig] = new List<string>(),
+            [ClassStateCatalog.CategoryTarget] = new List<string>(),
+            [ClassStateCatalog.CategoryFocus] = new List<string>()
         };
 
         public List<AuraEntry> PlayerAuras { get; } = new();
@@ -149,13 +161,11 @@ internal static class ClassBlocksStore
 
         if (spec.GetTable("states") is { } states)
         {
-            var nested = states.GetTable("状态") is not null
-                || states.GetTable("目标") is not null
-                || states.GetTable("焦点") is not null;
+            var nested = StateCategories.Any(category => states.GetTable(category) is not null);
             result.NestedStates = nested;
             if (nested)
             {
-                foreach (var category in new[] { "状态", "目标", "焦点" })
+                foreach (var category in StateCategories)
                 {
                     if (states.GetTable(category) is not { } list)
                     {
@@ -350,7 +360,7 @@ internal static class ClassBlocksStore
         sb.Append(indent).AppendLine("states = {");
         if (spec.NestedStates)
         {
-            foreach (var category in new[] { "状态", "目标", "焦点" })
+            foreach (var category in StateCategories)
             {
                 var list = spec.CategorizedStates.GetValueOrDefault(category);
                 if (list is null || list.Count == 0)

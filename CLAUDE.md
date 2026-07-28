@@ -91,9 +91,9 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 
 [Infrastructure/ClassMacrosStore.cs](Infrastructure/ClassMacrosStore.cs) 读写 `core/classmacros.lua` 中的 `Fuyutsui.ClassMacros` 表。每职业三组：
 - **DynamicSpells**：每项占 30 热键槽位
-- **StaticSpells / SpecialSpells**：稀疏索引条目（`SparseEntry`：index + text + 可选行尾注释）
+- **StaticSpells / SpecialSpells**：顺序数组条目（`ArrayEntry`：text + 可选行尾注释）；空字符串保留槽位
 
-保存后 [Infrastructure/FuyutsuiKeymapConverter.cs](Infrastructure/FuyutsuiKeymapConverter.cs)`.UpdateFromClassMacros` 将 Lua 宏表转换为 `keymap/*.json`，把宏槽位映射到热键池（7 修饰符 × 35 键 = 245 组合/职业）。`DeriveSpellName` 解析 WoW 宏文本提取技能名。
+保存后 [Infrastructure/FuyutsuiKeymapConverter.cs](Infrastructure/FuyutsuiKeymapConverter.cs)`.UpdateFromClassMacros` 将 Lua 宏表按 dynamic（每项 30 槽）→ static → special 顺序转换为 `keymap/*.json`，把宏槽位映射到热键池（7 修饰符 × 39 键 = 273 组合/职业）。`DeriveSpellName` 解析 WoW 宏文本提取技能名。
 
 ### UI 编辑器
 

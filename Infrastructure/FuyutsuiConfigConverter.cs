@@ -26,7 +26,15 @@ internal static class FuyutsuiConfigConverter
         "锚点", "有效性", "移动"
     };
 
-    private static readonly string[] StateCategoryOrder = ["状态", "目标", "焦点"];
+    private static readonly string[] StateCategoryOrder =
+    [
+        ClassStateCatalog.CategoryState,
+        ClassStateCatalog.CategoryResource,
+        ClassStateCatalog.CategoryItem,
+        ClassStateCatalog.CategoryConfig,
+        ClassStateCatalog.CategoryTarget,
+        ClassStateCatalog.CategoryFocus
+    ];
 
     public sealed record UpdateResult(
         string ClassDirectory,
@@ -113,9 +121,7 @@ internal static class FuyutsuiConfigConverter
         // states
         if (spec.GetTable("states") is { } states)
         {
-            var nested = states.GetTable("状态") is not null
-                || states.GetTable("目标") is not null
-                || states.GetTable("焦点") is not null;
+            var nested = StateCategoryOrder.Any(category => states.GetTable(category) is not null);
 
             if (nested)
             {
@@ -133,7 +139,9 @@ internal static class FuyutsuiConfigConverter
                             continue;
                         }
 
-                        var key = category == "状态" ? nameValue.Value : category + nameValue.Value;
+                        var key = category is ClassStateCatalog.CategoryTarget or ClassStateCatalog.CategoryFocus
+                            ? category + nameValue.Value
+                            : nameValue.Value;
                         AddStateField(result, key, index, skipCommon: true);
                         index++;
                     }
@@ -211,10 +219,17 @@ internal static class FuyutsuiConfigConverter
                     name = ((long)spellId.Value).ToString();
                 }
 
-                var charge = spell.GetBool("charge") == true;
-                var fieldName = charge ? EnsureSuffix(name, "充能") : name;
-                spellsObject[fieldName] = Field(index, "int");
+                // 主色块顺序与 LoadPlayerBlocks 一致：
+                // 所有法术先占一个冷却格；充能法术再紧接着占一个充能冷却格。
+                spellsObject[name] = Field(index, "int");
                 index++;
+
+                var charge = spell.GetBool("charge") == true;
+                if (charge)
+                {
+                    spellsObject[EnsureSuffix(name, "充能")] = Field(index, "int");
+                    index++;
+                }
 
                 var maxCharge = spell.GetNumber("maxCharge");
                 if (charge && maxCharge is not null)

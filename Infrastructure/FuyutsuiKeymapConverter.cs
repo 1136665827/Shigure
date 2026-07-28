@@ -108,8 +108,8 @@ internal static partial class FuyutsuiKeymapConverter
     {
         var warnings = new List<string>();
         var dynamicSpells = ReadArrayStrings(classTable.GetTable("dynamicSpells"));
-        var staticSpells = ReadSparseStrings(classTable.GetTable("staticSpells"));
-        var specialSpells = ReadSparseStrings(classTable.GetTable("specialSpells"));
+        var staticSpells = ReadArrayEntries(classTable.GetTable("staticSpells"));
+        var specialSpells = ReadArrayEntries(classTable.GetTable("specialSpells"));
         var dynamicSlots = dynamicSpells.Count * 30;
 
         var root = new JsonObject();
@@ -123,7 +123,8 @@ internal static partial class FuyutsuiKeymapConverter
             {
                 var groupIndex = (i - 1) / 30;
                 var raidIdx = ((i - 1) % 30) + 1;
-                if (groupIndex < dynamicSpells.Count)
+                if (groupIndex < dynamicSpells.Count
+                    && !string.IsNullOrWhiteSpace(dynamicSpells[groupIndex]))
                 {
                     spell = dynamicSpells[groupIndex];
                     unit = raidIdx;
@@ -131,17 +132,28 @@ internal static partial class FuyutsuiKeymapConverter
             }
             else
             {
-                var index = i - dynamicSlots;
-                if (specialSpells.TryGetValue(index, out var specialEntry))
+                var relativeIndex = i - dynamicSlots - 1;
+                MacroEntry? entry = null;
+                if (relativeIndex < staticSpells.Count)
                 {
-                    spell = ResolveSpellName(specialEntry);
+                    entry = staticSpells[relativeIndex];
                 }
-                else if (staticSpells.TryGetValue(index, out var staticEntry))
+                else
                 {
-                    spell = ResolveSpellName(staticEntry);
+                    var specialIndex = relativeIndex - staticSpells.Count;
+                    if (specialIndex < specialSpells.Count)
+                    {
+                        entry = specialSpells[specialIndex];
+                    }
                 }
 
-                if (IsWeakSpellName(spell)
+                if (entry is { Body.Length: > 0 } macroEntry)
+                {
+                    spell = ResolveSpellName(macroEntry);
+                }
+
+                if (entry is { Body.Length: > 0 }
+                    && IsWeakSpellName(spell)
                     && existingSpellNames.TryGetValue(i, out var preserved)
                     && !string.IsNullOrWhiteSpace(preserved)
                     && !IsWeakSpellName(preserved))
@@ -277,7 +289,7 @@ internal static partial class FuyutsuiKeymapConverter
 
         foreach (var item in table.IPairs())
         {
-            if (item is StringValue s && !string.IsNullOrWhiteSpace(s.Value))
+            if (item is StringValue s)
             {
                 result.Add(s.Value.Trim());
             }
@@ -290,31 +302,24 @@ internal static partial class FuyutsuiKeymapConverter
         return result;
     }
 
-    private static Dictionary<int, MacroEntry> ReadSparseStrings(TableValue? table)
+    private static List<MacroEntry> ReadArrayEntries(TableValue? table)
     {
-        var result = new Dictionary<int, MacroEntry>();
+        var result = new List<MacroEntry>();
         if (table is null)
         {
             return result;
         }
 
-        foreach (var (key, value) in table.Entries)
+        var index = 1;
+        foreach (var value in table.IPairs())
         {
-            var index = key switch
+            if (value is not StringValue s)
             {
-                long l => (int)l,
-                int i => i,
-                double d => (int)d,
-                NumberValue n => n.AsInt(),
-                _ => (int?)null
-            };
-            if (index is null || value is not StringValue s || string.IsNullOrWhiteSpace(s.Value))
-            {
-                continue;
+                break;
             }
 
-            var comment = key is null ? null : table.GetTrailingComment(key);
-            result[index.Value] = new MacroEntry(s.Value, comment);
+            result.Add(new MacroEntry(s.Value, table.GetTrailingComment((long)index)));
+            index++;
         }
 
         return result;

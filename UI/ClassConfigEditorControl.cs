@@ -43,6 +43,8 @@ public sealed class ClassConfigEditorControl : UserControl
     private string _lastStateCategory = ClassStateCatalog.CategoryState;
     private string _lastAuraBucket = "player";
 
+    private const string HiddenAnchorStateName = "锚点";
+
     private static readonly (string Key, string Text)[] AuraBuckets =
     [
         ("player", "玩家"),
@@ -57,7 +59,7 @@ public sealed class ClassConfigEditorControl : UserControl
         _resolveClassDirectory = resolveClassDirectory;
         _updateConfigAsync = updateConfigAsync;
         _reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
-        _saveButton = UiTheme.CreateButton("保存并更新配置", UiTheme.Accent, Color.Black);
+        _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
         InitializeComponent();
         ReloadFromAddon();
     }
@@ -94,13 +96,12 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 2,
             Padding = new Padding(12),
             Margin = new Padding(0, 0, 12, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
 
         panel.Controls.Add(new Label
         {
@@ -126,22 +127,6 @@ public sealed class ClassConfigEditorControl : UserControl
             SelectClassFromList();
         };
         panel.Controls.Add(_classList, 0, 1);
-
-        var actions = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0, 10, 0, 0)
-        };
-        StyleActionButton(_reloadButton);
-        StyleActionButton(_saveButton);
-        _reloadButton.Click += (_, _) => ReloadFromAddon();
-        _saveButton.Click += async (_, _) => await SaveAndUpdateAsync();
-        actions.Controls.Add(_reloadButton);
-        actions.Controls.Add(_saveButton);
-        panel.Controls.Add(actions, 0, 2);
         return panel;
     }
 
@@ -201,11 +186,12 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
-            RowCount = 2,
+            RowCount = 3,
             Margin = new Padding(0)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
 
         var header = new TableLayoutPanel
         {
@@ -233,6 +219,37 @@ public sealed class ClassConfigEditorControl : UserControl
         root.Controls.Add(header, 0, 0);
 
         root.Controls.Add(BuildSectionTabs(), 0, 1);
+
+        var actionRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Surface,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(0, 8, 12, 12)
+        };
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 228));
+
+        var actions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = UiTheme.Surface,
+            Margin = new Padding(0)
+        };
+        StyleActionButton(_reloadButton);
+        StyleActionButton(_saveButton);
+        _reloadButton.Margin = new Padding(0, 0, 8, 0);
+        _saveButton.Margin = new Padding(0);
+        _reloadButton.Click += (_, _) => ReloadFromAddon();
+        _saveButton.Click += async (_, _) => await SaveAndUpdateAsync();
+        actions.Controls.Add(_reloadButton);
+        actions.Controls.Add(_saveButton);
+        actionRow.Controls.Add(actions, 1, 0);
+        root.Controls.Add(actionRow, 0, 2);
         return root;
     }
 
@@ -382,7 +399,7 @@ public sealed class ClassConfigEditorControl : UserControl
         };
         top.Controls.Add(CreateMutedLabel("分类"));
         UiTheme.StyleComboBox(_stateCategoryBox);
-        _stateCategoryBox.Width = 120;
+        _stateCategoryBox.Width = 180;
         _stateCategoryBox.Items.AddRange(ClassStateCatalog.TopCategories);
         _stateCategoryBox.SelectedIndex = 0;
         _stateCategoryBox.SelectedIndexChanged += (_, _) =>
@@ -471,7 +488,7 @@ public sealed class ClassConfigEditorControl : UserControl
             HeaderText = "spellIds（逗号分隔）",
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
         });
-        _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaxApps", HeaderText = "maxApps", Width = 90 });
+        _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaxApps", HeaderText = "maxApps", Width = 135 });
         _aurasGrid.Columns.Add(CreateDeleteColumn());
         _aurasGrid.CellContentClick += HandleDeleteClick;
         _aurasGrid.CellValueChanged += (_, _) => MarkDirty();
@@ -487,26 +504,33 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 2,
+            RowCount = 3,
             BackColor = UiTheme.SurfaceRaised
         };
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
+        var textureOrderHint = CreateFieldCaption(
+            "纹理按行排列；充能法术连续占 2 格：冷却 → 充能冷却。最大充能、施法次数只生成横向计数条。");
+        textureOrderHint.Padding = new Padding(8, 0, 0, 0);
+        panel.Controls.Add(textureOrderHint, 0, 0);
+
         ConfigureGrid(_spellsGrid);
-        _spellsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "名称", Width = 150 });
-        _spellsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SpellId", HeaderText = "spellId", Width = 110 });
-        _spellsGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Charge", HeaderText = "充能", Width = 60 });
-        _spellsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaxCharge", HeaderText = "maxCharge", Width = 90 });
-        _spellsGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "CastCount", HeaderText = "castCount", Width = 90 });
-        _spellsGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "ForcedKnown", HeaderText = "forcedKnown", Width = 100 });
-        _spellsGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "InSpellBook", HeaderText = "inSpellBook", Width = 100 });
+        _spellsGrid.Columns.Add(CreateSpellTextColumn("Name", "名称", 24, 160));
+        _spellsGrid.Columns.Add(CreateSpellTextColumn("SpellId", "法术 ID", 14, 120));
+        _spellsGrid.Columns.Add(CreateSpellCheckColumn("Charge", "充能", 10, 80));
+        _spellsGrid.Columns.Add(CreateSpellTextColumn("MaxCharge", "最大充能", 14, 110));
+        _spellsGrid.Columns.Add(CreateSpellTextColumn("CastCount", "施法次数", 14, 110));
+        _spellsGrid.Columns.Add(CreateSpellCheckColumn("ForcedKnown", "强制已学", 14, 110));
+        _spellsGrid.Columns.Add(CreateSpellCheckColumn("InSpellBook", "法术书中", 14, 110));
         _spellsGrid.Columns.Add(CreateDeleteColumn());
         _spellsGrid.CellContentClick += HandleDeleteClick;
         _spellsGrid.CellValueChanged += (_, _) => MarkDirty();
         _spellsGrid.UserAddedRow += (_, _) => MarkDirty();
-        panel.Controls.Add(_spellsGrid, 0, 0);
-        panel.Controls.Add(BuildMoveButtons(_spellsGrid), 0, 1);
+        _spellsGrid.DataError += (_, e) => e.ThrowException = false;
+        panel.Controls.Add(_spellsGrid, 0, 1);
+        panel.Controls.Add(BuildMoveButtons(_spellsGrid), 0, 2);
         return panel;
     }
 
@@ -650,6 +674,44 @@ public sealed class ClassConfigEditorControl : UserControl
             Text = "×",
             UseColumnTextForButtonValue = true,
             Width = 44
+        };
+
+    private static DataGridViewTextBoxColumn CreateSpellTextColumn(
+        string name,
+        string headerText,
+        float fillWeight,
+        int minimumWidth)
+        => new()
+        {
+            Name = name,
+            HeaderText = headerText,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            FillWeight = fillWeight,
+            MinimumWidth = minimumWidth,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+
+    private static DataGridViewCheckBoxColumn CreateSpellCheckColumn(
+        string name,
+        string headerText,
+        float fillWeight,
+        int minimumWidth)
+        => new()
+        {
+            Name = name,
+            HeaderText = headerText,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            FillWeight = fillWeight,
+            MinimumWidth = minimumWidth,
+            SortMode = DataGridViewColumnSortMode.NotSortable,
+            TrueValue = true,
+            FalseValue = false,
+            IndeterminateValue = false,
+            DefaultCellStyle = new DataGridViewCellStyle
+            {
+                Alignment = DataGridViewContentAlignment.MiddleCenter,
+                NullValue = false
+            }
         };
 
     private Label CreateMutedLabel(string text)
@@ -938,7 +1000,9 @@ public sealed class ClassConfigEditorControl : UserControl
         IEnumerable<string> names = _currentSpec.NestedStates
             ? _currentSpec.CategorizedStates.GetValueOrDefault(storageCategory) ?? []
             : _currentSpec.FlatStates;
-        names = names.Where(name => ClassStateCatalog.IsInCategory(name, category));
+        names = names.Where(name =>
+            ClassStateCatalog.IsInCategory(name, category)
+            && !IsHiddenStateName(name));
 
         foreach (var name in names)
         {
@@ -1004,8 +1068,12 @@ public sealed class ClassConfigEditorControl : UserControl
         }
 
         var category = _stateCategoryBox.SelectedItem as string ?? ClassStateCatalog.CategoryState;
-        var options = ClassStateCatalog.GetOptions(category).ToList();
-        var current = _statesGrid.CurrentCell.Value?.ToString();
+        var current = _statesGrid.CurrentCell.Value?.ToString()?.Trim();
+        var currentRowIndex = _statesGrid.CurrentCell.RowIndex;
+        var usedNames = GetUsedStateNames(category, currentRowIndex);
+        var options = ClassStateCatalog.GetOptions(category)
+            .Where(option => !usedNames.Contains(option.Name) && !IsHiddenStateName(option.Name))
+            .ToList();
         if (!string.IsNullOrWhiteSpace(current)
             && !options.Any(o => string.Equals(o.Name, current, StringComparison.Ordinal)))
         {
@@ -1025,6 +1093,49 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             combo.SelectedValue = current;
         }
+    }
+
+    private HashSet<string> GetUsedStateNames(string category, int excludedRowIndex)
+    {
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        if (_currentSpec is not null)
+        {
+            IEnumerable<string> storedNames;
+            if (_currentSpec.NestedStates)
+            {
+                var storageCategory = ClassStateCatalog.GetStorageCategory(category);
+                storedNames = _currentSpec.CategorizedStates.GetValueOrDefault(storageCategory) ?? [];
+            }
+            else
+            {
+                storedNames = _currentSpec.FlatStates;
+            }
+
+            foreach (var name in storedNames)
+            {
+                // 当前分类以表格中的未保存内容为准，其它分类仍以专精数据为准。
+                if (!ClassStateCatalog.IsInCategory(name, category))
+                {
+                    usedNames.Add(name);
+                }
+            }
+        }
+
+        foreach (DataGridViewRow row in _statesGrid.Rows)
+        {
+            if (row.IsNewRow || row.Index == excludedRowIndex)
+            {
+                continue;
+            }
+
+            var name = row.Cells["Name"].Value?.ToString()?.Trim();
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                usedNames.Add(name);
+            }
+        }
+
+        return usedNames;
     }
 
     private void FillAurasGrid()
@@ -1185,13 +1296,20 @@ public sealed class ClassConfigEditorControl : UserControl
             }
         }
 
-        var insertIndex = list.FindIndex(name => ClassStateCatalog.IsInCategory(name, category));
+        var insertIndex = list.FindIndex(name =>
+            ClassStateCatalog.IsInCategory(name, category)
+            && !IsHiddenStateName(name));
         if (insertIndex < 0)
         {
-            insertIndex = list.Count;
+            var anchorIndex = string.Equals(category, ClassStateCatalog.CategoryState, StringComparison.Ordinal)
+                ? list.FindIndex(IsHiddenStateName)
+                : -1;
+            insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : list.Count;
         }
 
-        list.RemoveAll(name => ClassStateCatalog.IsInCategory(name, category));
+        list.RemoveAll(name =>
+            ClassStateCatalog.IsInCategory(name, category)
+            && !IsHiddenStateName(name));
         list.InsertRange(Math.Min(insertIndex, list.Count), editedNames);
     }
 
@@ -1474,6 +1592,9 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private static decimal Clamp(NumericUpDown box, int value)
         => Math.Min(box.Maximum, Math.Max(box.Minimum, value));
+
+    private static bool IsHiddenStateName(string? name)
+        => string.Equals(name, HiddenAnchorStateName, StringComparison.Ordinal);
 
     private sealed record ClassListItem(int ClassId, string Name, string FileName, bool IsModern, string? Error = null)
     {
