@@ -27,6 +27,7 @@ public sealed class ClassMacrosEditorControl : UserControl
     private ClassMacrosStore.ClassMacros? _currentMacros;
     private string? _currentClassFile;
     private bool _suppressUi;
+    private bool _updatingDerivedColumns;
     private bool _dirty;
 
     public ClassMacrosEditorControl(Func<string?> resolveClassMacrosPath, Func<Task> updateConfigAsync)
@@ -231,8 +232,8 @@ public sealed class ClassMacrosEditorControl : UserControl
         var pages = new Control[]
         {
             BuildDynamicPage(),
-            BuildArrayPage(_staticGrid, "法术/条件或完整宏（空字符串 = 占位）", "注释"),
-            BuildArrayPage(_specialGrid, "追加宏内容（空字符串 = 占位）", "注释")
+            BuildArrayPage(_staticGrid, "法术/条件或完整宏（空字符串 = 占位）", "注释", showParsedMacro: true),
+            BuildArrayPage(_specialGrid, "追加宏内容（空字符串 = 占位）", "注释", showParsedMacro: true)
         };
         foreach (var page in pages)
         {
@@ -342,7 +343,11 @@ public sealed class ClassMacrosEditorControl : UserControl
         return panel;
     }
 
-    private Control BuildArrayPage(DataGridView grid, string textHeader, string commentHeader)
+    private Control BuildArrayPage(
+        DataGridView grid,
+        string textHeader,
+        string commentHeader,
+        bool showParsedMacro)
     {
         var panel = new TableLayoutPanel
         {
@@ -362,6 +367,24 @@ public sealed class ClassMacrosEditorControl : UserControl
             Width = 72,
             ReadOnly = true
         });
+        if (showParsedMacro)
+        {
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Unit",
+                HeaderText = "单位",
+                Width = 72,
+                ReadOnly = true
+            });
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Spell",
+                HeaderText = "技能",
+                Width = 180,
+                ReadOnly = true
+            });
+        }
+
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Text",
@@ -379,8 +402,21 @@ public sealed class ClassMacrosEditorControl : UserControl
     private void WireGrid(DataGridView grid)
     {
         grid.CellContentClick += HandleDeleteClick;
-        grid.CellValueChanged += (_, _) =>
+        grid.CellValueChanged += (_, e) =>
         {
+            if (_updatingDerivedColumns)
+            {
+                return;
+            }
+
+            if ((grid == _staticGrid || grid == _specialGrid)
+                && e.RowIndex >= 0
+                && e.ColumnIndex >= 0
+                && grid.Columns[e.ColumnIndex].Name is "Text" or "Comment")
+            {
+                UpdateMacroDisplay(grid, grid.Rows[e.RowIndex]);
+            }
+
             MarkDirty();
             UpdateOffsetHint();
         };
@@ -640,25 +676,8 @@ public sealed class ClassMacrosEditorControl : UserControl
                 _dynamicGrid.Rows.Add(name, "×");
             }
 
-            for (var i = 0; i < _currentMacros.StaticSpells.Count; i++)
-            {
-                var entry = _currentMacros.StaticSpells[i];
-                _staticGrid.Rows.Add(
-                    (i + 1).ToString(CultureInfo.InvariantCulture),
-                    entry.Text,
-                    entry.Comment ?? "",
-                    "×");
-            }
-
-            for (var i = 0; i < _currentMacros.SpecialSpells.Count; i++)
-            {
-                var entry = _currentMacros.SpecialSpells[i];
-                _specialGrid.Rows.Add(
-                    (i + 1).ToString(CultureInfo.InvariantCulture),
-                    entry.Text,
-                    entry.Comment ?? "",
-                    "×");
-            }
+            AddArrayRows(_staticGrid, _currentMacros.StaticSpells);
+            AddArrayRows(_specialGrid, _currentMacros.SpecialSpells);
         }
         finally
         {
@@ -851,6 +870,53 @@ public sealed class ClassMacrosEditorControl : UserControl
         RenumberArrayRows(grid);
         MarkDirty();
         UpdateOffsetHint();
+    }
+
+    private void AddArrayRows(DataGridView grid, List<ClassMacrosStore.ArrayEntry> entries)
+    {
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            var rowIndex = grid.Rows.Add();
+            var row = grid.Rows[rowIndex];
+            row.Cells["Index"].Value = (i + 1).ToString(CultureInfo.InvariantCulture);
+            row.Cells["Text"].Value = entry.Text;
+            row.Cells["Comment"].Value = entry.Comment ?? "";
+            row.Cells["Delete"].Value = "×";
+            if (grid == _staticGrid || grid == _specialGrid)
+            {
+                UpdateMacroDisplay(grid, row);
+            }
+        }
+    }
+
+    private void UpdateMacroDisplay(DataGridView grid, DataGridViewRow row)
+    {
+        if (!grid.Columns.Contains("Unit")
+            || !grid.Columns.Contains("Spell")
+            || row.IsNewRow)
+        {
+            return;
+        }
+
+        var text = row.Cells["Text"].Value?.ToString() ?? "";
+        var comment = row.Cells["Comment"].Value?.ToString();
+        var parsed = grid == _specialGrid
+            ? FuyutsuiKeymapConverter.ParseSpecialMacro(text, comment)
+            : FuyutsuiKeymapConverter.ParseStaticMacro(text, comment);
+
+        _updatingDerivedColumns = true;
+        try
+        {
+            row.Cells["Unit"].Value = grid == _specialGrid
+                ? ReservedUnit.ToDisplayText(parsed.Unit)
+                : parsed.Unit.ToString(CultureInfo.InvariantCulture);
+            row.Cells["Spell"].Value = parsed.Spell;
+        }
+        finally
+        {
+            _updatingDerivedColumns = false;
+        }
     }
 
     private static void RenumberArrayRows(DataGridView grid)

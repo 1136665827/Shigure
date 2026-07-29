@@ -39,6 +39,7 @@ public sealed class UnitEditorForm : Form
     private static readonly SelectorItem[] UnitSelectors =
     [
         new("生命值最低", UnitSelectorKind.LowestHealth),
+        new("治疗吸收最高", UnitSelectorKind.HighestHealingAbsorb),
         new("按职责", UnitSelectorKind.UnitWithRole),
         new("按职责且不带某光环", UnitSelectorKind.UnitWithRoleWithoutAura),
         new("带某光环(持续最久)", UnitSelectorKind.UnitWithAura),
@@ -47,9 +48,13 @@ public sealed class UnitEditorForm : Form
 
     private static readonly CountItem[] CountSelectors =
     [
-        new("低于阈值的人数", CountKind.UnitsBelowHealth),
-        new("不带某光环且低血的人数", CountKind.UnitsWithoutAuraBelowHealth),
-        new("拥有某光环的人数", CountKind.UnitsWithAura)
+        new("血量 - 低于阈值", CountKind.UnitsBelowHealth),
+        new("血量 - 低于阈值不带某光环", CountKind.UnitsWithoutAuraBelowHealth),
+        new("血量 - 低于阈值带某光环", CountKind.UnitsWithAuraBelowHealth),
+        new("治疗吸收 - 大于阈值", CountKind.UnitsAboveHealingAbsorb),
+        new("治疗吸收 - 大于阈值不带某光环", CountKind.UnitsWithoutAuraAboveHealingAbsorb),
+        new("治疗吸收 - 大于阈值带某光环", CountKind.UnitsWithAuraAboveHealingAbsorb),
+        new("光环 - 带某光环", CountKind.UnitsWithAura)
     ];
 
     private static readonly ThresholdModeItem[] ThresholdModeOptions =
@@ -84,6 +89,7 @@ public sealed class UnitEditorForm : Form
 
     private Panel _thresholdModeRow = null!;
     private Panel _thresholdRow = null!;
+    private Label _thresholdLabel = null!;
     private Panel _thresholdFieldRow = null!;
     private Panel _lowestHealthAuraFilterRow = null!;
     private Panel _roleRow = null!;
@@ -92,6 +98,7 @@ public sealed class UnitEditorForm : Form
     private Panel _aurasRow = null!;
     private Panel _auraCountRow = null!;
     private Panel _dispelRow = null!;
+    private bool _usesHealingAbsorbThreshold;
 
     public ModuleUnit? ResultUnit { get; private set; }
     public ModuleCountField? ResultCount { get; private set; }
@@ -290,6 +297,7 @@ public sealed class UnitEditorForm : Form
 
         _thresholdModeRow = BuildLabeledRow("阈值类型", _thresholdModeBox);
         _thresholdRow = BuildLabeledRow("血量阈值 (<)", _thresholdBox);
+        _thresholdLabel = _thresholdRow.Controls.OfType<Label>().Single();
         _thresholdFieldRow = BuildLabeledRow("动态阈值", _thresholdFieldBox);
         _lowestHealthAuraFilterRow = BuildLabeledRow("光环筛选", _lowestHealthAuraFilterBox);
         _roleRow = BuildLabeledRow("职责", _roleBox);
@@ -377,8 +385,18 @@ public sealed class UnitEditorForm : Form
                 case CountKind.UnitsWithoutAuraBelowHealth:
                     threshold = auraSingle = true;
                     break;
+                case CountKind.UnitsWithAuraBelowHealth:
+                    threshold = auraSingle = true;
+                    break;
                 case CountKind.UnitsWithAura:
                     auraSingle = true;
+                    break;
+                case CountKind.UnitsAboveHealingAbsorb:
+                    threshold = true;
+                    break;
+                case CountKind.UnitsWithoutAuraAboveHealingAbsorb:
+                case CountKind.UnitsWithAuraAboveHealingAbsorb:
+                    threshold = auraSingle = true;
                     break;
             }
         }
@@ -387,6 +405,7 @@ public sealed class UnitEditorForm : Form
             switch ((_selectorBox.SelectedItem as SelectorItem)?.Kind)
             {
                 case UnitSelectorKind.LowestHealth:
+                case UnitSelectorKind.HighestHealingAbsorb:
                     threshold = lowestHealthAuraFilter = true;
                     switch (SelectedLowestHealthAuraFilter())
                     {
@@ -411,7 +430,15 @@ public sealed class UnitEditorForm : Form
                     threshold = auraSingle = true;
                     break;
                 case UnitSelectorKind.LowestHealthWithAuraCount:
+                case UnitSelectorKind.HighestHealingAbsorbWithAuraCount:
                     threshold = auraSingle = auraCount = true;
+                    break;
+                case UnitSelectorKind.HighestHealingAbsorbWithAnyAura:
+                    threshold = auraMulti = true;
+                    break;
+                case UnitSelectorKind.HighestHealingAbsorbWithoutAura:
+                case UnitSelectorKind.HighestHealingAbsorbWithAura:
+                    threshold = auraSingle = true;
                     break;
                 case UnitSelectorKind.UnitWithRole:
                     role = reverse = true;
@@ -429,6 +456,7 @@ public sealed class UnitEditorForm : Form
         }
 
         var dynamicThreshold = IsDynamicThresholdMode();
+        UpdateThresholdPresentation();
         _thresholdModeRow.Visible = threshold;
         _thresholdRow.Visible = threshold && !dynamicThreshold;
         _thresholdFieldRow.Visible = threshold && dynamicThreshold;
@@ -472,29 +500,39 @@ public sealed class UnitEditorForm : Form
             AuraCount = (int)_auraCountBox.Value,
             DispelType = SelectedDispelType()
         };
-        unit.AuraNames = unit.Kind == UnitSelectorKind.LowestHealthWithAnyAura
+        unit.AuraNames = unit.Kind is UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
             ? CheckedAuras()
             : SingleAuraList();
         ApplyPreviewThreshold(v => unit.HealthThreshold = v, f => unit.HealthThresholdField = f);
         return UnitSummary.Describe(unit);
     }
 
-    // "生命值最低" 的具体子类型取决于光环筛选下拉, 与 OnConfirm 的分支保持一致。
+    // "生命值最低"/"治疗吸收最高" 的具体子类型取决于光环筛选下拉, 与 OnConfirm 的分支保持一致。
     private UnitSelectorKind ResolveSelectedUnitKind()
     {
         var kind = (_selectorBox.SelectedItem as SelectorItem)?.Kind ?? UnitSelectorKind.LowestHealth;
-        if (kind != UnitSelectorKind.LowestHealth)
+        if (kind is not UnitSelectorKind.LowestHealth and not UnitSelectorKind.HighestHealingAbsorb)
         {
             return kind;
         }
 
+        var healingAbsorb = kind == UnitSelectorKind.HighestHealingAbsorb;
         return SelectedLowestHealthAuraFilter() switch
         {
-            LowestHealthAuraFilterKind.WithAnyAura => UnitSelectorKind.LowestHealthWithAnyAura,
-            LowestHealthAuraFilterKind.WithoutAura => UnitSelectorKind.LowestHealthWithoutAura,
-            LowestHealthAuraFilterKind.WithAura => UnitSelectorKind.LowestHealthWithAura,
-            LowestHealthAuraFilterKind.WithAuraCount => UnitSelectorKind.LowestHealthWithAuraCount,
-            _ => UnitSelectorKind.LowestHealth
+            LowestHealthAuraFilterKind.WithAnyAura => healingAbsorb
+                ? UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+                : UnitSelectorKind.LowestHealthWithAnyAura,
+            LowestHealthAuraFilterKind.WithoutAura => healingAbsorb
+                ? UnitSelectorKind.HighestHealingAbsorbWithoutAura
+                : UnitSelectorKind.LowestHealthWithoutAura,
+            LowestHealthAuraFilterKind.WithAura => healingAbsorb
+                ? UnitSelectorKind.HighestHealingAbsorbWithAura
+                : UnitSelectorKind.LowestHealthWithAura,
+            LowestHealthAuraFilterKind.WithAuraCount => healingAbsorb
+                ? UnitSelectorKind.HighestHealingAbsorbWithAuraCount
+                : UnitSelectorKind.LowestHealthWithAuraCount,
+            _ => kind
         };
     }
 
@@ -592,7 +630,31 @@ public sealed class UnitEditorForm : Form
 
                     count.AuraName = SelectedAura();
                     break;
+                case CountKind.UnitsWithAuraBelowHealth:
+                    if (!ApplyThreshold(count))
+                    {
+                        return;
+                    }
+
+                    count.AuraName = SelectedAura();
+                    break;
                 case CountKind.UnitsWithAura:
+                    count.AuraName = SelectedAura();
+                    break;
+                case CountKind.UnitsAboveHealingAbsorb:
+                    if (!ApplyThreshold(count))
+                    {
+                        return;
+                    }
+
+                    break;
+                case CountKind.UnitsWithoutAuraAboveHealingAbsorb:
+                case CountKind.UnitsWithAuraAboveHealingAbsorb:
+                    if (!ApplyThreshold(count))
+                    {
+                        return;
+                    }
+
                     count.AuraName = SelectedAura();
                     break;
             }
@@ -613,15 +675,19 @@ public sealed class UnitEditorForm : Form
         switch (selectorKind)
         {
             case UnitSelectorKind.LowestHealth:
+            case UnitSelectorKind.HighestHealingAbsorb:
                 if (!ApplyThreshold(moduleUnit))
                 {
                     return;
                 }
 
+                var healingAbsorb = selectorKind == UnitSelectorKind.HighestHealingAbsorb;
                 switch (SelectedLowestHealthAuraFilter())
                 {
                     case LowestHealthAuraFilterKind.WithAnyAura:
-                        moduleUnit.Kind = UnitSelectorKind.LowestHealthWithAnyAura;
+                        moduleUnit.Kind = healingAbsorb
+                            ? UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+                            : UnitSelectorKind.LowestHealthWithAnyAura;
                         moduleUnit.AuraNames = CheckedAuras();
                         if (moduleUnit.AuraNames.Count == 0)
                         {
@@ -631,15 +697,21 @@ public sealed class UnitEditorForm : Form
 
                         break;
                     case LowestHealthAuraFilterKind.WithoutAura:
-                        moduleUnit.Kind = UnitSelectorKind.LowestHealthWithoutAura;
+                        moduleUnit.Kind = healingAbsorb
+                            ? UnitSelectorKind.HighestHealingAbsorbWithoutAura
+                            : UnitSelectorKind.LowestHealthWithoutAura;
                         moduleUnit.AuraNames = SingleAuraList();
                         break;
                     case LowestHealthAuraFilterKind.WithAura:
-                        moduleUnit.Kind = UnitSelectorKind.LowestHealthWithAura;
+                        moduleUnit.Kind = healingAbsorb
+                            ? UnitSelectorKind.HighestHealingAbsorbWithAura
+                            : UnitSelectorKind.LowestHealthWithAura;
                         moduleUnit.AuraNames = SingleAuraList();
                         break;
                     case LowestHealthAuraFilterKind.WithAuraCount:
-                        moduleUnit.Kind = UnitSelectorKind.LowestHealthWithAuraCount;
+                        moduleUnit.Kind = healingAbsorb
+                            ? UnitSelectorKind.HighestHealingAbsorbWithAuraCount
+                            : UnitSelectorKind.LowestHealthWithAuraCount;
                         moduleUnit.AuraNames = SingleAuraList();
                         moduleUnit.AuraCount = (int)_auraCountBox.Value;
                         break;
@@ -647,6 +719,7 @@ public sealed class UnitEditorForm : Form
 
                 break;
             case UnitSelectorKind.LowestHealthWithAnyAura:
+            case UnitSelectorKind.HighestHealingAbsorbWithAnyAura:
                 if (!ApplyThreshold(moduleUnit))
                 {
                     return;
@@ -662,6 +735,8 @@ public sealed class UnitEditorForm : Form
                 break;
             case UnitSelectorKind.LowestHealthWithoutAura:
             case UnitSelectorKind.LowestHealthWithAura:
+            case UnitSelectorKind.HighestHealingAbsorbWithoutAura:
+            case UnitSelectorKind.HighestHealingAbsorbWithAura:
                 if (!ApplyThreshold(moduleUnit))
                 {
                     return;
@@ -670,6 +745,7 @@ public sealed class UnitEditorForm : Form
                 moduleUnit.AuraNames = SingleAuraList();
                 break;
             case UnitSelectorKind.LowestHealthWithAuraCount:
+            case UnitSelectorKind.HighestHealingAbsorbWithAuraCount:
                 if (!ApplyThreshold(moduleUnit))
                 {
                     return;
@@ -757,6 +833,43 @@ public sealed class UnitEditorForm : Form
     private bool IsDynamicThresholdMode()
         => (_thresholdModeBox.SelectedItem as ThresholdModeItem)?.UsesDynamicField == true;
 
+    private bool IsHealingAbsorbSelector()
+    {
+        if (IsCountCategory)
+        {
+            return (_selectorBox.SelectedItem as CountItem)?.Kind is
+                CountKind.UnitsAboveHealingAbsorb
+                or CountKind.UnitsWithoutAuraAboveHealingAbsorb
+                or CountKind.UnitsWithAuraAboveHealingAbsorb;
+        }
+
+        return (_selectorBox.SelectedItem as SelectorItem)?.Kind == UnitSelectorKind.HighestHealingAbsorb;
+    }
+
+    private void UpdateThresholdPresentation()
+    {
+        var usesHealingAbsorb = IsHealingAbsorbSelector();
+        if (usesHealingAbsorb != _usesHealingAbsorbThreshold)
+        {
+            if (usesHealingAbsorb)
+            {
+                _thresholdBox.Minimum = 0;
+                _thresholdBox.Value = 0;
+            }
+            else
+            {
+                _thresholdBox.Value = 100;
+                _thresholdBox.Minimum = 1;
+            }
+
+            _usesHealingAbsorbThreshold = usesHealingAbsorb;
+        }
+
+        _thresholdLabel.Text = usesHealingAbsorb
+            ? "治疗吸收阈值 (>)"
+            : "血量阈值 (<)";
+    }
+
     private bool ApplyThreshold(ModuleUnit unit)
     {
         if (TryReadThreshold(out var fixedValue, out var field))
@@ -806,13 +919,21 @@ public sealed class UnitEditorForm : Form
             && (_selectorBox.SelectedItem as SelectorItem)?.Kind == UnitSelectorKind.LowestHealth;
 
     private static bool RequiresAura(CountKind kind)
-        => kind is CountKind.UnitsWithoutAuraBelowHealth or CountKind.UnitsWithAura;
+        => kind is CountKind.UnitsWithoutAuraBelowHealth
+            or CountKind.UnitsWithAuraBelowHealth
+            or CountKind.UnitsWithAura
+            or CountKind.UnitsWithoutAuraAboveHealingAbsorb
+            or CountKind.UnitsWithAuraAboveHealingAbsorb;
 
     private static bool UnitRequiresAura(UnitSelectorKind kind)
         => kind is UnitSelectorKind.LowestHealthWithAnyAura
             or UnitSelectorKind.LowestHealthWithoutAura
             or UnitSelectorKind.LowestHealthWithAura
             or UnitSelectorKind.LowestHealthWithAuraCount
+            or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAuraCount
             or UnitSelectorKind.UnitWithRoleWithoutAura
             or UnitSelectorKind.UnitWithAura;
 
@@ -852,7 +973,12 @@ public sealed class UnitEditorForm : Form
             or UnitSelectorKind.LowestHealthWithAura
             or UnitSelectorKind.LowestHealthWithAuraCount
                 ? UnitSelectorKind.LowestHealth
-                : kind;
+            : kind is UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+                or UnitSelectorKind.HighestHealingAbsorbWithoutAura
+                or UnitSelectorKind.HighestHealingAbsorbWithAura
+                or UnitSelectorKind.HighestHealingAbsorbWithAuraCount
+                    ? UnitSelectorKind.HighestHealingAbsorb
+                    : kind;
 
     private void SelectLowestHealthAuraFilter(UnitSelectorKind kind)
     {
@@ -862,6 +988,10 @@ public sealed class UnitEditorForm : Form
             UnitSelectorKind.LowestHealthWithoutAura => LowestHealthAuraFilterKind.WithoutAura,
             UnitSelectorKind.LowestHealthWithAura => LowestHealthAuraFilterKind.WithAura,
             UnitSelectorKind.LowestHealthWithAuraCount => LowestHealthAuraFilterKind.WithAuraCount,
+            UnitSelectorKind.HighestHealingAbsorbWithAnyAura => LowestHealthAuraFilterKind.WithAnyAura,
+            UnitSelectorKind.HighestHealingAbsorbWithoutAura => LowestHealthAuraFilterKind.WithoutAura,
+            UnitSelectorKind.HighestHealingAbsorbWithAura => LowestHealthAuraFilterKind.WithAura,
+            UnitSelectorKind.HighestHealingAbsorbWithAuraCount => LowestHealthAuraFilterKind.WithAuraCount,
             _ => LowestHealthAuraFilterKind.None
         };
 

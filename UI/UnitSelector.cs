@@ -16,7 +16,11 @@ public static class UnitSelector
     public static string? Resolve(ModuleUnit unit, GameState state)
     {
         var group = state.Group;
-        var threshold = ResolveThreshold(unit.HealthThreshold, unit.HealthThresholdField, state);
+        var threshold = ResolveThreshold(
+            unit.HealthThreshold,
+            unit.HealthThresholdField,
+            state,
+            IsHealingAbsorbKind(unit.Kind) ? 0 : DefaultThreshold);
         var aura = FirstAura(unit.AuraNames);
 
         return unit.Kind switch
@@ -44,6 +48,19 @@ public static class UnitSelector
             UnitSelectorKind.UnitWithDispelType => unit.DispelType is null
                 ? null
                 : UnitWithDispelType(group, unit.DispelType.Value),
+            UnitSelectorKind.HighestHealingAbsorb => HighestHealingAbsorb(group, threshold, _ => true),
+            UnitSelectorKind.HighestHealingAbsorbWithAnyAura => unit.AuraNames is { Count: > 0 } names
+                ? HighestHealingAbsorb(group, threshold, data => HasAnyAura(data, names))
+                : null,
+            UnitSelectorKind.HighestHealingAbsorbWithoutAura => aura is null
+                ? null
+                : HighestHealingAbsorb(group, threshold, data => !HasAura(data, aura)),
+            UnitSelectorKind.HighestHealingAbsorbWithAura => aura is null
+                ? null
+                : HighestHealingAbsorb(group, threshold, data => HasAura(data, aura)),
+            UnitSelectorKind.HighestHealingAbsorbWithAuraCount => aura is null || unit.AuraCount is null
+                ? null
+                : HighestHealingAbsorb(group, threshold, data => AuraEquals(data, aura, unit.AuraCount.Value)),
             _ => null
         };
     }
@@ -52,7 +69,11 @@ public static class UnitSelector
     public static int Resolve(ModuleCountField count, GameState state)
     {
         var group = state.Group;
-        var threshold = ResolveThreshold(count.HealthThreshold, count.HealthThresholdField, state);
+        var threshold = ResolveThreshold(
+            count.HealthThreshold,
+            count.HealthThresholdField,
+            state,
+            IsHealingAbsorbKind(count.Kind) ? 0 : DefaultThreshold);
 
         return count.Kind switch
         {
@@ -63,6 +84,27 @@ public static class UnitSelector
             CountKind.UnitsWithAura => count.AuraName is null
                 ? 0
                 : CountUnits(group, data => HasAura(data, count.AuraName)),
+            CountKind.UnitsWithAuraBelowHealth => count.AuraName is null
+                ? 0
+                : CountUnits(
+                    group,
+                    data => HasAura(data, count.AuraName)
+                        && BelowThreshold(data, threshold)),
+            CountKind.UnitsAboveHealingAbsorb => CountUnits(
+                group,
+                data => AboveHealingAbsorbThreshold(data, threshold)),
+            CountKind.UnitsWithoutAuraAboveHealingAbsorb => count.AuraName is null
+                ? 0
+                : CountUnits(
+                    group,
+                    data => !HasAura(data, count.AuraName)
+                        && AboveHealingAbsorbThreshold(data, threshold)),
+            CountKind.UnitsWithAuraAboveHealingAbsorb => count.AuraName is null
+                ? 0
+                : CountUnits(
+                    group,
+                    data => HasAura(data, count.AuraName)
+                        && AboveHealingAbsorbThreshold(data, threshold)),
             _ => 0
         };
     }
@@ -179,6 +221,40 @@ public static class UnitSelector
         return null;
     }
 
+    /// <summary>
+    /// 在职责 != 0 且满足 predicate 的单位里，取治疗吸收 &gt; 阈值的最高单位；
+    /// 没有符合阈值的单位时返回 null。
+    /// </summary>
+    private static string? HighestHealingAbsorb(
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> group,
+        int threshold,
+        Func<IReadOnlyDictionary<string, object?>, bool> predicate)
+    {
+        string? bestUnit = null;
+        var highestAbsorb = 0;
+        for (var i = 1; i <= 30; i++)
+        {
+            var key = i.ToString();
+            if (!group.TryGetValue(key, out var data)
+                || !RoleNotZero(data)
+                || !predicate(data))
+            {
+                continue;
+            }
+
+            if (TryInt(GetField(data, "治疗吸收"), out var absorb)
+                && absorb > 0
+                && absorb > threshold
+                && absorb > highestAbsorb)
+            {
+                bestUnit = key;
+                highestAbsorb = absorb;
+            }
+        }
+
+        return bestUnit;
+    }
+
     /// <summary>统计职责 != 0 且满足 predicate 的单位数量。</summary>
     private static int CountUnits(
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> group,
@@ -201,13 +277,37 @@ public static class UnitSelector
         return TryInt(GetField(data, "生命值"), out var pct) && pct > 0 && pct < threshold;
     }
 
-    private static int ResolveThreshold(int? fixedValue, string? fieldName, GameState state)
+    private static bool AboveHealingAbsorbThreshold(
+        IReadOnlyDictionary<string, object?> data,
+        int threshold)
+    {
+        return TryInt(GetField(data, "治疗吸收"), out var absorb)
+            && absorb > threshold;
+    }
+
+    private static int ResolveThreshold(
+        int? fixedValue,
+        string? fieldName,
+        GameState state,
+        int defaultValue = DefaultThreshold)
     {
         return !string.IsNullOrWhiteSpace(fieldName)
             && ModuleConditionEvaluator.TryResolveInt(state, fieldName, out var dynamicValue)
                 ? dynamicValue
-                : fixedValue ?? DefaultThreshold;
+                : fixedValue ?? defaultValue;
     }
+
+    private static bool IsHealingAbsorbKind(UnitSelectorKind kind)
+        => kind is UnitSelectorKind.HighestHealingAbsorb
+            or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAuraCount;
+
+    private static bool IsHealingAbsorbKind(CountKind kind)
+        => kind is CountKind.UnitsAboveHealingAbsorb
+            or CountKind.UnitsWithoutAuraAboveHealingAbsorb
+            or CountKind.UnitsWithAuraAboveHealingAbsorb;
 
     private static bool AuraEquals(IReadOnlyDictionary<string, object?> data, string auraName, int target)
     {

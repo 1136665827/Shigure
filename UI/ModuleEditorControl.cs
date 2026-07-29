@@ -132,7 +132,12 @@ public sealed class ModuleEditorControl : UserControl
         sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
         _moduleList.Dock = DockStyle.Fill;
-        UiTheme.StyleListBox(_moduleList, Font);
+        UiTheme.StyleListBox(
+            _moduleList,
+            Font,
+            index => index >= 0 && index < _modules.Count
+                ? (_modules[index].Match.ClassId, _modules[index].Match.SpecId)
+                : (null, null));
         _moduleList.BackColor = UiTheme.Background;
         _moduleList.SelectedIndexChanged += (_, _) => SelectModule(_moduleList.SelectedIndex);
         sidebar.Controls.Add(_moduleList, 0, 0);
@@ -853,7 +858,7 @@ public sealed class ModuleEditorControl : UserControl
         _unitColumn.Items.Add(string.Empty);
         foreach (var unit in _keymapCatalog.GetUnits(classId))
         {
-            _unitColumn.Items.Add(unit.ToString());
+            _unitColumn.Items.Add(ReservedUnit.ToDisplayText(unit));
         }
 
         foreach (DataGridViewRow row in _rulesGrid.Rows)
@@ -905,8 +910,9 @@ public sealed class ModuleEditorControl : UserControl
 
         if (ModuleSpecialActions.IsOneKeySpell(spell))
         {
-            cell.Items.Add("0");
-            cell.Value = "0";
+            var noTarget = ReservedUnit.ToDisplayText(ReservedUnit.None);
+            cell.Items.Add(noTarget);
+            cell.Value = noTarget;
             return;
         }
 
@@ -917,7 +923,7 @@ public sealed class ModuleEditorControl : UserControl
 
         foreach (var unit in allowed)
         {
-            cell.Items.Add(unit.ToString());
+            cell.Items.Add(ReservedUnit.ToDisplayText(unit));
         }
 
         // 动态单位与技能无关, 始终可选; 放在 keymap 编号之后。
@@ -946,7 +952,7 @@ public sealed class ModuleEditorControl : UserControl
         }
         else
         {
-            // 技能切换导致旧的数字目标非法, 清空。
+            // 技能切换导致旧目标非法, 清空。
             cell.Value = string.Empty;
         }
     }
@@ -2433,7 +2439,7 @@ public sealed class ModuleEditorControl : UserControl
 
         var hint = new Label
         {
-            Text = "目标可选 keymap 编号或上方定义的动态单位；点击“条件”列打开可视化编辑器",
+            Text = "目标可选技能支持的单位或上方定义的动态单位；点击“条件”列打开可视化编辑器",
             Dock = DockStyle.Fill,
             ForeColor = UiTheme.Muted,
             TextAlign = ContentAlignment.MiddleLeft,
@@ -2549,10 +2555,10 @@ public sealed class ModuleEditorControl : UserControl
 
         foreach (var rule in module.Rules)
         {
-            // 动态目标优先显示单位名, 否则显示数字单位。
+            // 动态目标优先显示单位名；保留单位显示中文，其余团队槽位显示数字。
             var unitText = !string.IsNullOrWhiteSpace(rule.UnitName)
                 ? rule.UnitName!
-                : rule.Unit?.ToString() ?? string.Empty;
+                : rule.Unit is { } unit ? ReservedUnit.ToDisplayText(unit) : string.Empty;
             EnsureComboItem(_spellColumn, rule.Spell);
             // 先加行(目标先留空), 再按技能重建目标选项并写回目标值, 避免值不在选项内被吞掉。
             var index = _rulesGrid.Rows.Add(rule.Enabled, rule.Spell, string.Empty, rule.Condition);
@@ -2817,7 +2823,7 @@ public sealed class ModuleEditorControl : UserControl
                 continue;
             }
 
-            // 目标文本命中已定义动态单位名 → UnitName; 否则按数字 → Unit; 都不是则留空。
+            // 目标文本命中已定义动态单位名 → UnitName；否则把中文保留单位或数字槽位还原为 Unit。
             var isDynamic = unitNames.Contains(unitText);
             var subs = metadata.SubConditions
                 .Select(sub => sub?.Trim() ?? string.Empty)
@@ -2827,7 +2833,7 @@ public sealed class ModuleEditorControl : UserControl
             {
                 Enabled = CellBool(row, "Enabled", defaultValue: true),
                 Condition = condition,
-                Unit = isDynamic ? null : ParseNullableInt(unitText),
+                Unit = isDynamic ? null : ReservedUnit.ParseDisplayText(unitText),
                 UnitName = isDynamic ? unitText : null,
                 Spell = spell,
                 Hotkey = string.Empty,

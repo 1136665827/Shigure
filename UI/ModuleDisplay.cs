@@ -4,7 +4,7 @@ internal static class ModuleDisplay
 {
     public static string FormatListItem(ModuleDefinition module)
     {
-        return $"{module.Name}  [{FormatMatch(module.Match)}]";
+        return module.Name;
     }
 
     public static string FormatMatch(ModuleMatch match)

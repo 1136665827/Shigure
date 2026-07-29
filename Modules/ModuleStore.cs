@@ -8,12 +8,16 @@ namespace Shigure;
 
 public sealed class ModuleDefinition
 {
+    internal const int CurrentUnitMappingVersion = 2;
+
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = "新模块";
     public string Author { get; set; } = string.Empty;
     public string RecommendedTalent { get; set; } = string.Empty;
     // 保存时写入当时的 Shigure 版本(AppInfo.Version)。
     public string Version { get; set; } = string.Empty;
+    // v2: 31=玩家、32=目标、33=焦点、34=地面、35=鼠标；旧模块 v1 的 31/34 含义相反。
+    public int? UnitMappingVersion { get; set; }
     public bool Enabled { get; set; } = true;
     public ModuleMatch Match { get; set; } = new();
     public List<ModuleUnit> Units { get; set; } = new();
@@ -33,6 +37,7 @@ public sealed class ModuleDefinition
             Author = Author,
             RecommendedTalent = RecommendedTalent,
             Version = Version,
+            UnitMappingVersion = UnitMappingVersion,
             Enabled = Enabled,
             FilePath = FilePath,
             Match = Match.Clone(),
@@ -49,6 +54,7 @@ public sealed class ModuleDefinition
         {
             Id = ModuleStore.CreateModuleId(name),
             Name = name,
+            UnitMappingVersion = CurrentUnitMappingVersion,
             Enabled = true,
             Rules =
             [
@@ -511,8 +517,24 @@ public sealed class ModuleStore
         }
 
         module.Rules ??= new List<ModuleRule>();
+        if (module.UnitMappingVersion.GetValueOrDefault() < ModuleDefinition.CurrentUnitMappingVersion)
+        {
+            foreach (var rule in module.Rules)
+            {
+                rule.Unit = rule.Unit switch
+                {
+                    31 => ReservedUnit.Cursor,
+                    34 => ReservedUnit.Player,
+                    _ => rule.Unit
+                };
+            }
+
+            module.UnitMappingVersion = ModuleDefinition.CurrentUnitMappingVersion;
+        }
+
         foreach (var rule in module.Rules)
         {
+            rule.Spell = ModuleSpecialActions.NormalizeSpellAction(rule.Spell);
             rule.DelayMs = rule.DelayMs is > 0 ? rule.DelayMs : null;
             rule.LogicDelayMs = rule.LogicDelayMs is > 0 ? rule.LogicDelayMs : null;
             if (rule.SubConditions is null)

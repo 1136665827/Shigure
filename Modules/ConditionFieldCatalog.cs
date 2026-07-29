@@ -77,8 +77,7 @@ public sealed class ConditionFieldCatalog
         foreach (var (key, node) in stateConfig)
         {
             if (key is "group" or "spells" or "auras"
-                || key == "锚点"
-                || ModuleSpecialActions.IsFailedSpell(key))
+                || key == "锚点")
             {
                 continue;
             }
@@ -111,7 +110,14 @@ public sealed class ConditionFieldCatalog
             }
         }
 
-        AddField(fields, seen, ModuleSpecialActions.FailedSpell, ModuleSpecialActions.FailedSpell, ConditionFieldType.String, ConditionFieldCategory.State);
+        // 原始“插入法术”按 config 中的 int 状态保留；转换为技能名的特殊字段单独置底。
+        AddField(
+            fields,
+            seen,
+            ModuleSpecialActions.FailedSpell,
+            ModuleSpecialActions.FailedSpell,
+            ConditionFieldType.String,
+            ConditionFieldCategory.State);
 
         return fields;
     }
