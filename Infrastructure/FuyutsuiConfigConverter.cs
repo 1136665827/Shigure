@@ -479,6 +479,6 @@ internal static class FuyutsuiConfigConverter
 
     private static string NormalizeStateName(string name)
         => string.Equals(name, "法术失败", StringComparison.Ordinal)
-            ? ModuleSpecialActions.FailedSpell
+            ? ModuleSpecialActions.InsertSpellState
             : name;
 }

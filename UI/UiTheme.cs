@@ -268,7 +268,10 @@ internal static class UiTheme
         };
     }
 
-    public static void StyleListBox(ListBox listBox, Font font)
+    public static void StyleListBox(
+        ListBox listBox,
+        Font font,
+        Func<int, (int? ClassId, int? SpecId)>? moduleMatchSelector = null)
     {
         listBox.BackColor = Surface;
         listBox.ForeColor = Text;
@@ -301,7 +304,40 @@ internal static class UiTheme
                 e.Graphics.FillRectangle(accent, e.Bounds.Left, e.Bounds.Top + 5, 3, e.Bounds.Height - 10);
             }
 
-            var textBounds = new Rectangle(e.Bounds.Left + 10, e.Bounds.Top, e.Bounds.Width - 14, e.Bounds.Height);
+            var textLeft = e.Bounds.Left + 10;
+            if (moduleMatchSelector is not null)
+            {
+                var (classId, specId) = moduleMatchSelector(e.Index);
+                var icons = new[]
+                {
+                    classId is { } matchedClassId ? GetClassIcon(matchedClassId) : null,
+                    classId is { } matchedSpecClassId && specId is { } matchedSpecId
+                        ? GetSpecIcon(matchedSpecClassId, matchedSpecId)
+                        : null
+                };
+                var iconSize = Math.Min(font.Height, e.Bounds.Height - 8);
+                foreach (var icon in icons)
+                {
+                    if (icon is null)
+                    {
+                        continue;
+                    }
+
+                    var iconBounds = new Rectangle(
+                        textLeft,
+                        e.Bounds.Top + (e.Bounds.Height - iconSize) / 2,
+                        iconSize,
+                        iconSize);
+                    e.Graphics.DrawImage(icon, iconBounds);
+                    textLeft = iconBounds.Right + 4;
+                }
+            }
+
+            var textBounds = new Rectangle(
+                textLeft,
+                e.Bounds.Top,
+                Math.Max(0, e.Bounds.Right - textLeft - 4),
+                e.Bounds.Height);
             TextRenderer.DrawText(
                 e.Graphics,
                 listBox.Items[e.Index]?.ToString() ?? string.Empty,

@@ -134,9 +134,11 @@ internal static partial class FuyutsuiKeymapConverter
             {
                 var relativeIndex = i - dynamicSlots - 1;
                 MacroEntry? entry = null;
+                var isStaticEntry = false;
                 if (relativeIndex < staticSpells.Count)
                 {
                     entry = staticSpells[relativeIndex];
+                    isStaticEntry = true;
                 }
                 else
                 {
@@ -149,7 +151,18 @@ internal static partial class FuyutsuiKeymapConverter
 
                 if (entry is { Body.Length: > 0 } macroEntry)
                 {
-                    spell = ResolveSpellName(macroEntry);
+                    if (isStaticEntry)
+                    {
+                        var parsed = ParseStaticMacro(macroEntry.Body, macroEntry.Comment);
+                        unit = parsed.Unit;
+                        spell = parsed.Spell;
+                    }
+                    else
+                    {
+                        var parsed = ParseSpecialMacro(macroEntry.Body, macroEntry.Comment);
+                        unit = parsed.Unit;
+                        spell = parsed.Spell;
+                    }
                 }
 
                 if (entry is { Body.Length: > 0 }
@@ -182,6 +195,56 @@ internal static partial class FuyutsuiKeymapConverter
         }
 
         return spell.StartsWith("item:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal readonly record struct ParsedMacro(int Unit, string Spell);
+
+    /// <summary>
+    /// 解析静态宏供 keymap 与宏列表共用。玩家、当前目标、焦点、地面、鼠标指向分别使用保留单位 31-35。
+    /// </summary>
+    internal static ParsedMacro ParseStaticMacro(string raw, string? comment = null)
+    {
+        var target = StaticTargetRegex().Match(raw);
+        var unit = target.Success
+            ? ResolveUnitName(target.Groups["unit"].Value)
+            : ReservedUnit.None;
+
+        return new ParsedMacro(unit, ResolveSpellName(new MacroEntry(raw, comment)));
+    }
+
+    /// <summary>
+    /// 解析特殊宏：方括号中的首个单位作为 unit，技能沿用宏技能推导（castsequence 只取逗号前首项）。
+    /// </summary>
+    internal static ParsedMacro ParseSpecialMacro(string raw, string? comment = null)
+    {
+        // 标准 WoW 条件允许单位出现在其它条件之后，例如 [known:123,@cursor]。
+        var target = StaticTargetRegex().Match(raw);
+        var unit = target.Success
+            ? ResolveUnitName(target.Groups["unit"].Value)
+            : ReservedUnit.None;
+
+        // 特殊宏也接受 [player]/[玩家]/[31] 这种“方括号内直接写单位”的简写。
+        if (unit == ReservedUnit.None && SpecialUnitRegex().Match(raw) is { Success: true } specialUnit)
+        {
+            unit = ResolveUnitName(specialUnit.Groups["unit"].Value);
+        }
+
+        var spell = ResolveSpellName(new MacroEntry(raw, comment));
+        spell = spell.Split(',', 2, StringSplitOptions.TrimEntries)[0];
+        return new ParsedMacro(unit, spell);
+    }
+
+    private static int ResolveUnitName(string raw)
+    {
+        return raw.Trim().TrimStart('@').ToLowerInvariant() switch
+        {
+            "player" or "玩家" or "31" => ReservedUnit.Player,
+            "target" or "目标" or "32" => ReservedUnit.Target,
+            "focus" or "焦点" or "33" => ReservedUnit.Focus,
+            "cursor" or "地面" or "34" => ReservedUnit.Cursor,
+            "mouseover" or "鼠标" or "35" => ReservedUnit.Mouseover,
+            _ => ReservedUnit.None
+        };
     }
 
     /// <summary>同行 `--` 注释优先作为技能名；否则从宏文本推导。</summary>
@@ -257,17 +320,11 @@ internal static partial class FuyutsuiKeymapConverter
 
         // 取 ; 分支中第一段（专精/条件分支）
         var firstBranch = text.Split(';', 2, StringSplitOptions.TrimEntries)[0];
-        var hasFocus = FocusTargetRegex().IsMatch(firstBranch) || FocusTargetRegex().IsMatch(text);
         var spell = StripConditions(firstBranch);
 
         if (string.IsNullOrWhiteSpace(spell))
         {
             return string.Empty;
-        }
-
-        if (hasFocus && !spell.EndsWith("(焦点)", StringComparison.Ordinal))
-        {
-            return spell + "(焦点)";
         }
 
         return spell;
@@ -390,6 +447,9 @@ internal static partial class FuyutsuiKeymapConverter
     [GeneratedRegex(@"\[[^\]]*\]", RegexOptions.CultureInvariant)]
     private static partial Regex ConditionRegex();
 
-    [GeneratedRegex(@"@focus\b|target\s*=\s*focus\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex FocusTargetRegex();
+    [GeneratedRegex(@"\[[^\]]*@(?<unit>cursor|target|focus|player|mouseover)\b[^\]]*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex StaticTargetRegex();
+
+    [GeneratedRegex(@"\[\s*@?(?<unit>player|target|focus|cursor|mouseover|玩家|目标|焦点|地面|鼠标|无目标|0|31|32|33|34|35)\s*(?:,|\])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex SpecialUnitRegex();
 }
