@@ -149,9 +149,11 @@ public sealed class ConditionEditorForm : Form
     private static readonly string[] AllOperators = ["==", "!=", ">", ">=", "<", "<=", "in", "not in"];
     private static readonly string[] TextOperators = ["==", "!=", "in", "not in"];
     private static readonly string[] BoolOperators = ["==", "!="];
+    private static readonly string[] DelayOperators = ["=="];
     private static readonly CategoryItem[] CategoryItems =
     [
         new("状态", ConditionFieldCategory.State),
+        new("Shigure", ConditionFieldCategory.Shigure),
         new("光环", ConditionFieldCategory.Aura),
         new("技能", ConditionFieldCategory.Spell),
         new("动态单位", ConditionFieldCategory.DynamicUnit)
@@ -160,6 +162,7 @@ public sealed class ConditionEditorForm : Form
     private readonly IReadOnlyList<ConditionField> _fields;
     private readonly string _originalCondition;
     private readonly bool _allowSubConditions;
+    private readonly bool _allowRuleSettings;
     private readonly FlowLayoutPanel _rowsPanel = new();
     private readonly Label _previewLabel = new();
     private readonly ToolTip _previewToolTip = new();
@@ -168,6 +171,8 @@ public sealed class ConditionEditorForm : Form
     private readonly ListBox _subList = new();
 
     public string ConditionText { get; private set; } = string.Empty;
+    public int? DelayMs { get; private set; }
+    public int? LogicDelayMs { get; private set; }
 
     // 子条件: 与主条件是「且」、子条件彼此是「或」。allowSubConditions=false(默认)时不显示该区,
     // 也用于子条件自身的嵌套编辑弹窗防止无限递归。
@@ -177,11 +182,15 @@ public sealed class ConditionEditorForm : Form
         IReadOnlyList<ConditionField> fields,
         string? condition,
         IEnumerable<string>? subConditions = null,
-        bool allowSubConditions = false)
+        bool allowSubConditions = false,
+        int? delayMs = null,
+        int? logicDelayMs = null,
+        bool allowRuleSettings = false)
     {
         _fields = fields;
         _originalCondition = condition ?? string.Empty;
         _allowSubConditions = allowSubConditions;
+        _allowRuleSettings = allowRuleSettings;
         if (subConditions is not null)
         {
             _subConditions.AddRange(subConditions
@@ -194,6 +203,24 @@ public sealed class ConditionEditorForm : Form
         foreach (var term in ConditionExpression.Parse(condition))
         {
             AddRow(term);
+        }
+
+        if (_allowRuleSettings && delayMs is > 0)
+        {
+            AddRow(new ConditionTerm(
+                OrWithPrevious: false,
+                ShigureConditionFields.Delay,
+                "==",
+                delayMs.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        if (_allowRuleSettings && logicDelayMs is > 0)
+        {
+            AddRow(new ConditionTerm(
+                OrWithPrevious: false,
+                ShigureConditionFields.LogicDelay,
+                "==",
+                logicDelayMs.Value.ToString(CultureInfo.InvariantCulture)));
         }
 
         // 空条件直接落在一条可填行上, 无需先去找"添加条件"。
@@ -527,6 +554,16 @@ public sealed class ConditionEditorForm : Form
         }
 
         var text = ConditionExpression.Build(CollectTerms());
+        if (!TryReadDelay(out var delayMs))
+        {
+            return;
+        }
+
+        if (!TryReadLogicDelay(out var logicDelayMs))
+        {
+            return;
+        }
+
         // 仅当原本有条件、现在主条件与子条件都为空时才提醒(避免把已有规则误清成"始终命中")。
         if (text.Length == 0
             && _subConditions.Count == 0
@@ -541,12 +578,19 @@ public sealed class ConditionEditorForm : Form
         }
 
         ConditionText = text;
+        DelayMs = delayMs;
+        LogicDelayMs = logicDelayMs;
         DialogResult = DialogResult.OK;
     }
 
     // 恰好字段与值一空一非空 → 不完整; 两者都空只是空行(静默忽略, 不算不完整)。
     private static bool IsRowIncomplete(ConditionRow row)
     {
+        if (IsRuleSettingField(row.SelectedField))
+        {
+            return false;
+        }
+
         var field = row.SelectedField?.Name.Trim() ?? string.Empty;
         var value = ReadRowValue(row);
         return (field.Length == 0) ^ (value.Length == 0);
@@ -579,7 +623,9 @@ public sealed class ConditionEditorForm : Form
 
         var categoryBox = new ComboBox();
         UiTheme.StyleComboBox(categoryBox);
-        categoryBox.Items.AddRange(CategoryItems);
+        categoryBox.Items.AddRange(CategoryItems
+            .Where(item => item.Category != ConditionFieldCategory.Shigure || _allowRuleSettings)
+            .ToArray());
         categoryBox.Dock = DockStyle.Fill;
         categoryBox.Margin = new Padding(0, 2, 8, 2);
 
@@ -627,11 +673,13 @@ public sealed class ConditionEditorForm : Form
         {
             PopulateFields(row, null);
             OnFieldChanged(row);
+            RefreshConnectors();
             UpdatePreview();
         };
         fieldBox.SelectedIndexChanged += (_, _) =>
         {
             OnFieldChanged(row);
+            RefreshConnectors();
             UpdatePreview();
         };
         opBox.SelectedIndexChanged += (_, _) =>
@@ -659,7 +707,7 @@ public sealed class ConditionEditorForm : Form
     {
         for (var i = 0; i < _rows.Count; i++)
         {
-            _rows[i].Connector.Visible = i > 0;
+            _rows[i].Connector.Visible = i > 0 && !IsRuleSettingField(_rows[i].SelectedField);
         }
     }
 
@@ -755,7 +803,10 @@ public sealed class ConditionEditorForm : Form
     private static void PopulateOps(ConditionRow row, string? desiredOp)
     {
         var field = row.SelectedField;
-        var ops = field is { IsCustom: false, Type: ConditionFieldType.Bool }
+        var isRuleSetting = IsRuleSettingField(field);
+        var ops = isRuleSetting
+            ? DelayOperators
+            : field is { IsCustom: false, Type: ConditionFieldType.Bool }
             ? BoolOperators
             : field is { IsCustom: false, Type: ConditionFieldType.String }
                 ? TextOperators
@@ -763,9 +814,10 @@ public sealed class ConditionEditorForm : Form
 
         row.OpBox.Items.Clear();
         row.OpBox.Items.AddRange(ops);
-        var normalizedOp = ConditionExpression.NormalizeOperator(desiredOp);
+        var normalizedOp = isRuleSetting ? "==" : ConditionExpression.NormalizeOperator(desiredOp);
         var index = normalizedOp.Length == 0 ? -1 : Array.IndexOf(ops, normalizedOp);
         row.OpBox.SelectedIndex = index >= 0 ? index : 0;
+        row.OpBox.Enabled = !isRuleSetting;
     }
 
     private void CreateValueControl(ConditionRow row, string? rawValue, bool preserveRaw)
@@ -780,7 +832,21 @@ public sealed class ConditionEditorForm : Form
         var field = row.SelectedField;
         var usesListValue = ConditionExpression.IsInOperator(row.OpBox.SelectedItem?.ToString());
         Control control;
-        if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
+        if (IsRuleSettingField(field))
+        {
+            var numeric = new NumericUpDown
+            {
+                Minimum = 0,
+                Maximum = int.MaxValue,
+                Value = TryParseDelayText(rawValue, out var delay) ? delay : 0,
+                ThousandsSeparator = true
+            };
+            UiTheme.StyleNumericUpDown(numeric);
+            numeric.ValueChanged += (_, _) => UpdatePreview();
+            numeric.TextChanged += (_, _) => UpdatePreview();
+            control = numeric;
+        }
+        else if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
         {
             var combo = new ComboBox();
             UiTheme.StyleComboBox(combo);
@@ -847,6 +913,11 @@ public sealed class ConditionEditorForm : Form
         for (var i = 0; i < _rows.Count; i++)
         {
             var row = _rows[i];
+            if (IsRuleSettingField(row.SelectedField))
+            {
+                continue;
+            }
+
             var field = row.SelectedField?.Name.Trim() ?? string.Empty;
             var op = row.OpBox.SelectedItem?.ToString() ?? "==";
             var value = ReadRowValue(row);
@@ -888,22 +959,135 @@ public sealed class ConditionEditorForm : Form
 
     private void UpdatePreview()
     {
-        var full = ComposePreview(ConditionExpression.Build(CollectTerms()));
+        _ = TryReadDelay(out var delayMs, showWarning: false);
+        _ = TryReadLogicDelay(out var logicDelayMs, showWarning: false);
+        var full = ComposePreview(ConditionExpression.Build(CollectTerms()), delayMs, logicDelayMs);
         _previewLabel.Text = full.Length == 0 ? "预览: (无条件, 始终命中)" : $"预览: {full}";
         // 单行预览会被省略号截断, 悬停看完整表达式。
         _previewToolTip.SetToolTip(_previewLabel, full.Length == 0 ? string.Empty : full);
     }
 
     // 把主条件文本与子条件合成为可读的整体表达式(与 ModuleRule.DescribeCondition 同形)。
-    private string ComposePreview(string mainText)
+    private string ComposePreview(string mainText, int? delayMs, int? logicDelayMs)
     {
-        if (_subConditions.Count == 0)
+        var conditionText = mainText;
+        if (_subConditions.Count > 0)
         {
-            return mainText;
+            var any = string.Join(" | ", _subConditions);
+            conditionText = mainText.Length == 0 ? $"任一({any})" : $"{mainText}  且任一({any})";
         }
 
-        var any = string.Join(" | ", _subConditions);
-        return mainText.Length == 0 ? $"任一({any})" : $"{mainText}  且任一({any})";
+        if (delayMs is > 0)
+        {
+            conditionText = conditionText.Length == 0
+                ? $"延迟 {delayMs.Value} ms"
+                : $"{conditionText}；延迟 {delayMs.Value} ms";
+        }
+
+        if (logicDelayMs is > 0)
+        {
+            conditionText = conditionText.Length == 0
+                ? $"逻辑延迟 {logicDelayMs.Value} ms"
+                : $"{conditionText}；逻辑延迟 {logicDelayMs.Value} ms";
+        }
+
+        return conditionText;
+    }
+
+    private bool TryReadDelay(out int? delayMs, bool showWarning = true)
+    {
+        return TryReadRuleSettingDelay(
+            ShigureConditionFields.Delay,
+            "延迟",
+            out delayMs,
+            showWarning);
+    }
+
+    private bool TryReadLogicDelay(out int? delayMs, bool showWarning = true)
+    {
+        return TryReadRuleSettingDelay(
+            ShigureConditionFields.LogicDelay,
+            "逻辑延迟",
+            out delayMs,
+            showWarning);
+    }
+
+    private bool TryReadRuleSettingDelay(
+        string fieldName,
+        string displayName,
+        out int? delayMs,
+        bool showWarning)
+    {
+        delayMs = null;
+        var delayRows = _rows.Where(row => IsRuleSettingField(row.SelectedField, fieldName)).ToList();
+        if (delayRows.Count > 1)
+        {
+            if (showWarning)
+            {
+                MessageBox.Show(
+                    $"每条规则只能设置一个“{displayName}”。请删除多余的 Shigure {displayName}行。",
+                    "Shigure",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+
+            return false;
+        }
+
+        if (delayRows.Count == 0)
+        {
+            return true;
+        }
+
+        var value = ReadRowValue(delayRows[0]);
+        if (!TryParseDelayText(value, out var parsed))
+        {
+            if (showWarning)
+            {
+                MessageBox.Show(
+                    $"{displayName}必须是 0 到 2147483647 之间的整数，单位为 ms。",
+                    "Shigure",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+
+            return false;
+        }
+
+        delayMs = parsed > 0 ? parsed : null;
+        return true;
+    }
+
+    private static bool IsDelayField(FieldItem? field)
+    {
+        return IsRuleSettingField(field, ShigureConditionFields.Delay);
+    }
+
+    private static bool IsLogicDelayField(FieldItem? field)
+    {
+        return IsRuleSettingField(field, ShigureConditionFields.LogicDelay);
+    }
+
+    private static bool IsRuleSettingField(FieldItem? field)
+    {
+        return IsDelayField(field) || IsLogicDelayField(field);
+    }
+
+    private static bool IsRuleSettingField(FieldItem? field, string fieldName)
+    {
+        return field is not null
+            && field.Category == ConditionFieldCategory.Shigure
+            && string.Equals(field.Name, fieldName, StringComparison.Ordinal);
+    }
+
+    private static bool TryParseDelayText(string? text, out int value)
+    {
+        return int.TryParse(
+            text?.Trim(),
+            NumberStyles.Integer | NumberStyles.AllowThousands,
+            CultureInfo.InvariantCulture,
+            out value)
+            && value >= 0;
     }
 
     private static bool IsFalseText(string? value)

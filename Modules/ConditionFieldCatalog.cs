@@ -12,9 +12,17 @@ public enum ConditionFieldType
 public enum ConditionFieldCategory
 {
     State,
+    Shigure,
     Aura,
     Spell,
     DynamicUnit
+}
+
+public static class ShigureConditionFields
+{
+    // 仅供条件编辑器承载规则级配置，不会写入条件表达式参与状态求值。
+    public const string Delay = "$shigure.delay";
+    public const string LogicDelay = "$shigure.logicDelay";
 }
 
 public sealed record ConditionField(
@@ -69,6 +77,7 @@ public sealed class ConditionFieldCatalog
         foreach (var (key, node) in stateConfig)
         {
             if (key is "group" or "spells" or "auras"
+                || key == "锚点"
                 || ModuleSpecialActions.IsFailedSpell(key))
             {
                 continue;

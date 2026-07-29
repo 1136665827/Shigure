@@ -184,6 +184,10 @@ public sealed class ModuleRule
 {
     public bool Enabled { get; set; } = true;
     public string Condition { get; set; } = string.Empty;
+    // 此规则命中后，两次实际发送之间的最小间隔（毫秒）；null/0 表示不限制。
+    public int? DelayMs { get; set; }
+    // 此规则实际发送按键后，暂停整个逻辑循环的时长（毫秒）；null/0 表示不暂停。
+    public int? LogicDelayMs { get; set; }
     public int? Unit { get; set; }
     public string? UnitName { get; set; }
     public string Spell { get; set; } = string.Empty;
@@ -201,6 +205,8 @@ public sealed class ModuleRule
         {
             Enabled = Enabled,
             Condition = Condition,
+            DelayMs = DelayMs,
+            LogicDelayMs = LogicDelayMs,
             Unit = Unit,
             UnitName = UnitName,
             Spell = Spell,
@@ -507,6 +513,8 @@ public sealed class ModuleStore
         module.Rules ??= new List<ModuleRule>();
         foreach (var rule in module.Rules)
         {
+            rule.DelayMs = rule.DelayMs is > 0 ? rule.DelayMs : null;
+            rule.LogicDelayMs = rule.LogicDelayMs is > 0 ? rule.LogicDelayMs : null;
             if (rule.SubConditions is null)
             {
                 continue;
@@ -594,8 +602,14 @@ public static class ModuleLogic
         var failedSpells = keymap.GetCurrentFailedSpells();
         var oneKeySpells = keymap.GetCurrentOneKeySpells();
 
-        foreach (var rule in module.Rules.Where(rule => rule.Enabled))
+        for (var ruleIndex = 0; ruleIndex < module.Rules.Count; ruleIndex++)
         {
+            var rule = module.Rules[ruleIndex];
+            if (!rule.Enabled)
+            {
+                continue;
+            }
+
             if (!ModuleConditionEvaluator.TryEvaluateRule(rule, state, out var conditionMatched, out var error, failedSpells))
             {
                 info["条件错误"] = error;
@@ -660,7 +674,16 @@ public static class ModuleLogic
             info["动作单位"] = string.IsNullOrWhiteSpace(rule.UnitName)
                 ? resolvedUnit.GetValueOrDefault()
                 : $"{rule.UnitName} → {resolvedUnit.GetValueOrDefault()}";
-            return new LogicDecision(hotkey, step, info, module.Name);
+            info["动作延迟"] = rule.DelayMs is > 0 ? $"{rule.DelayMs.Value} ms" : "-";
+            info["逻辑延迟"] = rule.LogicDelayMs is > 0 ? $"{rule.LogicDelayMs.Value} ms" : "-";
+            return new LogicDecision(
+                hotkey,
+                step,
+                info,
+                module.Name,
+                rule.DelayMs.GetValueOrDefault(),
+                $"{module.Id}:{ruleIndex}",
+                rule.LogicDelayMs.GetValueOrDefault());
         }
 
         info["命中条件"] = "-";
