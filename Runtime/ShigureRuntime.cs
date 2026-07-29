@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Shigure;
 
 public sealed class ShigureRuntime
@@ -20,6 +22,8 @@ public sealed class ShigureRuntime
     private IReadOnlyDictionary<string, object?> _unitInfo = new Dictionary<string, object?>();
     private bool _enabled;
     private bool _clickPending;
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _lastRuleSentAt = new(StringComparer.Ordinal);
+    private DateTimeOffset _logicPausedUntil = DateTimeOffset.MinValue;
 
     public ShigureRuntime(string baseDirectory, AppOptions options, ModuleStore moduleStore)
     {
@@ -40,6 +44,12 @@ public sealed class ShigureRuntime
     {
         _enabled = enabled;
         _clickPending = false;
+        if (!enabled)
+        {
+            _lastRuleSentAt.Clear();
+            _logicPausedUntil = DateTimeOffset.MinValue;
+        }
+
         _currentStep = enabled ? "手动开启" : "手动关闭";
         PublishSnapshot();
     }
@@ -81,6 +91,8 @@ public sealed class ShigureRuntime
                     _enabled = pressed;
                     if (falling)
                     {
+                        _lastRuleSentAt.Clear();
+                        _logicPausedUntil = DateTimeOffset.MinValue;
                         _currentStep = "按住结束";
                     }
                 }
@@ -90,7 +102,10 @@ public sealed class ShigureRuntime
                 if (now - lastLogicAt >= _options.LogicInterval)
                 {
                     lastLogicAt = now;
-                    TickLogic();
+                    if (now >= _logicPausedUntil)
+                    {
+                        TickLogic();
+                    }
                 }
 
                 if (now - lastRenderAt >= _options.RenderInterval)
@@ -106,6 +121,7 @@ public sealed class ShigureRuntime
         {
             _enabled = false;
             _clickPending = false;
+            _logicPausedUntil = DateTimeOffset.MinValue;
             _currentStep = "已停止";
             PublishSnapshot();
         }
@@ -127,6 +143,12 @@ public sealed class ShigureRuntime
             default:
                 _enabled = !_enabled;
                 _clickPending = false;
+                if (!_enabled)
+                {
+                    _lastRuleSentAt.Clear();
+                    _logicPausedUntil = DateTimeOffset.MinValue;
+                }
+
                 _currentStep = _enabled ? "逻辑开启" : "逻辑关闭";
                 break;
         }
@@ -182,9 +204,11 @@ public sealed class ShigureRuntime
 
         if (_options.Mode == SendMode.Click)
         {
-            if (_clickPending && !string.IsNullOrWhiteSpace(decision.Hotkey))
+            if (_clickPending
+                && !string.IsNullOrWhiteSpace(decision.Hotkey)
+                && CanSend(decision, DateTimeOffset.UtcNow))
             {
-                _keySender.Send(decision.Hotkey);
+                SendAndPauseLogic(decision);
             }
 
             _enabled = false;
@@ -192,10 +216,40 @@ public sealed class ShigureRuntime
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(decision.Hotkey))
+        if (!string.IsNullOrWhiteSpace(decision.Hotkey)
+            && CanSend(decision, DateTimeOffset.UtcNow))
         {
-            _keySender.Send(decision.Hotkey);
+            SendAndPauseLogic(decision);
         }
+    }
+
+    private void SendAndPauseLogic(LogicDecision decision)
+    {
+        _keySender.Send(decision.Hotkey!);
+        if (decision.LogicDelayMs > 0)
+        {
+            _logicPausedUntil = DateTimeOffset.UtcNow.AddMilliseconds(decision.LogicDelayMs);
+        }
+    }
+
+    private bool CanSend(LogicDecision decision, DateTimeOffset now)
+    {
+        if (decision.DelayMs <= 0)
+        {
+            return true;
+        }
+
+        var key = string.IsNullOrWhiteSpace(decision.RateLimitKey)
+            ? decision.Hotkey ?? string.Empty
+            : decision.RateLimitKey;
+        if (_lastRuleSentAt.TryGetValue(key, out var lastSentAt)
+            && now - lastSentAt < TimeSpan.FromMilliseconds(decision.DelayMs))
+        {
+            return false;
+        }
+
+        _lastRuleSentAt[key] = now;
+        return true;
     }
 
     private void PublishSnapshot()

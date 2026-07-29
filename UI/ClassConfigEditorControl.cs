@@ -19,7 +19,6 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly Button _saveButton = null!;
 
     private readonly DataGridView _statesGrid = new();
-    private readonly ComboBox _stateCategoryBox = new();
     private readonly DataGridViewComboBoxColumn _stateNameColumn = new();
     private readonly DataGridView _aurasGrid = new();
     private readonly ComboBox _auraBucketBox = new();
@@ -40,6 +39,7 @@ public sealed class ClassConfigEditorControl : UserControl
     private int? _currentSpecId;
     private bool _suppressUi;
     private bool _dirty;
+    private string _selectedStateCategory = ClassStateCatalog.CategoryState;
     private string _lastStateCategory = ClassStateCatalog.CategoryState;
     private string _lastAuraBucket = "player";
 
@@ -390,32 +390,7 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
-        var top = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised
-        };
-        top.Controls.Add(CreateMutedLabel("分类"));
-        UiTheme.StyleComboBox(_stateCategoryBox);
-        _stateCategoryBox.Width = 180;
-        _stateCategoryBox.Items.AddRange(ClassStateCatalog.TopCategories);
-        _stateCategoryBox.SelectedIndex = 0;
-        _stateCategoryBox.SelectedIndexChanged += (_, _) =>
-        {
-            if (_suppressUi)
-            {
-                return;
-            }
-
-            _statesGrid.EndEdit();
-            WriteBackStatesCategory(_lastStateCategory);
-            _lastStateCategory = _stateCategoryBox.SelectedItem as string ?? ClassStateCatalog.CategoryState;
-            ReloadStatesGrid();
-        };
-        top.Controls.Add(_stateCategoryBox);
-        panel.Controls.Add(top, 0, 0);
+        panel.Controls.Add(BuildStateCategoryTabs(), 0, 0);
 
         ConfigureGrid(_statesGrid);
         _stateNameColumn.Name = "Name";
@@ -435,6 +410,99 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.Controls.Add(_statesGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_statesGrid), 0, 2);
         return panel;
+    }
+
+    private Control BuildStateCategoryTabs()
+    {
+        var categories = ClassStateCatalog.TopCategories;
+        var tabBar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Border,
+            ColumnCount = categories.Length,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        foreach (var _ in categories)
+        {
+            tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / categories.Length));
+        }
+
+        var labels = new Label[categories.Length];
+        void ApplySelection()
+        {
+            for (var i = 0; i < labels.Length; i++)
+            {
+                var selected = string.Equals(categories[i], _selectedStateCategory, StringComparison.Ordinal);
+                labels[i].BackColor = selected ? UiTheme.Field : UiTheme.Surface;
+                labels[i].ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
+                labels[i].Invalidate();
+            }
+        }
+
+        void SelectCategory(string category)
+        {
+            if (_suppressUi
+                || string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _statesGrid.EndEdit();
+            WriteBackStatesCategory(_lastStateCategory);
+            _selectedStateCategory = category;
+            _lastStateCategory = category;
+            ApplySelection();
+            ReloadStatesGrid();
+        }
+
+        for (var i = 0; i < categories.Length; i++)
+        {
+            var category = categories[i];
+            var label = new Label
+            {
+                Text = category,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false,
+                BackColor = UiTheme.Surface,
+                ForeColor = UiTheme.Muted,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(i == 0 ? 0 : 1, 0, 0, 0)
+            };
+            label.Click += (_, _) => SelectCategory(category);
+            label.MouseEnter += (_, _) =>
+            {
+                if (!string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
+                {
+                    label.BackColor = UiTheme.Hover;
+                }
+            };
+            label.MouseLeave += (_, _) =>
+            {
+                if (!string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
+                {
+                    label.BackColor = UiTheme.Surface;
+                }
+            };
+            label.Paint += (_, e) =>
+            {
+                if (!string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                using var accent = new SolidBrush(UiTheme.Accent);
+                e.Graphics.FillRectangle(accent, 8, label.Height - 3, Math.Max(0, label.Width - 16), 2);
+            };
+            label.SizeChanged += (_, _) => label.Invalidate();
+            labels[i] = label;
+            tabBar.Controls.Add(label, i, 0);
+        }
+
+        ApplySelection();
+        return tabBar;
     }
 
     private Control BuildAurasPage()
@@ -663,6 +731,7 @@ public sealed class ClassConfigEditorControl : UserControl
         grid.RowHeadersVisible = false;
         grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         grid.MultiSelect = false;
+        grid.EditMode = DataGridViewEditMode.EditOnEnter;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
     }
 
@@ -973,7 +1042,7 @@ public sealed class ClassConfigEditorControl : UserControl
         _suppressUi = true;
         try
         {
-            _lastStateCategory = _stateCategoryBox.SelectedItem as string ?? ClassStateCatalog.CategoryState;
+            _lastStateCategory = _selectedStateCategory;
             _lastAuraBucket = (_auraBucketBox.SelectedItem as BucketOption)?.Key ?? "player";
             FillStatesGrid();
             FillAurasGrid();
@@ -994,7 +1063,7 @@ public sealed class ClassConfigEditorControl : UserControl
             return;
         }
 
-        var category = _stateCategoryBox.SelectedItem as string ?? ClassStateCatalog.CategoryState;
+        var category = _selectedStateCategory;
         BindStateNameColumn(ClassStateCatalog.GetAllOptions(category));
         var storageCategory = ClassStateCatalog.GetStorageCategory(category);
         IEnumerable<string> names = _currentSpec.NestedStates
@@ -1067,7 +1136,7 @@ public sealed class ClassConfigEditorControl : UserControl
             return;
         }
 
-        var category = _stateCategoryBox.SelectedItem as string ?? ClassStateCatalog.CategoryState;
+        var category = _selectedStateCategory;
         var current = _statesGrid.CurrentCell.Value?.ToString()?.Trim();
         var currentRowIndex = _statesGrid.CurrentCell.RowIndex;
         var usedNames = GetUsedStateNames(category, currentRowIndex);

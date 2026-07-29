@@ -4,7 +4,10 @@ public sealed record LogicDecision(
     string? Hotkey,
     string Step,
     IReadOnlyDictionary<string, object?> UnitInfo,
-    string? ModuleName = null);
+    string? ModuleName = null,
+    int DelayMs = 0,
+    string? RateLimitKey = null,
+    int LogicDelayMs = 0);
 
 public interface IClassLogic
 {

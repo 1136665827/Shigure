@@ -431,6 +431,7 @@ public sealed class ClassMacrosEditorControl : UserControl
         grid.RowHeadersVisible = false;
         grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         grid.MultiSelect = false;
+        grid.EditMode = DataGridViewEditMode.EditOnEnter;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
     }
 
