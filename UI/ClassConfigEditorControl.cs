@@ -43,7 +43,7 @@ public sealed class ClassConfigEditorControl : UserControl
     private string _lastStateCategory = ClassStateCatalog.CategoryState;
     private string _lastAuraBucket = "player";
 
-    private const string HiddenAnchorStateName = "锚点";
+    private static readonly string[] FixedStateNames = ["锚点", "职业", "专精"];
 
     private static readonly (string Key, string Text)[] AuraBuckets =
     [
@@ -1252,6 +1252,7 @@ public sealed class ClassConfigEditorControl : UserControl
             return;
         }
 
+        NormalizeFixedStateNames(_currentSpec);
         WriteBackStatesCategory(_lastStateCategory);
 
         WriteBackAuras(_lastAuraBucket);
@@ -1302,7 +1303,7 @@ public sealed class ClassConfigEditorControl : UserControl
         if (insertIndex < 0)
         {
             var anchorIndex = string.Equals(category, ClassStateCatalog.CategoryState, StringComparison.Ordinal)
-                ? list.FindIndex(IsHiddenStateName)
+                ? list.FindLastIndex(IsHiddenStateName)
                 : -1;
             insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : list.Count;
         }
@@ -1593,8 +1594,17 @@ public sealed class ClassConfigEditorControl : UserControl
     private static decimal Clamp(NumericUpDown box, int value)
         => Math.Min(box.Maximum, Math.Max(box.Minimum, value));
 
+    private static void NormalizeFixedStateNames(ClassBlocksStore.SpecBlocks spec)
+    {
+        var states = spec.NestedStates
+            ? spec.CategorizedStates[ClassStateCatalog.CategoryState]
+            : spec.FlatStates;
+        states.RemoveAll(IsHiddenStateName);
+        states.InsertRange(0, FixedStateNames);
+    }
+
     private static bool IsHiddenStateName(string? name)
-        => string.Equals(name, HiddenAnchorStateName, StringComparison.Ordinal);
+        => name is not null && FixedStateNames.Contains(name, StringComparer.Ordinal);
 
     private sealed record ClassListItem(int ClassId, string Name, string FileName, bool IsModern, string? Error = null)
     {

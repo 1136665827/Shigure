@@ -10,25 +10,5 @@
     "专精": {
         "step": 3,
         "type": "int"
-    },
-    "队伍类型": {
-        "step": 4,
-        "type": "int"
-    },
-    "英雄天赋": {
-        "step": 5,
-        "type": "int"
-    },
-    "有效性": {
-        "step": 6,
-        "type": "bool"
-    },
-    "一键辅助": {
-        "step": 7,
-        "type": "int"
-    },
-    "法术失败": {
-        "step": 8,
-        "type": "int"
     }
 }

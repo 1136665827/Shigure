@@ -8,6 +8,7 @@ public sealed class ConfigService
     public const string ConfigDirectoryName = "config";
     public const string CommonConfigFileName = "common.json";
     public const string LegacyConfigFileName = "config.json";
+    private static readonly string[] FixedStateNames = ["锚点", "职业", "专精"];
 
     public JsonObject Root { get; }
 
@@ -126,6 +127,15 @@ public sealed class ConfigService
             }
         }
 
+        // 固定启动字段始终以 common.json 为准，禁止职业配置覆盖。
+        foreach (var name in FixedStateNames)
+        {
+            if (Root[name] is { } fixedField)
+            {
+                merged[name] = fixedField.DeepClone();
+            }
+        }
+
         return merged;
     }
 
@@ -147,7 +157,7 @@ public sealed class ConfigService
     }
 
     public IReadOnlyDictionary<int, string> GetFailedSpells(int? classId)
-        => GetClassSpellMap(classId, ModuleSpecialActions.FailedSpell);
+        => GetClassSpellMap(classId, ModuleSpecialActions.OneKeySpell);
 
     public IReadOnlyDictionary<int, string> GetOneKeySpells(int? classId)
         => GetClassSpellMap(classId, ModuleSpecialActions.OneKeySpell);
@@ -182,4 +192,3 @@ public sealed class ConfigService
         }
     }
 }
-
