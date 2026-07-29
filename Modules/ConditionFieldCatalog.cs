@@ -68,7 +68,8 @@ public sealed class ConditionFieldCatalog
 
         foreach (var (key, node) in stateConfig)
         {
-            if (key is "group" or "spells" or "auras")
+            if (key is "group" or "spells" or "auras"
+                || ModuleSpecialActions.IsFailedSpell(key))
             {
                 continue;
             }

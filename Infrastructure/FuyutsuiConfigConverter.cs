@@ -18,7 +18,7 @@ internal static class FuyutsuiConfigConverter
 
     private static readonly HashSet<string> CommonStateNames = new(StringComparer.Ordinal)
     {
-        "锚点", "职业", "专精", "队伍类型", "英雄天赋", "有效性", "一键辅助", "法术失败"
+        "锚点", "职业", "专精"
     };
 
     private static readonly HashSet<string> BoolFieldNames = new(StringComparer.Ordinal)
@@ -70,9 +70,19 @@ internal static class FuyutsuiConfigConverter
             var lua = File.ReadAllText(luaPath, Encoding.UTF8);
             var classBlocks = ExtractAssignedTable(lua, "Fuyutsui.ClassBlocks")
                 ?? throw new InvalidDataException($"{fileName}.lua 中未找到 Fuyutsui.ClassBlocks");
+            var spellsList = ExtractAssignedTable(lua, "Fuyutsui.spellsList");
 
             var root = new JsonObject();
             PreserveMeta(existing, root);
+            root["keymap"] ??= fileName.ToLowerInvariant() + ".json";
+            if (spellsList is null)
+            {
+                warnings.Add($"{fileName}: 未找到 Fuyutsui.spellsList，已保留现有一键法术");
+            }
+            else
+            {
+                CompileSpellMaps(spellsList, root, warnings, fileName);
+            }
 
             for (var specId = 1; specId <= 4; specId++)
             {
@@ -103,13 +113,79 @@ internal static class FuyutsuiConfigConverter
 
     private static void PreserveMeta(JsonObject existing, JsonObject target)
     {
-        foreach (var key in new[] { "keymap", "插入法术", "一键法术" })
+        foreach (var key in new[] { "keymap", "一键法术" })
         {
             if (existing[key] is { } node)
             {
                 target[key] = node.DeepClone();
             }
         }
+    }
+
+    private static void CompileSpellMaps(
+        TableValue spellsList,
+        JsonObject target,
+        List<string> warnings,
+        string label)
+    {
+        var oneKeySpells = new SortedDictionary<int, string>();
+
+        foreach (var (_, value) in spellsList.Entries)
+        {
+            if (value is not TableValue spell)
+            {
+                continue;
+            }
+
+            var indexValue = spell.GetNumber("index");
+            var name = spell.GetString("name")?.Trim();
+            if (indexValue is null
+                || indexValue.Value <= 0
+                || indexValue.Value > int.MaxValue
+                || indexValue.Value != Math.Truncate(indexValue.Value)
+                || string.IsNullOrWhiteSpace(name))
+            {
+                warnings.Add($"{label}: spellsList 条目缺少有效 index/name，已跳过");
+                continue;
+            }
+
+            var index = (int)indexValue.Value;
+            AddSpellMapEntry(oneKeySpells, index, name, "一键法术", warnings, label);
+        }
+
+        target[ModuleSpecialActions.OneKeySpell] = ToSpellMap(oneKeySpells);
+    }
+
+    private static void AddSpellMapEntry(
+        IDictionary<int, string> target,
+        int index,
+        string name,
+        string mapName,
+        List<string> warnings,
+        string label)
+    {
+        if (!target.TryGetValue(index, out var existingName))
+        {
+            target[index] = name;
+            return;
+        }
+
+        if (!string.Equals(existingName, name, StringComparison.Ordinal))
+        {
+            warnings.Add(
+                $"{label}: {mapName} index {index} 同时对应“{existingName}”和“{name}”，已保留前者");
+        }
+    }
+
+    private static JsonObject ToSpellMap(IEnumerable<KeyValuePair<int, string>> spells)
+    {
+        var result = new JsonObject();
+        foreach (var (index, name) in spells)
+        {
+            result[index.ToString()] = name;
+        }
+
+        return result;
     }
 
     private static (JsonObject Spec, List<string> Warnings) CompileSpec(TableValue spec, string label)
@@ -139,9 +215,10 @@ internal static class FuyutsuiConfigConverter
                             continue;
                         }
 
+                        var stateName = NormalizeStateName(nameValue.Value);
                         var key = category is ClassStateCatalog.CategoryTarget or ClassStateCatalog.CategoryFocus
-                            ? category + nameValue.Value
-                            : nameValue.Value;
+                            ? category + stateName
+                            : stateName;
                         AddStateField(result, key, index, skipCommon: true);
                         index++;
                     }
@@ -156,7 +233,7 @@ internal static class FuyutsuiConfigConverter
                         continue;
                     }
 
-                    AddStateField(result, nameValue.Value, index, skipCommon: true);
+                    AddStateField(result, NormalizeStateName(nameValue.Value), index, skipCommon: true);
                     index++;
                 }
             }
@@ -399,4 +476,9 @@ internal static class FuyutsuiConfigConverter
 
     private static string EnsureSuffix(string name, string suffix)
         => name.EndsWith(suffix, StringComparison.Ordinal) ? name : name + suffix;
+
+    private static string NormalizeStateName(string name)
+        => string.Equals(name, "法术失败", StringComparison.Ordinal)
+            ? ModuleSpecialActions.FailedSpell
+            : name;
 }

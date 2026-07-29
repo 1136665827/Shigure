@@ -25,7 +25,7 @@ internal static class ModuleSpecialActions
 
     public static string? GetFailedSpell(GameState state, IReadOnlyDictionary<int, string>? failedSpellMap)
     {
-        var failedSpellId = state.GetInt("法术失败");
+        var failedSpellId = state.GetInt(FailedSpell);
         if (failedSpellMap is null || !failedSpellMap.TryGetValue(failedSpellId, out var spellName))
         {
             return null;
