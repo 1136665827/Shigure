@@ -4,7 +4,8 @@ using System.Globalization;
 namespace Shigure;
 
 /// <summary>
-/// 图形化编辑 Fuyutsui class/*.lua 的 ClassBlocks（states / auras / spells / group）。
+/// 图形化编辑 Fuyutsui class/*.lua 的 ClassBlocks（states / auras / spells / group），
+/// 并展示同文件中的 spellsList。
 /// </summary>
 public sealed class ClassConfigEditorControl : UserControl
 {
@@ -23,6 +24,7 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly DataGridView _aurasGrid = new();
     private readonly ComboBox _auraBucketBox = new();
     private readonly DataGridView _spellsGrid = new();
+    private readonly DataGridView _spellsListGrid = new();
     private readonly NumericUpDown _groupNumBox = new();
     private readonly NumericUpDown _groupHealthBox = new();
     private readonly NumericUpDown _groupRoleBox = new();
@@ -270,14 +272,14 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Border,
-            ColumnCount = 4,
+            ColumnCount = 5,
             RowCount = 1,
             Margin = new Padding(0),
             Padding = new Padding(0)
         };
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < 5; i++)
         {
-            tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
         }
 
         var contentHost = new Panel
@@ -293,7 +295,8 @@ public sealed class ClassConfigEditorControl : UserControl
             BuildStatesPage(),
             BuildAurasPage(),
             BuildSpellsPage(),
-            BuildGroupPage()
+            BuildGroupPage(),
+            BuildSpellsListPage()
         };
         foreach (var page in pages)
         {
@@ -302,7 +305,7 @@ public sealed class ClassConfigEditorControl : UserControl
             contentHost.Controls.Add(page);
         }
 
-        var labels = new Label[4];
+        var labels = new Label[5];
         var selectedIndex = -1;
         void SelectTab(int index)
         {
@@ -326,7 +329,7 @@ public sealed class ClassConfigEditorControl : UserControl
             }
         }
 
-        var titles = new[] { "状态", "光环", "法术", "队伍" };
+        var titles = new[] { "状态", "光环", "法术", "队伍", "技能列表" };
         for (var i = 0; i < titles.Length; i++)
         {
             var index = i;
@@ -599,6 +602,51 @@ public sealed class ClassConfigEditorControl : UserControl
         _spellsGrid.DataError += (_, e) => e.ThrowException = false;
         panel.Controls.Add(_spellsGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_spellsGrid), 0, 2);
+        return panel;
+    }
+
+    private Control BuildSpellsListPage()
+    {
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = UiTheme.SurfaceRaised
+        };
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var hint = CreateFieldCaption("来自当前职业 Lua 的 Fuyutsui.spellsList，仅显示索引 1–100（只读）。");
+        hint.Padding = new Padding(8, 0, 0, 0);
+        panel.Controls.Add(hint, 0, 0);
+
+        ConfigureGrid(_spellsListGrid);
+        _spellsListGrid.AllowUserToAddRows = false;
+        _spellsListGrid.ReadOnly = true;
+        _spellsListGrid.EditMode = DataGridViewEditMode.EditProgrammatically;
+        _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "SpellId",
+            HeaderText = "法术 ID",
+            Width = 150,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "Index",
+            HeaderText = "索引",
+            Width = 120,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "Name",
+            HeaderText = "名称",
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        panel.Controls.Add(_spellsListGrid, 0, 1);
         return panel;
     }
 
@@ -1048,6 +1096,7 @@ public sealed class ClassConfigEditorControl : UserControl
             FillAurasGrid();
             FillSpellsGrid();
             FillGroupEditors();
+            FillSpellsListGrid();
         }
         finally
         {
@@ -1245,6 +1294,23 @@ public sealed class ClassConfigEditorControl : UserControl
                 spell.ForcedKnown,
                 spell.InSpellBook,
                 "×");
+        }
+    }
+
+    private void FillSpellsListGrid()
+    {
+        _spellsListGrid.Rows.Clear();
+        if (_currentDocument is null)
+        {
+            return;
+        }
+
+        foreach (var spell in _currentDocument.SpellsList.Where(spell => spell.Index is >= 1 and <= 100))
+        {
+            _spellsListGrid.Rows.Add(
+                spell.SpellId.ToString(CultureInfo.InvariantCulture),
+                spell.Index.ToString(CultureInfo.InvariantCulture),
+                spell.Name);
         }
     }
 
@@ -1592,6 +1658,7 @@ public sealed class ClassConfigEditorControl : UserControl
         _statesGrid.Rows.Clear();
         _aurasGrid.Rows.Clear();
         _spellsGrid.Rows.Clear();
+        _spellsListGrid.Rows.Clear();
         _groupAurasGrid.Rows.Clear();
     }
 

@@ -6,11 +6,12 @@ namespace Shigure;
 
 /// <summary>
 /// 读写 Fuyutsui class/*.lua 中的 ClassBlocks（states/auras/spells/group），
-/// 保存时只替换 ClassBlocks 表字面量，保留文件其余内容。
+/// 同时读取 spellsList 供界面展示；保存时只替换 ClassBlocks 表字面量，保留文件其余内容。
 /// </summary>
 internal static class ClassBlocksStore
 {
     public const string AssignmentName = "Fuyutsui.ClassBlocks";
+    public const string SpellsListAssignmentName = "Fuyutsui.spellsList";
     private static readonly string[] StateCategories =
     [
         ClassStateCatalog.CategoryState,
@@ -28,7 +29,15 @@ internal static class ClassBlocksStore
         public int TableStart { get; set; }
         public int TableEndExclusive { get; set; }
         public Dictionary<int, SpecBlocks> Specs { get; set; } = new();
+        public List<SpellsListEntry> SpellsList { get; set; } = new();
         public bool IsModernFormat { get; set; }
+    }
+
+    public sealed class SpellsListEntry
+    {
+        public long SpellId { get; set; }
+        public int Index { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     public sealed class SpecBlocks
@@ -112,6 +121,7 @@ internal static class ClassBlocksStore
             specs[(int)specId] = spec;
         }
 
+        var spellsList = ParseSpellsList(ExtractAssignedTable(source, SpellsListAssignmentName));
         return new ClassFileDocument
         {
             FilePath = filePath,
@@ -119,8 +129,46 @@ internal static class ClassBlocksStore
             TableStart = start,
             TableEndExclusive = end,
             Specs = specs,
+            SpellsList = spellsList,
             IsModernFormat = modern
         };
+    }
+
+    private static List<SpellsListEntry> ParseSpellsList(TableValue? table)
+    {
+        var result = new List<SpellsListEntry>();
+        if (table is null)
+        {
+            return result;
+        }
+
+        foreach (var (key, value) in table.Entries)
+        {
+            if (key is not long spellId || value is not TableValue spell)
+            {
+                continue;
+            }
+
+            var indexValue = spell.GetNumber("index");
+            var name = spell.GetString("name")?.Trim();
+            if (indexValue is null
+                || indexValue.Value <= 0
+                || indexValue.Value > int.MaxValue
+                || indexValue.Value != Math.Truncate(indexValue.Value)
+                || string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            result.Add(new SpellsListEntry
+            {
+                SpellId = spellId,
+                Index = (int)indexValue.Value,
+                Name = name
+            });
+        }
+
+        return result;
     }
 
     public static void Save(ClassFileDocument document)
