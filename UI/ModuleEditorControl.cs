@@ -1,9 +1,13 @@
+using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 
 namespace Shigure;
 
 public sealed class ModuleEditorControl : UserControl
 {
+    private const string ModuleWebsiteUrl = "https://www.shigure.club";
+
     private readonly ModuleStore _moduleStore;
     private readonly Action _runtimeRestartRequested;
     private readonly string _baseDirectory;
@@ -129,7 +133,7 @@ public sealed class ModuleEditorControl : UserControl
             RowCount = 2
         };
         sidebar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
 
         _moduleList.Dock = DockStyle.Fill;
         UiTheme.StyleListBox(
@@ -142,30 +146,122 @@ public sealed class ModuleEditorControl : UserControl
         _moduleList.SelectedIndexChanged += (_, _) => SelectModule(_moduleList.SelectedIndex);
         sidebar.Controls.Add(_moduleList, 0, 0);
 
-        var buttons = new FlowLayoutPanel
+        var buttons = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
             BackColor = UiTheme.Background,
-            Margin = new Padding(0)
+            Margin = new Padding(0),
+            Padding = new Padding(14, 3, 14, 3),
+            ColumnCount = 3,
+            RowCount = 1
         };
-
-        var addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
-        addButton.Width = 72;
-        addButton.Height = 34;
-        addButton.Click += (_, _) => AddModule();
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 6));
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
-        reloadButton.Width = 72;
-        reloadButton.Height = 34;
+        reloadButton.AutoSize = false;
+        reloadButton.Dock = DockStyle.Fill;
+        reloadButton.Margin = new Padding(0);
         reloadButton.Click += (_, _) => LoadModules();
 
-        buttons.Controls.Add(addButton);
-        buttons.Controls.Add(reloadButton);
+        var getModulesButton = UiTheme.CreateButton(
+            "获取模块",
+            Color.FromArgb(252, 238, 10),
+            Color.Black);
+        getModulesButton.AutoSize = false;
+        getModulesButton.Dock = DockStyle.Fill;
+        getModulesButton.Margin = new Padding(0);
+        getModulesButton.Padding = new Padding(0, 2, 24, 2);
+        getModulesButton.TextAlign = ContentAlignment.MiddleCenter;
+        getModulesButton.FlatAppearance.BorderColor = Color.FromArgb(252, 238, 10);
+        getModulesButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
+        getModulesButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
+        getModulesButton.Paint += (_, e) => DrawExternalLinkIcon(
+            e.Graphics,
+            getModulesButton.ClientRectangle,
+            getModulesButton.Text,
+            getModulesButton.Font,
+            getModulesButton.ForeColor,
+            getModulesButton.DeviceDpi / 96F);
+        getModulesButton.Click += (_, _) => OpenModuleWebsite();
+
+        buttons.Controls.Add(reloadButton, 0, 0);
+        buttons.Controls.Add(getModulesButton, 2, 0);
         sidebar.Controls.Add(buttons, 0, 1);
 
         return sidebar;
+    }
+
+    private static void DrawExternalLinkIcon(
+        Graphics graphics,
+        Rectangle clientBounds,
+        string text,
+        Font font,
+        Color color,
+        float scale)
+    {
+        var iconSize = 17F * scale;
+        var iconGap = 6F * scale;
+        var textSize = TextRenderer.MeasureText(
+            graphics,
+            text,
+            font,
+            Size.Empty,
+            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+        var groupWidth = textSize.Width + iconGap + iconSize;
+        var left = clientBounds.Left
+            + ((clientBounds.Width - groupWidth) / 2F)
+            + textSize.Width
+            + iconGap;
+        var top = clientBounds.Top + (clientBounds.Height - iconSize) / 2F;
+
+        var previousSmoothingMode = graphics.SmoothingMode;
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using var pen = new Pen(color, 1.8F * scale)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+
+        PointF Point(float x, float y) => new(left + (x * scale), top + (y * scale));
+
+        graphics.DrawLines(
+            pen,
+            [
+                Point(7, 2),
+                Point(4, 2),
+                Point(2, 4),
+                Point(2, 13),
+                Point(4, 15),
+                Point(13, 15),
+                Point(15, 13),
+                Point(15, 9)
+            ]);
+        graphics.DrawLine(pen, Point(8, 9), Point(15, 2));
+        graphics.DrawLines(pen, [Point(10, 2), Point(15, 2), Point(15, 7)]);
+        graphics.SmoothingMode = previousSmoothingMode;
+    }
+
+    private static void OpenModuleWebsite()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ModuleWebsiteUrl)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"无法打开模块网站: {ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private Control BuildEditor()
@@ -2467,8 +2563,13 @@ public sealed class ModuleEditorControl : UserControl
         _deleteButton.Margin = new Padding(8, 0, 0, 0);
         _deleteButton.Click += (_, _) => DeleteSelectedModule();
 
+        var addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
+        addButton.Margin = new Padding(8, 0, 0, 0);
+        addButton.Click += (_, _) => AddModule();
+
         buttons.Controls.Add(_saveButton);
         buttons.Controls.Add(_deleteButton);
+        buttons.Controls.Add(addButton);
         row.Controls.Add(hint);
         row.Controls.Add(buttons);
         return row;

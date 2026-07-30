@@ -1,10 +1,16 @@
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Reflection;
 
 namespace Shigure;
 
 public sealed class StatusForm : Form
 {
+    private const string AboutWatermarkResourcePath = "Assets.arasaka-icon-transparent.png";
+    private const int AboutWatermarkSize = 800;
+    private const int AboutWatermarkBottomMargin = 80;
+    private const float AboutWatermarkOpacity = 0.08F;
+
     private readonly List<(Button Button, Control View)> _navItems = new();
     private RenderSnapshot? _lastSnapshot;
     private bool _hasKnownBounds;
@@ -314,26 +320,61 @@ public sealed class StatusForm : Form
 
     private Control BuildAboutPanel()
     {
-        var panel = new TableLayoutPanel
+        var scrollHost = new WatermarkPanel(
+            GetEmbeddedResourceName(AboutWatermarkResourcePath),
+            AboutWatermarkSize,
+            AboutWatermarkBottomMargin,
+            AboutWatermarkOpacity)
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
+            AutoScroll = true,
+            Margin = new Padding(0)
+        };
+
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = Color.Transparent,
             ColumnCount = 1,
-            RowCount = 2,
+            RowCount = 4,
             Padding = new Padding(18)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        var title = new Label
+        var heading = new TableLayoutPanel
+        {
+            AutoSize = true,
+            Dock = DockStyle.Top,
+            BackColor = Color.Transparent,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0, 0, 0, 22)
+        };
+        heading.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        heading.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        heading.Controls.Add(new Label
         {
             Text = "Shigure",
             AutoSize = true,
             ForeColor = UiTheme.Text,
             Font = new Font(Font.FontFamily, 18F, FontStyle.Bold),
-            Margin = new Padding(0, 0, 0, 22)
-        };
-        panel.Controls.Add(title, 0, 0);
+            Margin = new Padding(0, 0, 0, 4)
+        }, 0, 0);
+        heading.Controls.Add(new Label
+        {
+            Text = "应用信息与 ClassBlocks 可用状态字段参考",
+            AutoSize = true,
+            ForeColor = UiTheme.Muted,
+            Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
+            Margin = new Padding(0)
+        }, 0, 1);
+        panel.Controls.Add(heading, 0, 0);
 
         var assembly = Assembly.GetExecutingAssembly();
         var version = AppInfo.Version;
@@ -343,7 +384,7 @@ public sealed class StatusForm : Form
         {
             AutoSize = true,
             Dock = DockStyle.Top,
-            BackColor = UiTheme.SurfaceRaised,
+            BackColor = Color.Transparent,
             ColumnCount = 2,
             RowCount = 0,
             Padding = new Padding(0)
@@ -361,7 +402,107 @@ public sealed class StatusForm : Form
         AddAboutRow(details, "配置目录", FormatAboutPath(ConfigService.ResolveConfigPath(AppPaths.BaseDirectory)));
 
         panel.Controls.Add(details, 0, 1);
-        return panel;
+
+        panel.Controls.Add(new Label
+        {
+            Text = "可用状态字段",
+            AutoSize = true,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
+            Margin = new Padding(0, 18, 0, 12)
+        }, 0, 2);
+
+        var fields = new TableLayoutPanel
+        {
+            AutoSize = true,
+            Dock = DockStyle.Top,
+            BackColor = Color.Transparent,
+            ColumnCount = 2,
+            RowCount = 3,
+            Margin = new Padding(0)
+        };
+        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        fields.Controls.Add(CreateAboutFieldCard(
+            "状态",
+            [
+                "有效性", "战斗时间", "移动", "生命值", "一键辅助", "插入法术",
+                "队伍类型", "队伍人数", "首领战", "难度", "英雄天赋", "施法目标",
+                "施法技能", "敌人人数", "施法", "引导", "蓄力", "蓄力层数",
+                "酒池", "符文", "姿态", "救赎之魂1", "救赎之魂2",
+            ],
+            150), 0, 0);
+        fields.Controls.Add(CreateAboutFieldCard(
+            "能量",
+            [
+                "法力值", "怒气值", "集中值", "能量值", "符文", "符文能量",
+                "星界能量", "漩涡值", "狂乱值", "恶魔之怒", "痛苦值",
+                "连击点", "神圣能量", "精华能量", "灵魂碎片", "真气"
+            ],
+            150), 1, 0);
+        fields.Controls.Add(CreateAboutFieldCard(
+            "配置开关",
+            ["爆发开关", "AOE开关", "输出模式", "爆发药水开关", "延迟"],
+            92), 0, 1);
+        fields.Controls.Add(CreateAboutFieldCard(
+            "物品",
+            ["治疗药水", "魔法药水", "治疗石", "鲁莽药水", "圣光潜力"],
+            92), 1, 1);
+        fields.Controls.Add(CreateAboutFieldCard(
+            "目标",
+            ["类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"],
+            104), 0, 2);
+        fields.Controls.Add(CreateAboutFieldCard(
+            "焦点",
+            ["类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"],
+            104), 1, 2);
+
+        panel.Controls.Add(fields, 0, 3);
+        scrollHost.Controls.Add(panel);
+        return scrollHost;
+    }
+
+    private static string GetEmbeddedResourceName(string resourcePath)
+        => $"{typeof(StatusForm).Namespace}.{resourcePath}";
+
+    private Control CreateAboutFieldCard(string title, IReadOnlyList<string> items, int minimumHeight)
+    {
+        var card = new AboutFieldCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(16, 14, 16, 14),
+            Margin = new Padding(0, 0, 12, 12),
+            MinimumSize = new Size(0, minimumHeight)
+        };
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        card.Controls.Add(new Label
+        {
+            Text = title,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Accent,
+            Font = new Font(Font.FontFamily, 10.5F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        }, 0, 0);
+        card.Controls.Add(new Label
+        {
+            Text = string.Join("  ·  ", items),
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
+            TextAlign = ContentAlignment.TopLeft,
+            Margin = new Padding(0, 6, 0, 0)
+        }, 0, 1);
+        return card;
     }
 
     private static string FormatAboutPath(string path)
@@ -407,6 +548,96 @@ public sealed class StatusForm : Form
             ForeColor = UiTheme.Text,
             Margin = new Padding(0, 0, 0, 14)
         }, 1, row);
+    }
+
+    private sealed class WatermarkPanel : Panel
+    {
+        private readonly Bitmap? _watermark;
+        private readonly int _watermarkSize;
+        private readonly int _bottomMargin;
+        private readonly float _opacity;
+
+        public WatermarkPanel(string resourceName, int watermarkSize, int bottomMargin, float opacity)
+        {
+            _watermarkSize = watermarkSize;
+            _bottomMargin = bottomMargin;
+            _opacity = Math.Clamp(opacity, 0F, 1F);
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+
+            using var stream = typeof(StatusForm).Assembly.GetManifestResourceStream(resourceName);
+            if (stream is null)
+            {
+                return;
+            }
+
+            using var image = Image.FromStream(stream);
+            _watermark = new Bitmap(image);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            if (_watermark is null)
+            {
+                return;
+            }
+
+            var bounds = new Rectangle(
+                (ClientSize.Width - _watermarkSize) / 2,
+                ClientSize.Height - _watermarkSize - _bottomMargin,
+                _watermarkSize,
+                _watermarkSize);
+
+            using var attributes = new ImageAttributes();
+            var colorMatrix = new ColorMatrix
+            {
+                Matrix33 = _opacity
+            };
+            attributes.SetColorMatrix(
+                colorMatrix,
+                ColorMatrixFlag.Default,
+                ColorAdjustType.Bitmap);
+
+            e.Graphics.DrawImage(
+                _watermark,
+                bounds,
+                0,
+                0,
+                _watermark.Width,
+                _watermark.Height,
+                GraphicsUnit.Pixel,
+                attributes);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _watermark?.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class AboutFieldCardPanel : TableLayoutPanel
+    {
+        private const int BackgroundOpacity = 166;
+
+        public AboutFieldCardPanel()
+        {
+            SetStyle(ControlStyles.SupportsTransparentBackColor, true);
+            BackColor = Color.Transparent;
+            DoubleBuffered = true;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            base.OnPaintBackground(e);
+            using var background = new SolidBrush(Color.FromArgb(BackgroundOpacity, UiTheme.Field));
+            e.Graphics.FillRectangle(background, e.ClipRectangle);
+        }
     }
 
     public void ShowOrActivate(RenderSnapshot? snapshot)
