@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 
 namespace Shigure;
 
-public sealed class KeymapService
+public sealed class KeymapService : IKeymapResolver
 {
     private readonly string _baseDirectory;
     private readonly ConfigService _config;

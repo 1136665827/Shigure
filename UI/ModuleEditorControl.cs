@@ -9,7 +9,7 @@ public sealed class ModuleEditorControl : UserControl
     private const string ModuleWebsiteUrl = "https://www.shigure.club";
 
     private readonly ModuleStore _moduleStore;
-    private readonly Action _runtimeRestartRequested;
+    private readonly Func<Task> _runtimeRestartRequested;
     private readonly string _baseDirectory;
     private ConditionFieldCatalog _fieldCatalog;
     private KeymapCatalog _keymapCatalog;
@@ -35,6 +35,7 @@ public sealed class ModuleEditorControl : UserControl
     private readonly Label _editorEmptyHint = new();
     private Button _saveButton = null!;
     private Button _deleteButton = null!;
+    private Button _addButton = null!;
     private readonly ToolTip _rulesGridToolTip = new()
     {
         InitialDelay = 300,
@@ -53,6 +54,7 @@ public sealed class ModuleEditorControl : UserControl
     private bool _suppressUnitsColumnResize;
     // 载入时程序化写入"类型"单元格会触发 CellValueChanged; 置真以跳过"按类型清空数值"的联动。
     private bool _suppressAdjustmentTypeChange;
+    private bool _moduleCommandInProgress;
     // 规则行拖拽重排: 拖动起始行, 以及拖动中的插入指示位置(显示一条强调线)。
     private int _dragSourceRow = -1;
     private int _dragIndicatorRow = -1;
@@ -82,7 +84,7 @@ public sealed class ModuleEditorControl : UserControl
         ("动态单位", ConditionFieldCategory.DynamicUnit)
     ];
 
-    public ModuleEditorControl(ModuleStore moduleStore, Action runtimeRestartRequested, string baseDirectory)
+    public ModuleEditorControl(ModuleStore moduleStore, Func<Task> runtimeRestartRequested, string baseDirectory)
     {
         _moduleStore = moduleStore;
         _runtimeRestartRequested = runtimeRestartRequested;
@@ -2557,19 +2559,19 @@ public sealed class ModuleEditorControl : UserControl
 
         _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
         _saveButton.Margin = new Padding(8, 0, 0, 0);
-        _saveButton.Click += (_, _) => SaveSelectedModule();
+        _saveButton.Click += async (_, _) => await RunModuleCommandAsync(SaveSelectedModuleAsync);
 
         _deleteButton = UiTheme.CreateButton("删除", UiTheme.Field, UiTheme.Danger);
         _deleteButton.Margin = new Padding(8, 0, 0, 0);
-        _deleteButton.Click += (_, _) => DeleteSelectedModule();
+        _deleteButton.Click += async (_, _) => await RunModuleCommandAsync(DeleteSelectedModuleAsync);
 
-        var addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
-        addButton.Margin = new Padding(8, 0, 0, 0);
-        addButton.Click += (_, _) => AddModule();
+        _addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
+        _addButton.Margin = new Padding(8, 0, 0, 0);
+        _addButton.Click += async (_, _) => await RunModuleCommandAsync(AddModuleAsync);
 
         buttons.Controls.Add(_saveButton);
         buttons.Controls.Add(_deleteButton);
-        buttons.Controls.Add(addButton);
+        buttons.Controls.Add(_addButton);
         row.Controls.Add(hint);
         row.Controls.Add(buttons);
         return row;
@@ -2697,8 +2699,9 @@ public sealed class ModuleEditorControl : UserControl
     // 无选中模块时禁用保存/删除(否则点了静默无反应), 并在编辑区显示引导提示。
     private void SetEditorEnabled(bool hasModule)
     {
-        _saveButton.Enabled = hasModule;
-        _deleteButton.Enabled = hasModule;
+        _saveButton.Enabled = hasModule && !_moduleCommandInProgress;
+        _deleteButton.Enabled = hasModule && !_moduleCommandInProgress;
+        _addButton.Enabled = !_moduleCommandInProgress;
         _editorEmptyHint.Visible = !hasModule;
         if (!hasModule)
         {
@@ -2706,7 +2709,37 @@ public sealed class ModuleEditorControl : UserControl
         }
     }
 
-    private void AddModule()
+    private async Task RunModuleCommandAsync(Func<Task> command)
+    {
+        if (_moduleCommandInProgress)
+        {
+            return;
+        }
+
+        _moduleCommandInProgress = true;
+        SetEditorEnabled(_selectedModule is not null);
+        try
+        {
+            await command();
+        }
+        catch (Exception ex)
+        {
+            if (!IsDisposed)
+            {
+                MessageBox.Show(ex.Message, "模块操作失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        finally
+        {
+            _moduleCommandInProgress = false;
+            if (!IsDisposed)
+            {
+                SetEditorEnabled(_selectedModule is not null);
+            }
+        }
+    }
+
+    private async Task AddModuleAsync()
     {
         var module = ModuleDefinition.CreateDefault(_moduleStore.CreateNextModuleName());
         try
@@ -2726,10 +2759,10 @@ public sealed class ModuleEditorControl : UserControl
             _moduleList.SelectedIndex = index;
         }
 
-        _runtimeRestartRequested();
+        await _runtimeRestartRequested();
     }
 
-    private void SaveSelectedModule()
+    private async Task SaveSelectedModuleAsync()
     {
         if (_selectedModule is null)
         {
@@ -2759,10 +2792,10 @@ public sealed class ModuleEditorControl : UserControl
             _moduleList.SelectedIndex = index;
         }
 
-        _runtimeRestartRequested();
+        await _runtimeRestartRequested();
     }
 
-    private void DeleteSelectedModule()
+    private async Task DeleteSelectedModuleAsync()
     {
         if (_selectedModule is null)
         {
@@ -2781,7 +2814,7 @@ public sealed class ModuleEditorControl : UserControl
 
         _moduleStore.Delete(_selectedModule);
         LoadModules();
-        _runtimeRestartRequested();
+        await _runtimeRestartRequested();
     }
 
     private bool TryReadModule(out ModuleDefinition module)

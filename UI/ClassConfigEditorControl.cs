@@ -1614,12 +1614,20 @@ public sealed class ClassConfigEditorControl : UserControl
             _dirty = false;
             _statusLabel.Text = "已写入 Lua，正在更新配置…";
             await _updateConfigAsync();
+            if (IsDisposed)
+            {
+                return;
+            }
+
             _statusLabel.Text = "已保存并更新配置";
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "保存失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            _statusLabel.Text = $"保存失败: {ex.Message}";
+            if (!IsDisposed)
+            {
+                MessageBox.Show(ex.Message, "保存失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _statusLabel.Text = $"保存失败: {ex.Message}";
+            }
         }
     }
 

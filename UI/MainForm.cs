@@ -48,16 +48,16 @@ public sealed class MainForm : Form, IMessageFilter
     private Color? _currentHeaderIconColor;
 
     private readonly StatusForm _statusForm;
+    private readonly string _baseDirectory;
     private readonly ModuleStore _moduleStore;
+    private readonly ITriggerKeyState _triggerKeyState;
+    private readonly RuntimeSessionCoordinator _runtimeSession;
     private readonly ModuleEditorControl _moduleEditor;
     private readonly ClassConfigEditorControl _classConfigEditor;
     private readonly ClassMacrosEditorControl _classMacrosEditor;
     private readonly AppOptions _initialOptions;
     private readonly UiCacheState _uiCache;
     private readonly System.Windows.Forms.Timer _roundedCornerResizeTimer;
-    private ShigureRuntime? _runtime;
-    private CancellationTokenSource? _runtimeCts;
-    private Task? _runtimeTask;
     private RenderSnapshot? _lastSnapshot;
     private string? _lastLoggedStep;
     private string? _lastLoggedStepDetails;
@@ -65,12 +65,25 @@ public sealed class MainForm : Form, IMessageFilter
     private string? _lastLoggedClass;
     private string? _lastLoggedModule;
     private bool? _lastLoggedEnabled;
+    private readonly object _configUpdateSync = new();
+    private Task _configUpdateTail = Task.CompletedTask;
+    private long _runtimeRequestVersion;
+    private bool _shutdownStarted;
+    private bool _shutdownCompleted;
 
-    public MainForm(AppOptions? initialOptions = null)
+    internal MainForm(
+        AppOptions initialOptions,
+        string baseDirectory,
+        ModuleStore moduleStore,
+        ITriggerKeyState triggerKeyState,
+        RuntimeSessionCoordinator runtimeSession)
     {
-        _initialOptions = initialOptions ?? AppOptions.FromArgs(Array.Empty<string>());
+        _initialOptions = initialOptions;
+        _baseDirectory = baseDirectory;
+        _moduleStore = moduleStore;
+        _triggerKeyState = triggerKeyState;
+        _runtimeSession = runtimeSession;
         _uiCache = UiCacheStore.Load();
-        _moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory(AppPaths.BaseDirectory));
         _statusForm = new StatusForm();
         _roundedCornerResizeTimer = new System.Windows.Forms.Timer
         {
@@ -87,7 +100,7 @@ public sealed class MainForm : Form, IMessageFilter
         Application.AddMessageFilter(this);
         InitializeComponent();
         _statusForm.AttachSettingsPanel(BuildSettingsPanel());
-        _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditor, AppPaths.BaseDirectory);
+        _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditorAsync, _baseDirectory);
         _statusForm.AttachModuleEditor(_moduleEditor);
         _classConfigEditor = new ClassConfigEditorControl(
             () => WowAddonLocator.FindClassDirectory(_initialOptions.WindowTitle),
@@ -106,6 +119,9 @@ public sealed class MainForm : Form, IMessageFilter
         ApplyCachedWindowState();
         ApplyInitialOptions();
         WireSettingEvents();
+        _runtimeSession.SnapshotUpdated += HandleSnapshotUpdated;
+        _runtimeSession.RuntimeFailed += HandleRuntimeFailed;
+        _runtimeSession.RuntimeStopped += HandleRuntimeStopped;
         SetRuntimeControls(running: false);
         AppendLog("界面已就绪");
     }
@@ -118,18 +134,30 @@ public sealed class MainForm : Form, IMessageFilter
         _usesDwmRoundedCorners = UiTheme.ApplyRoundedCorners(this);
     }
 
-    protected override void OnShown(EventArgs e)
+    protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        StartRuntime();
+        await StartRuntimeAsync();
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        SaveUiCache();
-        _roundedCornerResizeTimer.Stop();
-        Application.RemoveMessageFilter(this);
-        _runtimeCts?.Cancel();
+        if (!_shutdownCompleted)
+        {
+            e.Cancel = true;
+            if (!_shutdownStarted)
+            {
+                _shutdownStarted = true;
+                SaveUiCache();
+                _roundedCornerResizeTimer.Stop();
+                Application.RemoveMessageFilter(this);
+                _ = CompleteShutdownAsync();
+            }
+
+            base.OnFormClosing(e);
+            return;
+        }
+
         base.OnFormClosing(e);
     }
 
@@ -137,6 +165,32 @@ public sealed class MainForm : Form, IMessageFilter
     {
         _roundedCornerResizeTimer.Dispose();
         base.OnFormClosed(e);
+    }
+
+    private async Task CompleteShutdownAsync()
+    {
+        _runtimeSession.SnapshotUpdated -= HandleSnapshotUpdated;
+        _runtimeSession.RuntimeFailed -= HandleRuntimeFailed;
+        _runtimeSession.RuntimeStopped -= HandleRuntimeStopped;
+
+        try
+        {
+            var runtimeShutdown = _runtimeSession.DisposeAsync().AsTask();
+            await Task.WhenAll(runtimeShutdown, GetPendingConfigUpdateTask());
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"停止运行失败: {ex.Message}");
+        }
+        finally
+        {
+            _statusForm.Dispose();
+            _shutdownCompleted = true;
+            if (!IsDisposed)
+            {
+                Close();
+            }
+        }
     }
 
     protected override void OnResize(EventArgs e)
@@ -555,8 +609,69 @@ public sealed class MainForm : Form, IMessageFilter
         return panel;
     }
 
-    private async Task UpdateConfigFromAddonAsync()
+    private Task UpdateConfigFromAddonAsync()
     {
+        lock (_configUpdateSync)
+        {
+            if (_shutdownStarted)
+            {
+                return Task.CompletedTask;
+            }
+
+            _configUpdateTail = RunQueuedConfigUpdateAsync(_configUpdateTail);
+            return _configUpdateTail;
+        }
+    }
+
+    private async Task RunQueuedConfigUpdateAsync(Task previousUpdate)
+    {
+        await Task.Yield();
+        try
+        {
+            await previousUpdate;
+        }
+        catch
+        {
+            // 前一个调用方会收到自己的异常；队列仍继续处理后续更新。
+        }
+
+        if (!_shutdownStarted)
+        {
+            await UpdateConfigFromAddonCoreAsync();
+        }
+    }
+
+    private Task GetPendingConfigUpdateTask()
+    {
+        lock (_configUpdateSync)
+        {
+            return _configUpdateTail;
+        }
+    }
+
+    private async Task WaitForPendingConfigUpdatesAsync()
+    {
+        while (true)
+        {
+            var pending = GetPendingConfigUpdateTask();
+            await pending;
+            lock (_configUpdateSync)
+            {
+                if (ReferenceEquals(pending, _configUpdateTail))
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    private async Task UpdateConfigFromAddonCoreAsync()
+    {
+        if (_shutdownStarted)
+        {
+            return;
+        }
+
         var windowTitle = _initialOptions.WindowTitle;
         var classDirectory = WowAddonLocator.FindClassDirectory(windowTitle);
         var classMacrosPath = WowAddonLocator.FindClassMacrosPath(windowTitle);
@@ -574,14 +689,14 @@ public sealed class MainForm : Form, IMessageFilter
         _configSourceLabel.Text = string.IsNullOrWhiteSpace(classMacrosPath)
             ? $"Fuyutsui class: {classDirectory}"
             : $"Fuyutsui: {classDirectory} + classmacros.lua";
-        var configDirectory = ConfigService.ResolveConfigPath(AppPaths.BaseDirectory);
+        var configDirectory = ConfigService.ResolveConfigPath(_baseDirectory);
         if (!Directory.Exists(configDirectory))
         {
             MessageBox.Show($"配置目录不存在: {configDirectory}", "更新配置", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        var keymapDirectory = Path.Combine(AppPaths.BaseDirectory, "keymap");
+        var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
 
         try
         {
@@ -597,6 +712,11 @@ public sealed class MainForm : Form, IMessageFilter
 
                 return (Config: configResult, Keymap: keymapResult);
             });
+
+            if (_shutdownStarted)
+            {
+                return;
+            }
 
             _moduleEditor.ReloadCatalogs();
             AppendLog($"已从 Fuyutsui 更新配置: {result.Config.UpdatedFiles.Count} 个文件 ← {result.Config.ClassDirectory}");
@@ -618,11 +738,15 @@ public sealed class MainForm : Form, IMessageFilter
                 AppendLog("未找到 core\\classmacros.lua，已跳过 keymap 更新");
             }
 
-            if (_runtime is not null)
+            if (_runtimeSession.HasSession)
             {
                 AppendLog("配置已更新, 重新启动运行");
-                await StopRuntimeAsync();
-                StartRuntime();
+                await StartOrRestartRuntimeAsync(restart: true, waitForConfigUpdates: false);
+            }
+
+            if (_shutdownStarted)
+            {
+                return;
             }
 
             var warningCount = result.Config.Warnings.Count + (result.Keymap?.Warnings.Count ?? 0);
@@ -640,6 +764,11 @@ public sealed class MainForm : Form, IMessageFilter
         }
         catch (Exception ex)
         {
+            if (_shutdownStarted)
+            {
+                return;
+            }
+
             AppendLog($"更新配置失败: {ex.Message}");
             MessageBox.Show(ex.Message, "更新配置失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -681,132 +810,132 @@ public sealed class MainForm : Form, IMessageFilter
         await RestartRuntimeAfterSettingChangeAsync();
     }
 
-    private void StartRuntime()
+    private async Task StartRuntimeAsync()
     {
-        if (_runtimeTask is { IsCompleted: false })
+        if (_runtimeSession.IsRunning)
         {
             return;
+        }
+
+        await StartOrRestartRuntimeAsync(restart: false);
+    }
+
+    private async Task<bool> StartOrRestartRuntimeAsync(
+        bool restart,
+        bool waitForConfigUpdates = true)
+    {
+        if (_shutdownStarted)
+        {
+            return false;
         }
 
         var options = BuildOptions();
-        if (IsUnsupportedToggleKey(options.ToggleKey))
+        if (!ValidateRuntimeOptions(options))
         {
-            MessageBox.Show("触发键不支持 ALT，请选择其他按键。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
+            return false;
         }
 
-        if (KeySender.GetVk(options.ToggleKey) is null)
-        {
-            MessageBox.Show($"无法识别触发键: {options.ToggleKey}", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+        var requestVersion = Interlocked.Increment(ref _runtimeRequestVersion);
 
         try
         {
-            _runtimeCts = new CancellationTokenSource();
-            _moduleStore.Reload();
-            _runtime = new ShigureRuntime(AppPaths.BaseDirectory, options, _moduleStore);
-            _runtime.SnapshotUpdated += HandleSnapshotUpdated;
-            _runtimeTask = Task.Run(() => RunRuntimeAsync(_runtime, _runtimeCts.Token));
+            if (waitForConfigUpdates)
+            {
+                await WaitForPendingConfigUpdatesAsync();
+                if (_shutdownStarted || requestVersion != Volatile.Read(ref _runtimeRequestVersion))
+                {
+                    return false;
+                }
+            }
+
+            if (restart)
+            {
+                await _runtimeSession.RestartAsync(options, requestVersion);
+            }
+            else
+            {
+                await _runtimeSession.StartAsync(options, requestVersion);
+            }
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "启动失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            AppendLog($"启动失败: {ex.Message}");
-            return;
+            if (_shutdownStarted || requestVersion != Volatile.Read(ref _runtimeRequestVersion))
+            {
+                return false;
+            }
+
+            var operation = restart ? "重启" : "启动";
+            MessageBox.Show(ex.Message, $"{operation}失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            AppendLog($"{operation}失败: {ex.Message}");
+            SetRuntimeControls(running: _runtimeSession.IsRunning);
+            return false;
         }
 
+        if (_shutdownStarted || requestVersion != Volatile.Read(ref _runtimeRequestVersion))
+        {
+            return false;
+        }
+
+        if (!_runtimeSession.IsRunning)
+        {
+            SetRuntimeControls(running: false);
+            return false;
+        }
+
+        ResetRuntimeLogState();
+        SetRuntimeControls(running: true);
+        AppendLog($"运行已{(restart ? "重启" : "启动")}: {options.WindowTitle} / {options.ToggleKey} / {ModeLabel(options.Mode)}");
+        return true;
+    }
+
+    private bool ValidateRuntimeOptions(AppOptions options)
+    {
+        if (IsUnsupportedToggleKey(options.ToggleKey))
+        {
+            MessageBox.Show("触发键不支持 ALT，请选择其他按键。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        if (_triggerKeyState.ResolveVirtualKey(options.ToggleKey) is null)
+        {
+            MessageBox.Show($"无法识别触发键: {options.ToggleKey}", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ResetRuntimeLogState()
+    {
         _lastLoggedStep = null;
         _lastLoggedStepDetails = null;
         _lastLoggedScanFailureReason = null;
         _lastLoggedClass = null;
         _lastLoggedModule = null;
         _lastLoggedEnabled = null;
-        SetRuntimeControls(running: true);
-        AppendLog($"运行已启动: {options.WindowTitle} / {options.ToggleKey} / {ModeLabel(options.Mode)}");
     }
 
-    private async Task RunRuntimeAsync(ShigureRuntime runtime, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await runtime.RunAsync(cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            // Normal stop path.
-        }
-        catch (Exception ex)
-        {
-            PostToUi(() =>
-            {
-                AppendLog($"运行异常: {ex.Message}");
-                _titleLabel.ForeColor = UiTheme.Danger;
-            });
-        }
-        finally
-        {
-            PostToUi(() => SetRuntimeControls(running: false));
-        }
-    }
-
-    private async Task StopRuntimeAsync()
-    {
-        if (_runtimeCts is null)
-        {
-            return;
-        }
-
-        _runtimeCts.Cancel();
-
-        if (_runtimeTask is not null)
-        {
-            try
-            {
-                await _runtimeTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // Already handled by the runtime task.
-            }
-        }
-
-        if (_runtime is not null)
-        {
-            _runtime.SnapshotUpdated -= HandleSnapshotUpdated;
-        }
-
-        _runtimeCts.Dispose();
-        _runtimeCts = null;
-        _runtimeTask = null;
-        _runtime = null;
-        SetRuntimeControls(running: false);
-        AppendLog("运行已停止");
-    }
-
-    private async void RestartRuntimeFromEditor()
+    private async Task RestartRuntimeFromEditorAsync()
     {
         RefreshModuleSelector(_lastSnapshot, reloadModules: true);
-        if (_runtime is null)
+        if (!_runtimeSession.HasSession)
         {
             _moduleStore.Reload();
             return;
         }
 
         AppendLog("模块已变更, 重新启动运行");
-        await StopRuntimeAsync();
-        StartRuntime();
+        await StartOrRestartRuntimeAsync(restart: true);
     }
 
     private void ToggleEnabled()
     {
-        if (_runtime is null)
+        if (!_runtimeSession.IsRunning)
         {
             return;
         }
 
-        var nextEnabled = !(_lastSnapshot?.Enabled ?? false);
-        _runtime.SetEnabled(nextEnabled);
+        _runtimeSession.ToggleEnabled();
     }
 
     private AppOptions BuildOptions()
@@ -828,9 +957,41 @@ public sealed class MainForm : Form, IMessageFilter
         };
     }
 
-    private void HandleSnapshotUpdated(RenderSnapshot snapshot)
+    private void HandleSnapshotUpdated(long sessionId, RenderSnapshot snapshot)
     {
-        PostToUi(() => ApplySnapshot(snapshot));
+        PostToUi(() =>
+        {
+            if (_runtimeSession.CurrentSessionId == sessionId)
+            {
+                ApplySnapshot(snapshot);
+            }
+        });
+    }
+
+    private void HandleRuntimeFailed(long sessionId, Exception exception)
+    {
+        PostToUi(() =>
+        {
+            if (_runtimeSession.CurrentSessionId != sessionId)
+            {
+                return;
+            }
+
+            AppendLog($"运行异常: {exception.Message}");
+            _titleLabel.ForeColor = UiTheme.Danger;
+            SetRuntimeControls(running: false);
+        });
+    }
+
+    private void HandleRuntimeStopped(long sessionId)
+    {
+        PostToUi(() =>
+        {
+            if (_runtimeSession.CurrentSessionId == sessionId)
+            {
+                SetRuntimeControls(running: false);
+            }
+        });
     }
 
     private void ApplySnapshot(RenderSnapshot snapshot)
@@ -973,14 +1134,13 @@ public sealed class MainForm : Form, IMessageFilter
     private async Task RestartRuntimeAfterSettingChangeAsync()
     {
         var options = BuildOptions();
-        if (_runtime is not null && options == _runtime.Options)
+        if (_runtimeSession.IsRunning && options == _runtimeSession.CurrentOptions)
         {
             return;
         }
 
         AppendLog("设置已变更, 重新启动运行");
-        await StopRuntimeAsync();
-        StartRuntime();
+        await StartOrRestartRuntimeAsync(restart: _runtimeSession.HasSession);
     }
 
     private void WriteSnapshotLog(RenderSnapshot snapshot)
@@ -1353,7 +1513,7 @@ public sealed class MainForm : Form, IMessageFilter
         return NativeMethods.HtClient;
     }
 
-    private static string? TryMapKeyToHotkey(Keys key)
+    private string? TryMapKeyToHotkey(Keys key)
     {
         var keyName = key.ToString().ToUpperInvariant();
         if (IsUnsupportedToggleKey(keyName))
@@ -1389,7 +1549,7 @@ public sealed class MainForm : Form, IMessageFilter
             "SUBTRACT" => "NUMPADMINUS",
             "MULTIPLY" => "NUMPADMULTIPLY",
             "DIVIDE" => "NUMPADDIVIDE",
-            _ => KeySender.GetVk(keyName) is not null ? keyName : null
+            _ => _triggerKeyState.ResolveVirtualKey(keyName) is not null ? keyName : null
         };
     }
 

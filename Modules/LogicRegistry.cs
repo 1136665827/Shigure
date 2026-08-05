@@ -1,61 +1,59 @@
 ﻿namespace Shigure;
 
-public sealed record LogicDecision(
-    string? Hotkey,
-    string Step,
-    IReadOnlyDictionary<string, object?> UnitInfo,
-    string? ModuleName = null,
-    int DelayMs = 0,
-    string? RateLimitKey = null,
-    int LogicDelayMs = 0);
-
 public interface IClassLogic
 {
     LogicDecision Run(GameState state, string? specName);
 }
 
-public sealed class LogicRegistry
+public sealed class LogicRegistry : IRuntimeLogic
 {
-    private readonly Dictionary<int, IClassLogic> _logicByClass = new();
+    private readonly Dictionary<int, IClassLogic> _logicByClass;
     private readonly IClassLogic _defaultLogic;
-    private readonly KeymapService _keymap;
+    private readonly IKeymapResolver _keymap;
     private readonly ModuleStore _moduleStore;
     private readonly string? _selectedModuleId;
 
-    public LogicRegistry(KeymapService keymap, ModuleStore moduleStore, string? selectedModuleId)
+    public LogicRegistry(
+        IKeymapResolver keymap,
+        ModuleStore moduleStore,
+        string? selectedModuleId,
+        IEnumerable<KeyValuePair<int, IClassLogic>>? classLogics = null)
     {
         _keymap = keymap;
         _moduleStore = moduleStore;
         _selectedModuleId = string.IsNullOrWhiteSpace(selectedModuleId) ? null : selectedModuleId.Trim();
         _defaultLogic = new DefaultClassLogic(keymap);
+        _logicByClass = classLogics?.ToDictionary(pair => pair.Key, pair => pair.Value) ?? new();
     }
 
-    public LogicDecision Run(int? classId, int? specId, string? specName, GameState state)
+    public LogicEvaluation Evaluate(
+        int? classId,
+        int? specId,
+        string? specName,
+        GameState state,
+        bool runLogic)
     {
+        _keymap.SelectForClass(classId, specId);
         var module = FindModule(classId, specId, state);
         if (module is not null)
         {
-            return ModuleLogic.Run(module, state, _keymap);
+            ModuleLogic.ResolveDynamicFields(module, state);
+            return new LogicEvaluation(
+                module.Name,
+                runLogic ? ModuleLogic.Run(module, state, _keymap) : null);
+        }
+
+        if (!runLogic)
+        {
+            return new LogicEvaluation(null, null);
         }
 
         if (classId is not null && _logicByClass.TryGetValue(classId.Value, out var logic))
         {
-            return logic.Run(state, specName);
+            return new LogicEvaluation(null, logic.Run(state, specName));
         }
 
-        return _defaultLogic.Run(state, specName);
-    }
-
-    public string? ResolveDynamicState(int? classId, int? specId, GameState state)
-    {
-        var module = FindModule(classId, specId, state);
-        if (module is null)
-        {
-            return null;
-        }
-
-        ModuleLogic.ResolveDynamicFields(module, state);
-        return module.Name;
+        return new LogicEvaluation(null, _defaultLogic.Run(state, specName));
     }
 
     private ModuleDefinition? FindModule(int? classId, int? specId, GameState state)
@@ -71,9 +69,9 @@ public sealed class LogicRegistry
 
 public sealed class DefaultClassLogic : IClassLogic
 {
-    private readonly KeymapService _keymap;
+    private readonly IKeymapResolver _keymap;
 
-    public DefaultClassLogic(KeymapService keymap)
+    public DefaultClassLogic(IKeymapResolver keymap)
     {
         _keymap = keymap;
     }
