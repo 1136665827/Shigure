@@ -7,8 +7,8 @@ namespace Shigure;
 public sealed class StatusForm : Form
 {
     private const string AboutWatermarkResourcePath = "Assets.arasaka-icon-transparent.png";
-    private const int AboutWatermarkSize = 800;
-    private const int AboutWatermarkBottomMargin = 80;
+    private const int AboutWatermarkSize = 440;
+    private const int AboutWatermarkTopMargin = 16;
     private const float AboutWatermarkOpacity = 0.08F;
 
     private readonly List<(Button Button, Control View)> _navItems = new();
@@ -23,11 +23,11 @@ public sealed class StatusForm : Form
     private ListView _unitInfoList = null!;
     private TextBox _logTextBox = null!;
     private Panel _contentHost = null!;
-        private Panel _settingsHost = null!;
-        private Panel _configHost = null!;
-        private Panel _macrosHost = null!;
-        private Panel _moduleHost = null!;
-        private Panel _aboutHost = null!;
+    private Panel _settingsHost = null!;
+    private Panel _configHost = null!;
+    private Panel _macrosHost = null!;
+    private Panel _moduleHost = null!;
+    private Panel _aboutHost = null!;
 
     public StatusForm()
     {
@@ -323,7 +323,7 @@ public sealed class StatusForm : Form
         var scrollHost = new WatermarkPanel(
             GetEmbeddedResourceName(AboutWatermarkResourcePath),
             AboutWatermarkSize,
-            AboutWatermarkBottomMargin,
+            AboutWatermarkTopMargin,
             AboutWatermarkOpacity)
         {
             Dock = DockStyle.Fill,
@@ -432,8 +432,9 @@ public sealed class StatusForm : Form
             [
                 "有效性", "战斗时间", "移动", "生命值", "一键辅助", "插入法术",
                 "队伍类型", "队伍人数", "首领战", "难度", "英雄天赋", "施法目标",
-                "施法技能", "敌人人数", "施法", "引导", "蓄力", "蓄力层数",
-                "酒池", "符文", "姿态", "救赎之魂1", "救赎之魂2",
+                "施法技能", "敌人数量", "敌人数-无仇恨", "敌人数-有仇恨", "施法",
+                "引导", "蓄力", "蓄力层数", "酒池", "符文", "姿态",
+                "救赎之魂1", "救赎之魂2",
             ],
             150), 0, 0);
         fields.Controls.Add(CreateAboutFieldCard(
@@ -554,13 +555,13 @@ public sealed class StatusForm : Form
     {
         private readonly Bitmap? _watermark;
         private readonly int _watermarkSize;
-        private readonly int _bottomMargin;
+        private readonly int _topMargin;
         private readonly float _opacity;
 
-        public WatermarkPanel(string resourceName, int watermarkSize, int bottomMargin, float opacity)
+        public WatermarkPanel(string resourceName, int watermarkSize, int topMargin, float opacity)
         {
             _watermarkSize = watermarkSize;
-            _bottomMargin = bottomMargin;
+            _topMargin = topMargin;
             _opacity = Math.Clamp(opacity, 0F, 1F);
             DoubleBuffered = true;
             ResizeRedraw = true;
@@ -583,9 +584,10 @@ public sealed class StatusForm : Form
                 return;
             }
 
+            var preferredLeft = ClientSize.Width / 2;
             var bounds = new Rectangle(
-                (ClientSize.Width - _watermarkSize) / 2,
-                ClientSize.Height - _watermarkSize - _bottomMargin,
+                Math.Min(preferredLeft, Math.Max(0, ClientSize.Width - _watermarkSize)),
+                _topMargin,
                 _watermarkSize,
                 _watermarkSize);
 

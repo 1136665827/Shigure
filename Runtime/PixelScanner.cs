@@ -7,7 +7,8 @@ namespace Shigure;
 public sealed record ScreenScanResult(
     IReadOnlyDictionary<int, int>? RowData,
     IReadOnlyDictionary<int, int> BarData,
-    IReadOnlyDictionary<int, int> HealAbsorbData);
+    IReadOnlyDictionary<int, int> HealAbsorbData,
+    string? FailureReason);
 
 public sealed class PixelScanner
 {
@@ -35,22 +36,40 @@ public sealed class PixelScanner
         var emptyBars = new Dictionary<int, int>();
         var emptyAbsorb = new Dictionary<int, int>();
         var hwnd = NativeMethods.FindWindow(null, _windowTitle);
-        if (hwnd == 0 || NativeMethods.IsIconic(hwnd))
+        if (hwnd == 0)
         {
-            return new ScreenScanResult(null, emptyBars, emptyAbsorb);
+            return new ScreenScanResult(null, emptyBars, emptyAbsorb, $"未找到目标窗口“{_windowTitle}”");
+        }
+
+        if (NativeMethods.IsIconic(hwnd))
+        {
+            return new ScreenScanResult(null, emptyBars, emptyAbsorb, $"目标窗口“{_windowTitle}”已最小化");
         }
 
         var point = new NativeMethods.Point(0, 0);
-        if (!NativeMethods.ClientToScreen(hwnd, ref point) || !NativeMethods.GetClientRect(hwnd, out var rect))
+        if (!NativeMethods.ClientToScreen(hwnd, ref point))
         {
-            return new ScreenScanResult(null, emptyBars, emptyAbsorb);
+            return new ScreenScanResult(
+                null,
+                emptyBars,
+                emptyAbsorb,
+                $"无法获取目标窗口的屏幕坐标，Win32 错误码: {Marshal.GetLastWin32Error()}");
+        }
+
+        if (!NativeMethods.GetClientRect(hwnd, out var rect))
+        {
+            return new ScreenScanResult(
+                null,
+                emptyBars,
+                emptyAbsorb,
+                $"无法获取目标窗口的客户区尺寸，Win32 错误码: {Marshal.GetLastWin32Error()}");
         }
 
         var width = rect.Right - rect.Left;
         var height = rect.Bottom - rect.Top;
         if (width <= 0 || height <= 0)
         {
-            return new ScreenScanResult(null, emptyBars, emptyAbsorb);
+            return new ScreenScanResult(null, emptyBars, emptyAbsorb, $"目标窗口客户区尺寸无效: {width}×{height}");
         }
 
         try
@@ -63,11 +82,17 @@ public sealed class PixelScanner
             var healAbsorbData = markerY is null
                 ? emptyAbsorb
                 : ScanHealAbsorbGrid(point.X, point.Y, width, height, markerY.Value);
-            return new ScreenScanResult(rowData.Count == 0 ? null : rowData, barData, healAbsorbData);
+            return rowData.Count == 0
+                ? new ScreenScanResult(null, barData, healAbsorbData, "未找到有效的状态像素起始标记")
+                : new ScreenScanResult(
+                    rowData,
+                    barData,
+                    healAbsorbData,
+                    markerY is null ? "未找到 CountBars 标记，层数条和治疗吸收数据未采集" : null);
         }
-        catch
+        catch (Exception ex)
         {
-            return new ScreenScanResult(null, emptyBars, emptyAbsorb);
+            return new ScreenScanResult(null, emptyBars, emptyAbsorb, $"{ex.GetType().Name}: {ex.Message}");
         }
     }
 

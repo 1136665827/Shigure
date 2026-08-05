@@ -16,7 +16,7 @@ public sealed class ModuleDefinition
     public string RecommendedTalent { get; set; } = string.Empty;
     // 保存时写入当时的 Shigure 版本(AppInfo.Version)。
     public string Version { get; set; } = string.Empty;
-    // v2: 31=玩家、32=目标、33=焦点、34=地面、35=鼠标；旧模块 v1 的 31/34 含义相反。
+    // v2: 31=玩家、32=目标、33=焦点、34=地面、35=鼠标、36=引导中、37=非引导；旧模块 v1 的 31/34 含义相反。
     public int? UnitMappingVersion { get; set; }
     public bool Enabled { get; set; } = true;
     public ModuleMatch Match { get; set; } = new();
@@ -627,6 +627,7 @@ public static class ModuleLogic
         for (var ruleIndex = 0; ruleIndex < module.Rules.Count; ruleIndex++)
         {
             var rule = module.Rules[ruleIndex];
+            var rateLimitKey = $"{module.Id}:{ruleIndex}";
             if (!rule.Enabled)
             {
                 continue;
@@ -636,6 +637,7 @@ public static class ModuleLogic
             {
                 info["条件错误"] = error;
                 info["规则条件"] = rule.DescribeCondition();
+                AddRuleLogInfo(info, rule, ruleIndex, rateLimitKey, null);
                 return new LogicDecision(null, $"{module.Name}: 条件错误", info, module.Name);
             }
 
@@ -650,6 +652,7 @@ public static class ModuleLogic
                 info["动作技能"] = ModuleSpecialActions.PauseSpell;
                 info["动作按键"] = "-";
                 info["动作单位"] = "-";
+                AddRuleLogInfo(info, rule, ruleIndex, rateLimitKey, null);
                 return new LogicDecision(null, $"{module.Name}: 暂停", info, module.Name);
             }
 
@@ -667,6 +670,7 @@ public static class ModuleLogic
             }
 
             var actionSpell = rule.Spell;
+            var isOneKeySpell = false;
             if (ModuleSpecialActions.IsFailedSpell(actionSpell))
             {
                 actionSpell = ModuleSpecialActions.GetFailedSpell(state, failedSpells);
@@ -677,6 +681,7 @@ public static class ModuleLogic
             }
             else if (ModuleSpecialActions.IsOneKeySpell(actionSpell))
             {
+                isOneKeySpell = true;
                 actionSpell = ModuleSpecialActions.GetOneKeySpell(state, oneKeySpells);
                 if (string.IsNullOrWhiteSpace(actionSpell))
                 {
@@ -689,6 +694,18 @@ public static class ModuleLogic
             var hotkey = string.IsNullOrWhiteSpace(rule.Hotkey)
                 ? string.IsNullOrWhiteSpace(actionSpell) ? null : keymap.GetHotkey(resolvedUnit, actionSpell)
                 : rule.Hotkey.Trim();
+            if (isOneKeySpell
+                && string.IsNullOrWhiteSpace(rule.Hotkey)
+                && string.IsNullOrWhiteSpace(hotkey)
+                && !string.IsNullOrWhiteSpace(actionSpell))
+            {
+                hotkey = keymap.GetHotkey(ReservedUnit.NoChanneling, actionSpell);
+                if (!string.IsNullOrWhiteSpace(hotkey))
+                {
+                    resolvedUnit = ReservedUnit.NoChanneling;
+                }
+            }
+
             var step = BuildStep(module, rule, hotkey, actionSpell);
             info["命中条件"] = string.IsNullOrWhiteSpace(rule.Condition) ? "始终" : rule.Condition;
             info["动作技能"] = string.IsNullOrWhiteSpace(actionSpell) ? "-" : actionSpell;
@@ -696,20 +713,33 @@ public static class ModuleLogic
             info["动作单位"] = string.IsNullOrWhiteSpace(rule.UnitName)
                 ? resolvedUnit.GetValueOrDefault()
                 : $"{rule.UnitName} → {resolvedUnit.GetValueOrDefault()}";
-            info["动作延迟"] = rule.DelayMs is > 0 ? $"{rule.DelayMs.Value} ms" : "-";
-            info["逻辑延迟"] = rule.LogicDelayMs is > 0 ? $"{rule.LogicDelayMs.Value} ms" : "-";
+            AddRuleLogInfo(info, rule, ruleIndex, rateLimitKey, hotkey);
             return new LogicDecision(
                 hotkey,
                 step,
                 info,
                 module.Name,
                 rule.DelayMs.GetValueOrDefault(),
-                $"{module.Id}:{ruleIndex}",
+                rateLimitKey,
                 rule.LogicDelayMs.GetValueOrDefault());
         }
 
         info["命中条件"] = "-";
         return new LogicDecision(null, $"{module.Name}: 无匹配规则", info, module.Name);
+    }
+
+    private static void AddRuleLogInfo(
+        IDictionary<string, object?> info,
+        ModuleRule rule,
+        int ruleIndex,
+        string rateLimitKey,
+        string? hotkey)
+    {
+        info["动作按键"] = string.IsNullOrWhiteSpace(hotkey) ? "-" : hotkey;
+        info["动作延迟"] = rule.DelayMs is > 0 ? $"{rule.DelayMs.Value} ms" : "-";
+        info["逻辑延迟"] = rule.LogicDelayMs is > 0 ? $"{rule.LogicDelayMs.Value} ms" : "-";
+        info["规则编号"] = ruleIndex + 1;
+        info["限流键"] = rateLimitKey;
     }
 
     // 把模块定义的动态单位/数量各解析一次, 写入当前帧 state.Values 供条件求值与目标解析使用。

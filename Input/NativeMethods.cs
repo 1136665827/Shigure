@@ -84,6 +84,9 @@ internal static class NativeMethods
     public static extern bool PostMessageW(nint hWnd, uint msg, nint wParam, nint lParam);
 
     [DllImport("user32.dll")]
+    public static extern uint MapVirtualKeyW(uint uCode, uint uMapType);
+
+    [DllImport("user32.dll")]
     public static extern nint SendMessageW(nint hWnd, uint msg, nint wParam, nint lParam);
 
     [DllImport("user32.dll")]

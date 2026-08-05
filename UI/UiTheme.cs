@@ -271,7 +271,8 @@ internal static class UiTheme
     public static void StyleListBox(
         ListBox listBox,
         Font font,
-        Func<int, (int? ClassId, int? SpecId)>? moduleMatchSelector = null)
+        Func<int, (int? ClassId, int? SpecId)>? moduleMatchSelector = null,
+        bool showClassIconWithSpec = true)
     {
         listBox.BackColor = Surface;
         listBox.ForeColor = Text;
@@ -308,13 +309,22 @@ internal static class UiTheme
             if (moduleMatchSelector is not null)
             {
                 var (classId, specId) = moduleMatchSelector(e.Index);
-                var icons = new[]
-                {
-                    classId is { } matchedClassId ? GetClassIcon(matchedClassId) : null,
-                    classId is { } matchedSpecClassId && specId is { } matchedSpecId
-                        ? GetSpecIcon(matchedSpecClassId, matchedSpecId)
-                        : null
-                };
+                Image?[] icons = showClassIconWithSpec
+                    ?
+                    [
+                        classId is { } matchedClassId ? GetClassIcon(matchedClassId) : null,
+                        classId is { } matchedSpecClassId && specId is { } matchedSpecId
+                            ? GetSpecIcon(matchedSpecClassId, matchedSpecId)
+                            : null
+                    ]
+                    :
+                    [
+                        classId is { } singleClassId
+                            ? specId is { } singleSpecId
+                                ? GetSpecIcon(singleClassId, singleSpecId)
+                                : GetClassIcon(singleClassId)
+                            : null
+                    ];
                 var iconSize = Math.Min(font.Height, e.Bounds.Height - 8);
                 foreach (var icon in icons)
                 {

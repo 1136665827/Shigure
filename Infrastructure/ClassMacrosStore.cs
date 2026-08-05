@@ -29,9 +29,26 @@ internal static class ClassMacrosStore
 
     public sealed class ClassMacros
     {
-        public List<string> DynamicSpells { get; } = new();
+        /// <summary>
+        /// false 表示旧式纯数组；true 表示 common + [specIndex] 分组格式。
+        /// 两种格式的通用项都保存在 DynamicCommon 中，以便旧文件无损回写。
+        /// </summary>
+        public bool UsesSpecDynamicSpells { get; set; }
+        public List<string> DynamicCommon { get; } = new();
+        public Dictionary<int, List<string>> DynamicBySpec { get; } = new();
         public List<ArrayEntry> StaticSpells { get; } = new();
         public List<ArrayEntry> SpecialSpells { get; } = new();
+
+        public IReadOnlyList<string> ResolveDynamicSpells(int? specIndex)
+        {
+            if (!UsesSpecDynamicSpells || specIndex is null
+                || !DynamicBySpec.TryGetValue(specIndex.Value, out var specSpells))
+            {
+                return DynamicCommon;
+            }
+
+            return [.. DynamicCommon, .. specSpells];
+        }
     }
 
     public sealed class ArrayEntry
@@ -97,12 +114,29 @@ internal static class ClassMacrosStore
         var macros = new ClassMacros();
         if (classTable.GetTable("dynamicSpells") is { } dynamic)
         {
-            foreach (var item in dynamic.IPairs())
+            var specIndexes = dynamic.Entries
+                .Select(entry => TryGetPositiveIndex(entry.Key))
+                .Where(index => index is not null)
+                .Select(index => index!.Value)
+                .Distinct()
+                .Where(index => dynamic.GetTable((long)index) is not null)
+                .OrderBy(index => index)
+                .ToList();
+
+            macros.UsesSpecDynamicSpells = dynamic.GetTable("common") is not null || specIndexes.Count > 0;
+            if (macros.UsesSpecDynamicSpells)
             {
-                if (item is StringValue s)
+                ReadStringArray(dynamic.GetTable("common"), macros.DynamicCommon);
+                foreach (var specIndex in specIndexes)
                 {
-                    macros.DynamicSpells.Add(s.Value);
+                    var spells = new List<string>();
+                    ReadStringArray(dynamic.GetTable((long)specIndex), spells);
+                    macros.DynamicBySpec[specIndex] = spells;
                 }
+            }
+            else
+            {
+                ReadStringArray(dynamic, macros.DynamicCommon);
             }
         }
 
@@ -133,6 +167,35 @@ internal static class ClassMacrosStore
             });
             index++;
         }
+    }
+
+    private static void ReadStringArray(TableValue? table, List<string> target)
+    {
+        if (table is null)
+        {
+            return;
+        }
+
+        foreach (var value in table.IPairs())
+        {
+            if (value is not StringValue text)
+            {
+                break;
+            }
+
+            target.Add(text.Value);
+        }
+    }
+
+    private static int? TryGetPositiveIndex(object? key)
+    {
+        var value = key switch
+        {
+            long number when number is > 0 and <= int.MaxValue => (int)number,
+            int number when number > 0 => number,
+            _ => (int?)null
+        };
+        return value;
     }
 
     public static string SerializeClassMacros(MacrosDocument document)
@@ -188,17 +251,7 @@ internal static class ClassMacrosStore
     {
         sb.Append("    ").Append(classFile).AppendLine(" = {");
 
-        // dynamicSpells
-        if (macros.DynamicSpells.Count == 0)
-        {
-            sb.AppendLine("        dynamicSpells = {},");
-        }
-        else
-        {
-            sb.Append("        dynamicSpells = { ");
-            sb.Append(string.Join(", ", macros.DynamicSpells.Select(s => $"\"{Escape(s)}\"")));
-            sb.AppendLine(" },");
-        }
+        WriteDynamicSpells(sb, macros);
 
         // staticSpells
         WriteArrayTable(sb, "staticSpells", macros.StaticSpells);
@@ -208,6 +261,38 @@ internal static class ClassMacrosStore
 
         sb.AppendLine("    },");
         sb.AppendLine();
+    }
+
+    private static void WriteDynamicSpells(StringBuilder sb, ClassMacros macros)
+    {
+        if (!macros.UsesSpecDynamicSpells)
+        {
+            WriteInlineStringArray(sb, "        dynamicSpells = ", macros.DynamicCommon);
+            return;
+        }
+
+        sb.AppendLine("        dynamicSpells = {");
+        WriteInlineStringArray(sb, "            common = ", macros.DynamicCommon);
+        foreach (var (specIndex, spells) in macros.DynamicBySpec.OrderBy(item => item.Key))
+        {
+            WriteInlineStringArray(sb, $"            [{specIndex}] = ", spells);
+        }
+
+        sb.AppendLine("        },");
+    }
+
+    private static void WriteInlineStringArray(StringBuilder sb, string prefix, IReadOnlyList<string> values)
+    {
+        sb.Append(prefix);
+        if (values.Count == 0)
+        {
+            sb.AppendLine("{},");
+            return;
+        }
+
+        sb.Append("{ ");
+        sb.Append(string.Join(", ", values.Select(value => $"\"{Escape(value)}\"")));
+        sb.AppendLine(" },");
     }
 
     private static void WriteArrayTable(StringBuilder sb, string name, List<ArrayEntry> entries)

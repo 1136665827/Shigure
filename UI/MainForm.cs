@@ -60,7 +60,8 @@ public sealed class MainForm : Form, IMessageFilter
     private Task? _runtimeTask;
     private RenderSnapshot? _lastSnapshot;
     private string? _lastLoggedStep;
-    private string? _lastLoggedStepTarget;
+    private string? _lastLoggedStepDetails;
+    private string? _lastLoggedScanFailureReason;
     private string? _lastLoggedClass;
     private string? _lastLoggedModule;
     private bool? _lastLoggedEnabled;
@@ -716,7 +717,8 @@ public sealed class MainForm : Form, IMessageFilter
         }
 
         _lastLoggedStep = null;
-        _lastLoggedStepTarget = null;
+        _lastLoggedStepDetails = null;
+        _lastLoggedScanFailureReason = null;
         _lastLoggedClass = null;
         _lastLoggedModule = null;
         _lastLoggedEnabled = null;
@@ -983,6 +985,23 @@ public sealed class MainForm : Form, IMessageFilter
 
     private void WriteSnapshotLog(RenderSnapshot snapshot)
     {
+        if (!string.Equals(snapshot.ScanFailureReason, _lastLoggedScanFailureReason, StringComparison.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(snapshot.ScanFailureReason))
+            {
+                if (!string.IsNullOrWhiteSpace(_lastLoggedScanFailureReason))
+                {
+                    AppendLog("扫描已恢复");
+                }
+            }
+            else
+            {
+                AppendLog($"扫描失败: {snapshot.ScanFailureReason}");
+            }
+
+            _lastLoggedScanFailureReason = snapshot.ScanFailureReason;
+        }
+
         var classSpec = snapshot.ClassName is null ? null : $"{snapshot.ClassName} / {snapshot.SpecName ?? "-"}";
         if (!string.IsNullOrWhiteSpace(classSpec) && classSpec != _lastLoggedClass)
         {
@@ -1007,26 +1026,44 @@ public sealed class MainForm : Form, IMessageFilter
 
         if (!string.IsNullOrWhiteSpace(snapshot.CurrentStep))
         {
-            var target = GetActionTarget(snapshot);
-            if (snapshot.CurrentStep != _lastLoggedStep || target != _lastLoggedStepTarget)
+            var details = BuildStepLogDetails(snapshot);
+            if (snapshot.CurrentStep != _lastLoggedStep || details != _lastLoggedStepDetails)
             {
                 _lastLoggedStep = snapshot.CurrentStep;
-                _lastLoggedStepTarget = target;
-                var targetText = string.IsNullOrWhiteSpace(target) ? string.Empty : $"，目标: {target}";
-                AppendLog($"步骤: {snapshot.CurrentStep}{targetText}");
+                _lastLoggedStepDetails = details;
+                AppendLog($"步骤: {snapshot.CurrentStep}{details}");
             }
         }
     }
 
-    private static string? GetActionTarget(RenderSnapshot snapshot)
+    private static string BuildStepLogDetails(RenderSnapshot snapshot)
     {
-        if (!snapshot.UnitInfo.TryGetValue("动作单位", out var value))
+        var fields = new (string Key, string Label)[]
         {
-            return null;
+            ("动作单位", "目标"),
+            ("动作按键", "按键"),
+            ("动作延迟", "动作延迟"),
+            ("逻辑延迟", "逻辑延迟"),
+            ("规则编号", "规则编号"),
+            ("限流键", "限流键"),
+            ("发送失败", "发送失败")
+        };
+        var details = new List<string>();
+        foreach (var (key, label) in fields)
+        {
+            if (!snapshot.UnitInfo.TryGetValue(key, out var value))
+            {
+                continue;
+            }
+
+            var text = UiTheme.FormatValue(value);
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                details.Add($"{label}: {text}");
+            }
         }
 
-        var text = UiTheme.FormatValue(value);
-        return string.IsNullOrWhiteSpace(text) || text == "-" ? null : text;
+        return details.Count == 0 ? string.Empty : $"，{string.Join("，", details)}";
     }
 
     private void SetRuntimeControls(bool running)

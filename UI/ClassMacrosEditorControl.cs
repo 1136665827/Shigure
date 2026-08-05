@@ -19,6 +19,7 @@ public sealed class ClassMacrosEditorControl : UserControl
     private readonly Button _reloadButton;
     private readonly Button _saveButton;
 
+    private readonly ListBox _dynamicSpecList = new();
     private readonly DataGridView _dynamicGrid = new();
     private readonly DataGridView _staticGrid = new();
     private readonly DataGridView _specialGrid = new();
@@ -26,6 +27,8 @@ public sealed class ClassMacrosEditorControl : UserControl
     private ClassMacrosStore.MacrosDocument? _document;
     private ClassMacrosStore.ClassMacros? _currentMacros;
     private string? _currentClassFile;
+    private int? _currentClassId;
+    private int? _currentDynamicSpecIndex;
     private bool _suppressUi;
     private bool _updatingDerivedColumns;
     private bool _dirty;
@@ -319,15 +322,29 @@ public sealed class ClassMacrosEditorControl : UserControl
 
     private Control BuildDynamicPage()
     {
-        var panel = new TableLayoutPanel
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(0)
+        };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 196));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+        root.Controls.Add(BuildDynamicSpecSidebar(), 0, 0);
+
+        var editor = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            BackColor = UiTheme.SurfaceRaised
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(0)
         };
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
         ConfigureGrid(_dynamicGrid);
         _dynamicGrid.Columns.Add(new DataGridViewTextBoxColumn
@@ -338,8 +355,53 @@ public sealed class ClassMacrosEditorControl : UserControl
         });
         _dynamicGrid.Columns.Add(CreateDeleteColumn());
         WireGrid(_dynamicGrid);
-        panel.Controls.Add(_dynamicGrid, 0, 0);
-        panel.Controls.Add(BuildMoveButtons(_dynamicGrid), 0, 1);
+        editor.Controls.Add(_dynamicGrid, 0, 0);
+        editor.Controls.Add(BuildMoveButtons(_dynamicGrid), 0, 1);
+        root.Controls.Add(editor, 1, 0);
+        return root;
+    }
+
+    private Control BuildDynamicSpecSidebar()
+    {
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Surface,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(0, 0, 12, 0),
+            Margin = new Padding(0)
+        };
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        panel.Controls.Add(new Label
+        {
+            Text = "专精",
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Muted,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(10, 0, 0, 0),
+            Margin = new Padding(0)
+        }, 0, 0);
+
+        _dynamicSpecList.Dock = DockStyle.Fill;
+        UiTheme.StyleListBox(
+            _dynamicSpecList,
+            Font,
+            index => index >= 0 && index < _dynamicSpecList.Items.Count
+                && _dynamicSpecList.Items[index] is DynamicSpecOption { ClassId: { } classId } option
+                    ? (classId, option.SpecIndex)
+                    : (null, null),
+            showClassIconWithSpec: false);
+        _dynamicSpecList.SelectedIndexChanged += (_, _) =>
+        {
+            if (!_suppressUi)
+            {
+                SelectDynamicSpecFromList();
+            }
+        };
+        panel.Controls.Add(_dynamicSpecList, 0, 1);
         return panel;
     }
 
@@ -523,6 +585,8 @@ public sealed class ClassMacrosEditorControl : UserControl
         _document = null;
         _currentMacros = null;
         _currentClassFile = null;
+        _currentClassId = null;
+        _currentDynamicSpecIndex = null;
         _dirty = false;
 
         _suppressUi = true;
@@ -635,6 +699,7 @@ public sealed class ClassMacrosEditorControl : UserControl
         }
 
         _currentClassFile = item.ClassFile;
+        _currentClassId = item.ClassId > 0 ? item.ClassId : null;
         if (_document is null)
         {
             _currentMacros = null;
@@ -666,18 +731,22 @@ public sealed class ClassMacrosEditorControl : UserControl
             _dynamicGrid.Rows.Clear();
             _staticGrid.Rows.Clear();
             _specialGrid.Rows.Clear();
+            _dynamicSpecList.Items.Clear();
+            _currentDynamicSpecIndex = null;
             if (_currentMacros is null)
             {
                 return;
             }
 
-            foreach (var name in _currentMacros.DynamicSpells)
-            {
-                _dynamicGrid.Rows.Add(name, "×");
-            }
-
+            RebuildDynamicSpecList();
             AddArrayRows(_staticGrid, _currentMacros.StaticSpells);
             AddArrayRows(_specialGrid, _currentMacros.SpecialSpells);
+            if (_dynamicSpecList.Items.Count > 0)
+            {
+                _dynamicSpecList.SelectedIndex = 0;
+            }
+
+            FillDynamicEditor();
         }
         finally
         {
@@ -687,28 +756,111 @@ public sealed class ClassMacrosEditorControl : UserControl
         UpdateOffsetHint();
     }
 
-    private void UpdateOffsetHint()
+    private void RebuildDynamicSpecList()
     {
-        var dynamicCount = 0;
-        var staticCount = 0;
-        if (_currentMacros is not null)
+        _dynamicSpecList.Items.Clear();
+        _dynamicSpecList.Items.Add(new DynamicSpecOption(_currentClassId, null, "通用"));
+
+        var knownSpecIndexes = new HashSet<int>();
+        if (_currentClassId is { } classId)
         {
-            // 数组中的空字符串同样占槽，所以按实际行数计算。
-            dynamicCount = _dynamicGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
-            staticCount = _staticGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
-            if (!_dirty)
+            foreach (var spec in ClassNames.GetSpecs(classId))
             {
-                dynamicCount = _currentMacros.DynamicSpells.Count;
-                staticCount = _currentMacros.StaticSpells.Count;
+                knownSpecIndexes.Add(spec.Id);
+                _dynamicSpecList.Items.Add(new DynamicSpecOption(classId, spec.Id, spec.Name));
             }
         }
 
-        var dynamicSlots = dynamicCount * 30;
-        var firstStatic = dynamicSlots + 1;
-        var firstSpecial = dynamicSlots + staticCount + 1;
-        _offsetLabel.Text =
-            $"动态宏 {dynamicCount} 项，占 {dynamicSlots} 槽；静态宏 [1] = 全局 {firstStatic}；特殊宏 [1] = 全局 {firstSpecial}";
+        if (_currentMacros is null)
+        {
+            return;
+        }
+
+        foreach (var specIndex in _currentMacros.DynamicBySpec.Keys.OrderBy(index => index))
+        {
+            if (knownSpecIndexes.Add(specIndex))
+            {
+                _dynamicSpecList.Items.Add(
+                    new DynamicSpecOption(_currentClassId, specIndex, $"专精{specIndex}"));
+            }
+        }
     }
+
+    private void SelectDynamicSpecFromList()
+    {
+        if (_currentMacros is null || _dynamicSpecList.SelectedItem is not DynamicSpecOption option)
+        {
+            return;
+        }
+
+        CommitCurrentDynamicFromUi();
+        _currentDynamicSpecIndex = option.SpecIndex;
+        FillDynamicEditor();
+        UpdateOffsetHint();
+    }
+
+    private void FillDynamicEditor()
+    {
+        var wasSuppressing = _suppressUi;
+        _suppressUi = true;
+        try
+        {
+            _dynamicGrid.Rows.Clear();
+            if (_currentMacros is null)
+            {
+                return;
+            }
+
+            IReadOnlyList<string> spells = _currentDynamicSpecIndex is { } specIndex
+                ? _currentMacros.DynamicBySpec.GetValueOrDefault(specIndex) ?? []
+                : _currentMacros.DynamicCommon;
+            foreach (var name in spells)
+            {
+                _dynamicGrid.Rows.Add(name, "×");
+            }
+        }
+        finally
+        {
+            _suppressUi = wasSuppressing;
+        }
+    }
+
+    private void UpdateOffsetHint()
+    {
+        var commonCount = 0;
+        var specCount = 0;
+        var staticCount = 0;
+        var specialCount = 0;
+        if (_currentMacros is not null)
+        {
+            // 数组中的空字符串同样占槽，所以按实际行数计算。
+            staticCount = _staticGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
+            specialCount = _specialGrid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
+            var visibleDynamicCount = _dynamicGrid.Rows.Cast<DataGridViewRow>().Count(row => !row.IsNewRow);
+            if (_currentDynamicSpecIndex is { } specIndex)
+            {
+                commonCount = _currentMacros.DynamicCommon.Count;
+                specCount = visibleDynamicCount;
+            }
+            else
+            {
+                commonCount = visibleDynamicCount;
+            }
+        }
+
+        var dynamicCount = commonCount + specCount;
+        var dynamicSlots = dynamicCount * 30;
+        var totalSlots = dynamicSlots + staticCount + specialCount;
+        var scopeText = _currentDynamicSpecIndex is null
+            ? $"通用 {commonCount} 项"
+            : $"{GetCurrentDynamicSpecName()}：通用 {commonCount} + 专精 {specCount}，共 {dynamicCount} 项";
+        _offsetLabel.Text =
+            $"{scopeText}；动态宏 {dynamicSlots} 个（{dynamicCount} 项 × 30）；静态宏 {staticCount} 个；特殊宏 {specialCount} 个；" +
+            $"共 {totalSlots} 个；最多 {FuyutsuiKeymapConverter.MacroSlotCapacity} 个";
+    }
+
+    private string GetCurrentDynamicSpecName()
+        => _dynamicSpecList.SelectedItem is DynamicSpecOption option ? option.Name : "当前专精";
 
     private void CommitCurrentFromUi()
     {
@@ -717,7 +869,19 @@ public sealed class ClassMacrosEditorControl : UserControl
             return;
         }
 
-        _currentMacros.DynamicSpells.Clear();
+        CommitCurrentDynamicFromUi();
+        WriteArrayGrid(_staticGrid, _currentMacros.StaticSpells);
+        WriteArrayGrid(_specialGrid, _currentMacros.SpecialSpells);
+    }
+
+    private void CommitCurrentDynamicFromUi()
+    {
+        if (_currentMacros is null)
+        {
+            return;
+        }
+
+        var values = new List<string>();
         foreach (DataGridViewRow row in _dynamicGrid.Rows)
         {
             if (row.IsNewRow)
@@ -725,15 +889,21 @@ public sealed class ClassMacrosEditorControl : UserControl
                 continue;
             }
 
-            var name = row.Cells["Name"].Value?.ToString()?.Trim();
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                _currentMacros.DynamicSpells.Add(name);
-            }
+            values.Add(row.Cells["Name"].Value?.ToString()?.Trim() ?? string.Empty);
         }
 
-        WriteArrayGrid(_staticGrid, _currentMacros.StaticSpells);
-        WriteArrayGrid(_specialGrid, _currentMacros.SpecialSpells);
+        if (_currentDynamicSpecIndex is not { } specIndex)
+        {
+            _currentMacros.DynamicCommon.Clear();
+            _currentMacros.DynamicCommon.AddRange(values);
+            return;
+        }
+
+        if (values.Count > 0 || _currentMacros.DynamicBySpec.ContainsKey(specIndex))
+        {
+            _currentMacros.UsesSpecDynamicSpells = true;
+            _currentMacros.DynamicBySpec[specIndex] = values;
+        }
     }
 
     private static void WriteArrayGrid(DataGridView grid, List<ClassMacrosStore.ArrayEntry> target)
@@ -814,9 +984,11 @@ public sealed class ClassMacrosEditorControl : UserControl
 
     private void ClearGrids()
     {
+        _dynamicSpecList.Items.Clear();
         _dynamicGrid.Rows.Clear();
         _staticGrid.Rows.Clear();
         _specialGrid.Rows.Clear();
+        _currentDynamicSpecIndex = null;
     }
 
     private void HandleDeleteClick(object? sender, DataGridViewCellEventArgs e)
@@ -934,6 +1106,11 @@ public sealed class ClassMacrosEditorControl : UserControl
                 row.Cells["Index"].Value = index++.ToString(CultureInfo.InvariantCulture);
             }
         }
+    }
+
+    private sealed record DynamicSpecOption(int? ClassId, int? SpecIndex, string Name)
+    {
+        public override string ToString() => Name;
     }
 
     private sealed record ClassListItem(int ClassId, string Name, string ClassFile, bool HasData)

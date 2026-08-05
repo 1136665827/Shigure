@@ -37,6 +37,8 @@ internal static partial class FuyutsuiKeymapConverter
 
     private static readonly string[] MacroKind = BuildMacroKind();
 
+    internal static int MacroSlotCapacity => Modifiers.Length * Keys.Length;
+
     private static readonly Dictionary<string, int> ClassFileToId = new(StringComparer.OrdinalIgnoreCase)
     {
         ["WARRIOR"] = 1,
@@ -86,7 +88,7 @@ internal static partial class FuyutsuiKeymapConverter
             var jsonPath = Path.Combine(keymapDirectory, fileName);
             var existing = LoadExistingSpellNames(jsonPath);
 
-            var (root, classWarnings) = CompileClassKeymap(classTable, existing, classFile);
+            var (root, classWarnings) = CompileClassKeymap(classTable, existing, classFile, classId);
             warnings.AddRange(classWarnings);
 
             File.WriteAllText(jsonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
@@ -103,14 +105,82 @@ internal static partial class FuyutsuiKeymapConverter
 
     private static (JsonObject Root, List<string> Warnings) CompileClassKeymap(
         TableValue classTable,
-        IReadOnlyDictionary<int, string> existingSpellNames,
-        string classFile)
+        ExistingSpellNames existingSpellNames,
+        string classFile,
+        int classId)
     {
         var warnings = new List<string>();
-        var dynamicSpells = ReadArrayStrings(classTable.GetTable("dynamicSpells"));
+        var dynamicTable = classTable.GetTable("dynamicSpells");
         var staticSpells = ReadArrayEntries(classTable.GetTable("staticSpells"));
         var specialSpells = ReadArrayEntries(classTable.GetTable("specialSpells"));
+
+        if (!IsSpecializedDynamicFormat(dynamicTable))
+        {
+            var dynamicSpells = ReadArrayStrings(dynamicTable);
+            return (
+                CompileSlotMap(
+                    dynamicSpells,
+                    staticSpells,
+                    specialSpells,
+                    existingSpellNames,
+                    null,
+                    classFile,
+                    warnings),
+                warnings);
+        }
+
+        var commonSpells = ReadArrayStrings(dynamicTable?.GetTable("common"));
+        var root = CompileSlotMap(
+            commonSpells,
+            staticSpells,
+            specialSpells,
+            existingSpellNames,
+            null,
+            $"{classFile}[兼容回退]",
+            warnings);
+        var specRoot = new JsonObject();
+        var specs = ClassNames.GetSpecs(classId);
+        var knownSpecIds = specs.Select(spec => spec.Id).ToHashSet();
+        foreach (var unknownSpecId in GetDynamicSpecIndexes(dynamicTable).Where(id => !knownSpecIds.Contains(id)))
+        {
+            warnings.Add($"{classFile}[专精 {unknownSpecId}]: ClassNames 未登记，未生成此专精映射");
+        }
+
+        foreach (var spec in specs)
+        {
+            var dynamicSpells = new List<string>(commonSpells);
+            dynamicSpells.AddRange(ReadArrayStrings(GetIndexedTable(dynamicTable, spec.Id)));
+            specRoot[spec.Id.ToString()] = CompileSlotMap(
+                dynamicSpells,
+                staticSpells,
+                specialSpells,
+                existingSpellNames,
+                spec.Id,
+                $"{classFile}[专精 {spec.Id} {spec.Name}]",
+                warnings);
+        }
+
+        root["专精"] = specRoot;
+        return (root, warnings);
+    }
+
+    private static JsonObject CompileSlotMap(
+        IReadOnlyList<string> dynamicSpells,
+        IReadOnlyList<MacroEntry> staticSpells,
+        IReadOnlyList<MacroEntry> specialSpells,
+        ExistingSpellNames existingSpellNames,
+        int? specId,
+        string warningContext,
+        List<string> warnings)
+    {
         var dynamicSlots = dynamicSpells.Count * 30;
+        var requiredSlots = (long)dynamicSpells.Count * 30 + staticSpells.Count + specialSpells.Count;
+        if (requiredSlots > MacroKind.Length)
+        {
+            warnings.Add(
+                $"{warningContext}: 槽位容量溢出，需要 {requiredSlots} 个，最多 {MacroKind.Length} 个；" +
+                $"末尾 {requiredSlots - MacroKind.Length} 个槽位不会写入 keymap");
+        }
 
         var root = new JsonObject();
         for (var i = 1; i <= MacroKind.Length; i++)
@@ -167,11 +237,11 @@ internal static partial class FuyutsuiKeymapConverter
 
                 if (entry is { Body.Length: > 0 }
                     && IsWeakSpellName(spell)
-                    && existingSpellNames.TryGetValue(i, out var preserved)
+                    && TryGetExistingSpellName(existingSpellNames, specId, i, out var preserved)
                     && !string.IsNullOrWhiteSpace(preserved)
                     && !IsWeakSpellName(preserved))
                 {
-                    warnings.Add($"{classFile}[{i}]: 保留原技能名「{preserved}」（宏推导为「{spell}」）");
+                    warnings.Add($"{warningContext}[{i}]: 保留原技能名「{preserved}」（宏推导为「{spell}」）");
                     spell = preserved;
                 }
             }
@@ -184,7 +254,45 @@ internal static partial class FuyutsuiKeymapConverter
             };
         }
 
-        return (root, warnings);
+        return root;
+    }
+
+    private static bool IsSpecializedDynamicFormat(TableValue? dynamicTable)
+    {
+        if (dynamicTable is null)
+        {
+            return false;
+        }
+
+        return dynamicTable.GetTable("common") is not null
+            || GetDynamicSpecIndexes(dynamicTable).Count > 0;
+    }
+
+    private static TableValue? GetIndexedTable(TableValue? table, int index)
+    {
+        return table?.GetTable((long)index) ?? table?.GetTable(index);
+    }
+
+    private static IReadOnlyList<int> GetDynamicSpecIndexes(TableValue? table)
+    {
+        if (table is null)
+        {
+            return [];
+        }
+
+        return table.Entries
+            .Where(entry => entry.Value is TableValue)
+            .Select(entry => entry.Key switch
+            {
+                long value when value is > 0 and <= int.MaxValue => (int?)value,
+                int value when value > 0 => value,
+                _ => null
+            })
+            .Where(index => index is not null)
+            .Select(index => index!.Value)
+            .Distinct()
+            .OrderBy(index => index)
+            .ToList();
     }
 
     private static bool IsWeakSpellName(string? spell)
@@ -200,7 +308,7 @@ internal static partial class FuyutsuiKeymapConverter
     internal readonly record struct ParsedMacro(int Unit, string Spell);
 
     /// <summary>
-    /// 解析静态宏供 keymap 与宏列表共用。玩家、当前目标、焦点、地面、鼠标指向分别使用保留单位 31-35。
+    /// 解析静态宏供 keymap 与宏列表共用。目标类单位使用 31-35，引导/非引导使用 36-37。
     /// </summary>
     internal static ParsedMacro ParseStaticMacro(string raw, string? comment = null)
     {
@@ -208,6 +316,11 @@ internal static partial class FuyutsuiKeymapConverter
         var unit = target.Success
             ? ResolveUnitName(target.Groups["unit"].Value)
             : ReservedUnit.None;
+
+        if (unit == ReservedUnit.None && SpecialUnitRegex().Match(raw) is { Success: true } directUnit)
+        {
+            unit = ResolveUnitName(directUnit.Groups["unit"].Value);
+        }
 
         return new ParsedMacro(unit, ResolveSpellName(new MacroEntry(raw, comment)));
     }
@@ -243,6 +356,8 @@ internal static partial class FuyutsuiKeymapConverter
             "focus" or "焦点" or "33" => ReservedUnit.Focus,
             "cursor" or "地面" or "34" => ReservedUnit.Cursor,
             "mouseover" or "鼠标" or "35" => ReservedUnit.Mouseover,
+            "channeling" or "引导中" or "36" => ReservedUnit.Channeling,
+            "nochanneling" or "非引导" or "37" => ReservedUnit.NoChanneling,
             _ => ReservedUnit.None
         };
     }
@@ -382,42 +497,91 @@ internal static partial class FuyutsuiKeymapConverter
         return result;
     }
 
-    private static Dictionary<int, string> LoadExistingSpellNames(string jsonPath)
+    private sealed record ExistingSpellNames(
+        IReadOnlyDictionary<int, string> Fallback,
+        IReadOnlyDictionary<int, IReadOnlyDictionary<int, string>> BySpec)
     {
-        var result = new Dictionary<int, string>();
+        public static readonly ExistingSpellNames Empty = new(
+            new Dictionary<int, string>(),
+            new Dictionary<int, IReadOnlyDictionary<int, string>>());
+    }
+
+    private static ExistingSpellNames LoadExistingSpellNames(string jsonPath)
+    {
         if (!File.Exists(jsonPath))
         {
-            return result;
+            return ExistingSpellNames.Empty;
         }
 
         try
         {
             if (JsonNode.Parse(File.ReadAllText(jsonPath)) is not JsonObject root)
             {
-                return result;
+                return ExistingSpellNames.Empty;
             }
 
-            foreach (var (key, node) in root)
+            var fallback = ReadExistingSpellNames(root);
+            var bySpec = new Dictionary<int, IReadOnlyDictionary<int, string>>();
+            if (JsonHelpers.Get(root, "专精") is JsonObject specRoot)
             {
-                if (!int.TryParse(key, out var id) || node is not JsonObject entry)
+                foreach (var (key, node) in specRoot)
                 {
-                    continue;
-                }
+                    if (!int.TryParse(key, out var specId) || node is not JsonObject specMap)
+                    {
+                        continue;
+                    }
 
-                var spell = JsonHelpers.GetString(JsonHelpers.Get(entry, "技能"))
-                    ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "spell"));
-                if (!string.IsNullOrWhiteSpace(spell))
-                {
-                    result[id] = spell;
+                    bySpec[specId] = ReadExistingSpellNames(specMap);
                 }
             }
+
+            return new ExistingSpellNames(fallback, bySpec);
         }
         catch
         {
             // 旧 keymap 损坏时忽略，按宏全量重建。
+            return ExistingSpellNames.Empty;
+        }
+    }
+
+    private static IReadOnlyDictionary<int, string> ReadExistingSpellNames(JsonObject map)
+    {
+        var result = new Dictionary<int, string>();
+        foreach (var (key, node) in map)
+        {
+            if (!int.TryParse(key, out var id) || node is not JsonObject entry)
+            {
+                continue;
+            }
+
+            var spell = JsonHelpers.GetString(JsonHelpers.Get(entry, "技能"))
+                ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "spell"));
+            if (!string.IsNullOrWhiteSpace(spell))
+            {
+                result[id] = spell;
+            }
         }
 
         return result;
+    }
+
+    private static bool TryGetExistingSpellName(
+        ExistingSpellNames existingSpellNames,
+        int? specId,
+        int slot,
+        out string spell)
+    {
+        if (specId is { } id
+            && existingSpellNames.BySpec.TryGetValue(id, out var specNames)
+            && specNames.TryGetValue(slot, out var specSpell)
+            && !string.IsNullOrWhiteSpace(specSpell)
+            && !IsWeakSpellName(specSpell))
+        {
+            spell = specSpell;
+            return true;
+        }
+
+        return existingSpellNames.Fallback.TryGetValue(slot, out spell!);
     }
 
     private static string[] BuildMacroKind()
@@ -450,6 +614,6 @@ internal static partial class FuyutsuiKeymapConverter
     [GeneratedRegex(@"\[[^\]]*@(?<unit>cursor|target|focus|player|mouseover)\b[^\]]*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex StaticTargetRegex();
 
-    [GeneratedRegex(@"\[\s*@?(?<unit>player|target|focus|cursor|mouseover|玩家|目标|焦点|地面|鼠标|无目标|0|31|32|33|34|35)\s*(?:,|\])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\[\s*@?(?<unit>player|target|focus|cursor|mouseover|channeling|nochanneling|玩家|目标|焦点|地面|鼠标|引导中|非引导|无目标|0|31|32|33|34|35|36|37)\s*(?:,|\])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SpecialUnitRegex();
 }
