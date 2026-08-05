@@ -9,6 +9,7 @@ public sealed class KeymapService
     private readonly ConfigService _config;
     private readonly Dictionary<(int Unit, string Spell), string> _hotkeys = new();
     private int? _currentClassId;
+    private int? _currentSpecId;
 
     public KeymapService(string baseDirectory, ConfigService config)
     {
@@ -18,12 +19,18 @@ public sealed class KeymapService
 
     public void SelectForClass(int? classId)
     {
-        if (_currentClassId == classId && _hotkeys.Count > 0)
+        SelectForClass(classId, null);
+    }
+
+    public void SelectForClass(int? classId, int? specId)
+    {
+        if (_currentClassId == classId && _currentSpecId == specId && _hotkeys.Count > 0)
         {
             return;
         }
 
         _currentClassId = classId;
+        _currentSpecId = specId;
         _hotkeys.Clear();
 
         var path = KeymapCatalog.ResolveKeymapFilePath(_baseDirectory, _config.GetKeymapName(classId));
@@ -43,7 +50,15 @@ public sealed class KeymapService
             return;
         }
 
-        foreach (var (_, node) in root)
+        var entries = root;
+        if (specId is { } id
+            && JsonHelpers.Get(root, "专精") is JsonObject specRoot
+            && JsonHelpers.Get(specRoot, id.ToString()) is JsonObject specEntries)
+        {
+            entries = specEntries;
+        }
+
+        foreach (var (_, node) in entries)
         {
             if (node is not JsonObject entry)
             {
@@ -79,4 +94,3 @@ public sealed class KeymapService
         return _config.GetOneKeySpells(_currentClassId);
     }
 }
-

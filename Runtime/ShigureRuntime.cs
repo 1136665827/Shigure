@@ -18,6 +18,7 @@ public sealed class ShigureRuntime
     private int? _classId;
     private int? _specId;
     private string? _moduleName;
+    private string? _scanFailureReason;
     private string _currentStep = "等待启动";
     private IReadOnlyDictionary<string, object?> _unitInfo = new Dictionary<string, object?>();
     private bool _enabled;
@@ -157,6 +158,7 @@ public sealed class ShigureRuntime
     private void TickLogic()
     {
         var scan = _scanner.ScanScreenData();
+        _scanFailureReason = scan.FailureReason;
 
         if (scan.RowData is null)
         {
@@ -179,7 +181,7 @@ public sealed class ShigureRuntime
         _classId = _state.GetInt("职业");
         _specId = _state.GetInt("专精");
         (_className, _specName) = ClassNames.GetClassAndSpecName(_classId, _specId);
-        _keymap.SelectForClass(_classId);
+        _keymap.SelectForClass(_classId, _specId);
 
         if (!_state.GetBool("有效性"))
         {
@@ -225,7 +227,18 @@ public sealed class ShigureRuntime
 
     private void SendAndPauseLogic(LogicDecision decision)
     {
-        _keySender.Send(decision.Hotkey!);
+        if (!_keySender.Send(decision.Hotkey!))
+        {
+            var info = _unitInfo.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value,
+                StringComparer.Ordinal);
+            info["发送失败"] = _keySender.LastFailureReason ?? "未知原因";
+            _unitInfo = info;
+            _currentStep = $"{decision.Step}（按键发送失败）";
+            return;
+        }
+
         if (decision.LogicDelayMs > 0)
         {
             _logicPausedUntil = DateTimeOffset.UtcNow.AddMilliseconds(decision.LogicDelayMs);
@@ -264,7 +277,8 @@ public sealed class ShigureRuntime
             _state,
             _currentStep,
             _unitInfo,
-            BuildDynamicValues(_state)));
+            BuildDynamicValues(_state),
+            _scanFailureReason));
     }
 
     private static IReadOnlyList<DynamicValueSnapshot> BuildDynamicValues(GameState? state)

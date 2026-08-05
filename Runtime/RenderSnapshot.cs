@@ -10,6 +10,7 @@ public sealed record RenderSnapshot(
     GameState? State,
     string CurrentStep,
     IReadOnlyDictionary<string, object?> UnitInfo,
-    IReadOnlyList<DynamicValueSnapshot> DynamicValues);
+    IReadOnlyList<DynamicValueSnapshot> DynamicValues,
+    string? ScanFailureReason);
 
 public sealed record DynamicValueSnapshot(string Kind, string Name, string Value);

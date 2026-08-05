@@ -66,44 +66,68 @@ public sealed class KeySender
         _windowTitle = windowTitle;
     }
 
+    public string? LastFailureReason { get; private set; }
+
     public bool Send(string hotkey)
     {
+        LastFailureReason = null;
         var (mods, mainKey) = ParseHotkey(hotkey);
         if (mainKey is null)
         {
-            return false;
+            return Fail($"无法解析按键“{hotkey}”");
         }
 
         var vkMain = GetVk(mainKey);
         if (vkMain is null)
         {
-            return false;
+            return Fail($"无法识别主键“{mainKey}”");
         }
 
         var hwnd = NativeMethods.FindWindow(null, _windowTitle);
         if (hwnd == 0)
         {
-            return false;
+            return Fail($"未找到目标窗口“{_windowTitle}”");
         }
 
         // ParseHotkey 只产出去重后的 CTRL/ALT/SHIFT, 三者都在 Vk 表里且映射到互异 VK,
         // 故 GetVk 不会为 null、结果天然去重。
         var modVks = mods.Select(m => GetVk(m)!.Value).ToList();
 
-        foreach (var vk in modVks)
+        var succeeded = true;
+        var firstError = 0;
+        void SendMessage(int vk, bool keyUp)
         {
-            Post(hwnd, vk, keyUp: false);
+            if (!Post(hwnd, vk, keyUp, out var error))
+            {
+                succeeded = false;
+                if (firstError == 0)
+                {
+                    firstError = error;
+                }
+            }
         }
 
-        Post(hwnd, vkMain.Value, keyUp: false);
-        Post(hwnd, vkMain.Value, keyUp: true);
+        foreach (var vk in modVks)
+        {
+            SendMessage(vk, keyUp: false);
+        }
+
+        SendMessage(vkMain.Value, keyUp: false);
+        SendMessage(vkMain.Value, keyUp: true);
 
         for (var i = modVks.Count - 1; i >= 0; i--)
         {
-            Post(hwnd, modVks[i], keyUp: true);
+            SendMessage(modVks[i], keyUp: true);
         }
 
-        return true;
+        if (succeeded)
+        {
+            return true;
+        }
+
+        return Fail(firstError == 5
+            ? "权限不足（Win32 错误码 5）：请确认 Shigure 与魔兽世界使用相同的管理员权限运行"
+            : $"向目标窗口发送按键失败，Win32 错误码: {firstError}");
     }
 
     public static int? GetVk(string keyName)
@@ -170,14 +194,32 @@ public sealed class KeySender
         return (mods, mainKey);
     }
 
-    private static void Post(nint hwnd, int keyCode, bool keyUp)
+    private bool Fail(string reason)
     {
-        nint lParam = keyUp ? unchecked((nint)(int)0xC0000001) : (nint)0x00000001;
-        NativeMethods.PostMessageW(
+        LastFailureReason = reason;
+        return false;
+    }
+
+    private static bool Post(nint hwnd, int keyCode, bool keyUp, out int error)
+    {
+        var scanCode = NativeMethods.MapVirtualKeyW((uint)keyCode, 0) & 0xFF;
+        var value = 1u | (scanCode << 16);
+        if (keyCode == 0x6F) // VK_DIVIDE 是扩展键。
+        {
+            value |= 1u << 24;
+        }
+
+        if (keyUp)
+        {
+            value |= (1u << 30) | (1u << 31);
+        }
+
+        var posted = NativeMethods.PostMessageW(
             hwnd,
             keyUp ? NativeMethods.WmKeyUp : NativeMethods.WmKeyDown,
             (nint)keyCode,
-            lParam);
+            unchecked((nint)(int)value));
+        error = posted ? 0 : System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+        return posted;
     }
 }
-
