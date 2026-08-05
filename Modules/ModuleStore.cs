@@ -305,30 +305,30 @@ public sealed class ModuleStore
 
     public void Reload()
     {
-        Directory.CreateDirectory(ModuleDirectory);
-        var loaded = new List<ModuleDefinition>();
-        foreach (var file in Directory.EnumerateFiles(ModuleDirectory, "*.json", SearchOption.AllDirectories))
-        {
-            try
-            {
-                var module = JsonSerializer.Deserialize<ModuleDefinition>(File.ReadAllText(file), JsonOptions);
-                if (module is null)
-                {
-                    continue;
-                }
-
-                Normalize(module);
-                module.FilePath = file;
-                loaded.Add(module);
-            }
-            catch
-            {
-                // 单个模块损坏时跳过，避免影响其它模块加载。
-            }
-        }
-
         lock (_gate)
         {
+            Directory.CreateDirectory(ModuleDirectory);
+            var loaded = new List<ModuleDefinition>();
+            foreach (var file in Directory.EnumerateFiles(ModuleDirectory, "*.json", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    var module = JsonSerializer.Deserialize<ModuleDefinition>(File.ReadAllText(file), JsonOptions);
+                    if (module is null)
+                    {
+                        continue;
+                    }
+
+                    Normalize(module);
+                    module.FilePath = file;
+                    loaded.Add(module);
+                }
+                catch
+                {
+                    // 单个模块损坏时跳过，避免影响其它模块加载。
+                }
+            }
+
             _modules = SortModules(loaded).ToList();
         }
     }
@@ -375,47 +375,65 @@ public sealed class ModuleStore
             {
                 throw new InvalidOperationException($"模块名称“{module.Name}”已存在。");
             }
-        }
 
-        if (File.Exists(path)
-            && (string.IsNullOrWhiteSpace(oldPath) || !PathsEqual(oldPath, path)))
-        {
-            throw new InvalidOperationException($"模块文件“{Path.GetFileName(path)}”已存在，请使用其他名称。");
-        }
+            if (File.Exists(path)
+                && (string.IsNullOrWhiteSpace(oldPath) || !PathsEqual(oldPath, path)))
+            {
+                throw new InvalidOperationException($"模块文件“{Path.GetFileName(path)}”已存在，请使用其他名称。");
+            }
 
-        if (!string.IsNullOrWhiteSpace(oldPath)
-            && IsInsideModuleDirectory(oldPath)
-            && !PathsEqual(oldPath, path)
-            && File.Exists(oldPath))
-        {
-            File.Delete(oldPath);
-        }
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            WriteFileAtomically(path, JsonSerializer.Serialize(module, JsonOptions));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(module, JsonOptions));
-        module.FilePath = path;
+            if (!string.IsNullOrWhiteSpace(oldPath)
+                && IsInsideModuleDirectory(oldPath)
+                && !PathsEqual(oldPath, path)
+                && File.Exists(oldPath))
+            {
+                try
+                {
+                    File.Delete(oldPath);
+                }
+                catch (Exception deleteError)
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch (Exception rollbackError)
+                    {
+                        throw new AggregateException(
+                            "模块已写入新文件，但旧文件删除失败，且无法回滚新文件。",
+                            deleteError,
+                            rollbackError);
+                    }
 
-        lock (_gate)
-        {
+                    throw;
+                }
+            }
+
+            module.FilePath = path;
             _modules.RemoveAll(existing =>
                 string.Equals(existing.Id, module.Id, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(existing.FilePath, path, StringComparison.OrdinalIgnoreCase));
             _modules.Add(module.Clone());
             _modules = SortModules(_modules).ToList();
-        }
 
-        return module.Clone();
+            return module.Clone();
+        }
     }
 
     public void Delete(ModuleDefinition module)
     {
-        if (!string.IsNullOrWhiteSpace(module.FilePath) && IsInsideModuleDirectory(module.FilePath) && File.Exists(module.FilePath))
-        {
-            File.Delete(module.FilePath);
-        }
-
         lock (_gate)
         {
+            if (!string.IsNullOrWhiteSpace(module.FilePath)
+                && IsInsideModuleDirectory(module.FilePath)
+                && File.Exists(module.FilePath))
+            {
+                File.Delete(module.FilePath);
+            }
+
             _modules.RemoveAll(existing =>
                 string.Equals(existing.Id, module.Id, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(existing.FilePath, module.FilePath, StringComparison.OrdinalIgnoreCase));
@@ -439,6 +457,43 @@ public sealed class ModuleStore
                     return name;
                 }
             }
+        }
+    }
+
+    private static void WriteFileAtomically(string path, string content)
+    {
+        var directory = Path.GetDirectoryName(path)!;
+        var tempPath = Path.Combine(
+            directory,
+            $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            File.WriteAllText(tempPath, content);
+            if (File.Exists(path))
+            {
+                File.Move(tempPath, path, overwrite: true);
+            }
+            else
+            {
+                File.Move(tempPath, path);
+            }
+        }
+        catch
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch
+            {
+                // 保留原始写入异常；残留临时文件不会被模块扫描加载。
+            }
+
+            throw;
         }
     }
 
@@ -617,7 +672,7 @@ public sealed class ModuleStore
 
 public static class ModuleLogic
 {
-    public static LogicDecision Run(ModuleDefinition module, GameState state, KeymapService keymap)
+    public static LogicDecision Run(ModuleDefinition module, GameState state, IKeymapResolver keymap)
     {
         var info = CreateInfo(module, state);
         var unitSlots = ResolveDynamicFields(module, state);

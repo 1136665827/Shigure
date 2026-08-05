@@ -28,6 +28,18 @@ internal static class Program
             return;
         }
 
-        Application.Run(new MainForm(AppOptions.FromArgs(args)));
+        var options = AppOptions.FromArgs(args);
+        var baseDirectory = AppPaths.BaseDirectory;
+        var moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory(baseDirectory));
+        var triggerKeyState = new WindowsTriggerKeyState();
+        var runtimeFactory = new ShigureRuntimeFactory(baseDirectory, moduleStore, triggerKeyState);
+        var runtimeSession = new RuntimeSessionCoordinator(runtimeFactory);
+
+        Application.Run(new MainForm(
+            options,
+            baseDirectory,
+            moduleStore,
+            triggerKeyState,
+            runtimeSession));
     }
 }

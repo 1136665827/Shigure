@@ -10,7 +10,7 @@ public sealed record ScreenScanResult(
     IReadOnlyDictionary<int, int> HealAbsorbData,
     string? FailureReason);
 
-public sealed class PixelScanner
+public sealed class PixelScanner : IRuntimeScreenScanner
 {
     private const int TopRowBlockCount = 510;
     private const int TopRowFirstSchemeMax = 255;

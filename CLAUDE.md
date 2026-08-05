@@ -37,7 +37,7 @@ PixelScanner.ScanScreenData()           Runtime/PixelScanner.cs   截屏读像�
         ↓
 StateBuilder.Build(rowData, barData)     Runtime/StateBuilder.cs   按 config 把像素翻译成 GameState 字段
         ↓ GameState (Runtime/GameState.cs: Values / Spells / Group)
-LogicRegistry.Run(classId, specId, ...)  Modules/LogicRegistry.cs
+LogicRegistry.Evaluate(classId, specId, ...) Modules/LogicRegistry.cs
         ├─ 命中模块 → ModuleLogic.Run(module, state, keymap)
         ├─ 否则该职业注册了 IClassLogic → 它
         └─ 否则 DefaultClassLogic
@@ -45,13 +45,15 @@ LogicRegistry.Run(classId, specId, ...)  Modules/LogicRegistry.cs
 KeySender.Send(hotkey)                    Input/KeySender.cs (+ Input/NativeMethods.cs Win32 互操作)
 ```
 
-UI 侧：[UI/MainForm.cs](UI/MainForm.cs) 是无边框置顶浮动条，托管 `ShigureRuntime` 和 [UI/StatusForm.cs](UI/StatusForm.cs)（九页签设置窗口：通用/配置/宏/模块/状态/队伍/逻辑/日志/关于）。运行时通过 `SnapshotUpdated` 事件推送 `RenderSnapshot` 给 UI 刷新。
+应用组合根在 [App/Program.cs](App/Program.cs)：统一创建 `ModuleStore`、Win32 触发键适配器、`ShigureRuntimeFactory` 与 `RuntimeSessionCoordinator`。后者串行管理运行时的启动/重启/停止，避免 UI 的并发设置事件互相清理会话。[UI/MainForm.cs](UI/MainForm.cs) 是无边框置顶浮动条，把运行意图和生命周期交给协调器，并展示 [UI/StatusForm.cs](UI/StatusForm.cs)（九页签设置窗口：通用/配置/宏/模块/状态/队伍/逻辑/日志/关于）。运行时通过 `SnapshotUpdated` 事件推送 `RenderSnapshot` 给 UI 刷新。
+
+`ShigureRuntime` 不创建具体 I/O 依赖；生产依赖由 `ShigureRuntimeFactory` 注入，窄端口定义在 [Runtime/RuntimeDependencies.cs](Runtime/RuntimeDependencies.cs)。外部启停请求先进入命令队列，只有 `RunAsync` 循环能修改运行状态。改动运行时依赖或生命周期时保留这两个约束。
 
 ### 目录约定
 
 ```
-App/            入口、启动参数、随机重启
-Runtime/        扫描、状态构建、主循环、快照
+App/            入口、启动参数、随机重启、依赖组装、运行时会话协调
+Runtime/        扫描、状态构建、主循环、运行时端口、快照
 Modules/        模块模型/存储/匹配/规则执行、条件求值(FormulaEvaluator)、字段目录、职业逻辑
 Input/          keymap 读取、按键发送、Win32 API
 Infrastructure/ 配置读取(ConfigService)、JSON 辅助、UI 缓存、路径、Fuyutsui 插件文件读写
@@ -62,6 +64,7 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 ## 模块解析（改逻辑前必读）
 
 - 模块以 `module/模块名.json` 平铺保存，**文件名取自模块名，故模块名不可重复**；加载递归扫描子目录。模型在 [Modules/ModuleStore.cs](Modules/ModuleStore.cs)（`ModuleDefinition`/`ModuleMatch`/`ModuleRule`/`ModuleUnit`/`ModuleCountField`/`ModuleValueAdjustment`）。`RecommendedTalent` 是 `ModuleDefinition` 上的纯展示字段，不参与匹配（`ModuleMatch.Specificity` 不计入）。
+- `ModuleStore` 的 `Reload`/`Save`/`Delete` 会在同一个门锁内串行完整文件事务与内存快照更新；`Save` 通过同目录临时文件提交，重命名失败会回滚新文件。编辑器写入不要绕过它，避免运行时重载读到半次操作。
 - 选择优先级：`ModuleStore.FindSelectedOrBestMatch` —— 先用 UI/参数选定的 `ModuleId`；否则取 `Match` 命中字段最多者（`ModuleMatch.Specificity` 越大越优先），并列按名称。`Match` 字段留空 = 任意。`PartyType` 数字会归一化为 `"1-40"`。
 - 动态单位/数量/动态数值的语义见 [README.md](README.md#动态单位与数量字段)；列表与编辑器的人类可读摘要统一走 [UI/UnitSummary.cs](UI/UnitSummary.cs)`.Describe(...)`（单一来源，勿再复制一份描述逻辑）。
 
@@ -100,6 +103,7 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 - [UI/ClassConfigEditorControl.cs](UI/ClassConfigEditorControl.cs)：左侧职业列表 + 右侧按专精切换的四页编辑器（状态/光环/法术/队伍），状态字段用 `ClassStateCatalog` 驱动的 `ComboBoxColumn`。
 - [UI/ClassMacrosEditorControl.cs](UI/ClassMacrosEditorControl.cs)：左侧职业列表 + 右侧三页编辑器（动态宏/静态宏/特殊宏），偏移提示显示槽位编号计算。
 - 两个编辑器均接受 `Func<string?>` 定位器 + `Func<Task>` 保存回调，由 `MainForm` 在构造时注入。保存流程：编辑器调 `Store.Save()` → 回调 `MainForm.UpdateConfigFromAddonAsync()` → 重新生成 config/keymap → 重启运行时。
+- `UpdateConfigFromAddonAsync` 的多个入口通过任务尾队列串行执行；运行时重启会等待该队列稳定，主窗口关闭也会等待正在写盘的转换完成。新增同步入口必须继续走这条队列。
 
 ## UI 约定
 

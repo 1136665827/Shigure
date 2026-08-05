@@ -2,7 +2,7 @@
 
 namespace Shigure;
 
-public sealed class StateBuilder
+public sealed class StateBuilder : IRuntimeStateBuilder
 {
     private readonly ConfigService _config;
 
