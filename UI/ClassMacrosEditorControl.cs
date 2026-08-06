@@ -235,8 +235,8 @@ public sealed class ClassMacrosEditorControl : UserControl
         var pages = new Control[]
         {
             BuildDynamicPage(),
-            BuildArrayPage(_staticGrid, "法术/条件或完整宏（空字符串 = 占位）", "注释", showParsedMacro: true),
-            BuildArrayPage(_specialGrid, "追加宏内容（空字符串 = 占位）", "注释", showParsedMacro: true)
+            BuildArrayPage(_staticGrid, "完整宏", "注释", showParsedMacro: true),
+            BuildArrayPage(_specialGrid, "完整宏", "注释", showParsedMacro: true)
         };
         foreach (var page in pages)
         {
@@ -436,6 +436,13 @@ public sealed class ClassMacrosEditorControl : UserControl
                 Name = "Unit",
                 HeaderText = "单位",
                 Width = 72,
+                ReadOnly = true
+            });
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Condition",
+                HeaderText = "条件",
+                Width = 180,
                 ReadOnly = true
             });
             grid.Columns.Add(new DataGridViewTextBoxColumn
@@ -1074,6 +1081,7 @@ public sealed class ClassMacrosEditorControl : UserControl
     {
         if (!grid.Columns.Contains("Unit")
             || !grid.Columns.Contains("Spell")
+            || !grid.Columns.Contains("Condition")
             || row.IsNewRow)
         {
             return;
@@ -1092,6 +1100,7 @@ public sealed class ClassMacrosEditorControl : UserControl
                 ? ReservedUnit.ToDisplayText(parsed.Unit)
                 : parsed.Unit.ToString(CultureInfo.InvariantCulture);
             row.Cells["Spell"].Value = parsed.Spell;
+            row.Cells["Condition"].Value = MacroConditionText.ToDisplayText(parsed.Condition);
         }
         finally
         {

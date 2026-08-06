@@ -8,7 +8,7 @@ namespace Shigure;
 
 public sealed class ModuleDefinition
 {
-    internal const int CurrentUnitMappingVersion = 2;
+    internal const int CurrentUnitMappingVersion = 3;
 
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = "新模块";
@@ -16,7 +16,7 @@ public sealed class ModuleDefinition
     public string RecommendedTalent { get; set; } = string.Empty;
     // 保存时写入当时的 Shigure 版本(AppInfo.Version)。
     public string Version { get; set; } = string.Empty;
-    // v2: 31=玩家、32=目标、33=焦点、34=地面、35=鼠标、36=引导中、37=非引导；旧模块 v1 的 31/34 含义相反。
+    // v2: 31=玩家、32=目标、33=焦点、34=地面、35=鼠标；v3: 36/37 从目标迁移为引导/非引导宏条件。
     public int? UnitMappingVersion { get; set; }
     public bool Enabled { get; set; } = true;
     public ModuleMatch Match { get; set; } = new();
@@ -197,6 +197,8 @@ public sealed class ModuleRule
     public int? Unit { get; set; }
     public string? UnitName { get; set; }
     public string Spell { get; set; } = string.Empty;
+    // null 表示升级前的旧模块（运行时沿用原二元匹配）；空字符串表示明确选择无宏条件。
+    public string? MacroCondition { get; set; }
     public string Hotkey { get; set; } = string.Empty;
     public string Step { get; set; } = string.Empty;
 
@@ -216,6 +218,7 @@ public sealed class ModuleRule
             Unit = Unit,
             UnitName = UnitName,
             Spell = Spell,
+            MacroCondition = MacroCondition,
             Hotkey = Hotkey,
             Step = Step,
             SubConditions = SubConditions is null ? null : new List<string>(SubConditions)
@@ -572,7 +575,8 @@ public sealed class ModuleStore
         }
 
         module.Rules ??= new List<ModuleRule>();
-        if (module.UnitMappingVersion.GetValueOrDefault() < ModuleDefinition.CurrentUnitMappingVersion)
+        var unitMappingVersion = module.UnitMappingVersion.GetValueOrDefault();
+        if (unitMappingVersion < 2)
         {
             foreach (var rule in module.Rules)
             {
@@ -584,12 +588,30 @@ public sealed class ModuleStore
                 };
             }
 
-            module.UnitMappingVersion = ModuleDefinition.CurrentUnitMappingVersion;
         }
+
+        if (unitMappingVersion < 3)
+        {
+            foreach (var rule in module.Rules)
+            {
+                if (rule.Unit is 36 or 37)
+                {
+                    var normalizedMacro = MacroConditionText.NormalizeLegacyUnit(rule.Unit.Value, rule.MacroCondition);
+                    rule.Unit = normalizedMacro.Unit;
+                    rule.MacroCondition = normalizedMacro.Condition;
+                }
+            }
+        }
+
+        module.UnitMappingVersion = ModuleDefinition.CurrentUnitMappingVersion;
 
         foreach (var rule in module.Rules)
         {
             rule.Spell = ModuleSpecialActions.NormalizeSpellAction(rule.Spell);
+            if (rule.MacroCondition is not null)
+            {
+                rule.MacroCondition = MacroConditionText.Normalize(rule.MacroCondition);
+            }
             rule.DelayMs = rule.DelayMs is > 0 ? rule.DelayMs : null;
             rule.LogicDelayMs = rule.LogicDelayMs is > 0 ? rule.LogicDelayMs : null;
             if (rule.SubConditions is null)
@@ -746,24 +768,29 @@ public static class ModuleLogic
                 resolvedUnit = 0;
             }
 
+            var resolvedMacroCondition = rule.MacroCondition;
             var hotkey = string.IsNullOrWhiteSpace(rule.Hotkey)
-                ? string.IsNullOrWhiteSpace(actionSpell) ? null : keymap.GetHotkey(resolvedUnit, actionSpell)
+                ? string.IsNullOrWhiteSpace(actionSpell) ? null : keymap.GetHotkey(resolvedUnit, actionSpell, resolvedMacroCondition)
                 : rule.Hotkey.Trim();
             if (isOneKeySpell
                 && string.IsNullOrWhiteSpace(rule.Hotkey)
                 && string.IsNullOrWhiteSpace(hotkey)
                 && !string.IsNullOrWhiteSpace(actionSpell))
             {
-                hotkey = keymap.GetHotkey(ReservedUnit.NoChanneling, actionSpell);
+                hotkey = keymap.GetHotkey(ReservedUnit.None, actionSpell, MacroConditionText.NoChanneling);
                 if (!string.IsNullOrWhiteSpace(hotkey))
                 {
-                    resolvedUnit = ReservedUnit.NoChanneling;
+                    resolvedUnit = ReservedUnit.None;
+                    resolvedMacroCondition = MacroConditionText.NoChanneling;
                 }
             }
 
             var step = BuildStep(module, rule, hotkey, actionSpell);
             info["命中条件"] = string.IsNullOrWhiteSpace(rule.Condition) ? "始终" : rule.Condition;
             info["动作技能"] = string.IsNullOrWhiteSpace(actionSpell) ? "-" : actionSpell;
+            info["宏条件"] = string.IsNullOrWhiteSpace(resolvedMacroCondition)
+                ? "-"
+                : MacroConditionText.ToDisplayText(resolvedMacroCondition);
             info["动作按键"] = string.IsNullOrWhiteSpace(hotkey) ? "-" : hotkey;
             info["动作单位"] = string.IsNullOrWhiteSpace(rule.UnitName)
                 ? resolvedUnit.GetValueOrDefault()

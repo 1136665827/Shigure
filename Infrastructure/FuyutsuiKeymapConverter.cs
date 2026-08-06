@@ -188,6 +188,7 @@ internal static partial class FuyutsuiKeymapConverter
             var hotkey = MacroKind[i - 1];
             var unit = 0;
             var spell = string.Empty;
+            var macroCondition = string.Empty;
 
             if (i <= dynamicSlots)
             {
@@ -226,12 +227,14 @@ internal static partial class FuyutsuiKeymapConverter
                         var parsed = ParseStaticMacro(macroEntry.Body, macroEntry.Comment);
                         unit = parsed.Unit;
                         spell = parsed.Spell;
+                        macroCondition = parsed.Condition;
                     }
                     else
                     {
                         var parsed = ParseSpecialMacro(macroEntry.Body, macroEntry.Comment);
                         unit = parsed.Unit;
                         spell = parsed.Spell;
+                        macroCondition = parsed.Condition;
                     }
                 }
 
@@ -249,6 +252,7 @@ internal static partial class FuyutsuiKeymapConverter
             root[i.ToString()] = new JsonObject
             {
                 ["unit"] = unit,
+                ["宏条件"] = macroCondition,
                 ["技能"] = spell,
                 ["热键"] = hotkey
             };
@@ -305,10 +309,10 @@ internal static partial class FuyutsuiKeymapConverter
         return spell.StartsWith("item:", StringComparison.OrdinalIgnoreCase);
     }
 
-    internal readonly record struct ParsedMacro(int Unit, string Spell);
+    internal readonly record struct ParsedMacro(int Unit, string Spell, string Condition);
 
     /// <summary>
-    /// 解析静态宏供 keymap 与宏列表共用。目标类单位使用 31-35，引导/非引导使用 36-37。
+    /// 解析静态宏供 keymap 与宏列表共用。只有方括号内以 @ 开头的项属于目标。
     /// </summary>
     internal static ParsedMacro ParseStaticMacro(string raw, string? comment = null)
     {
@@ -317,16 +321,14 @@ internal static partial class FuyutsuiKeymapConverter
             ? ResolveUnitName(target.Groups["unit"].Value)
             : ReservedUnit.None;
 
-        if (unit == ReservedUnit.None && SpecialUnitRegex().Match(raw) is { Success: true } directUnit)
-        {
-            unit = ResolveUnitName(directUnit.Groups["unit"].Value);
-        }
-
-        return new ParsedMacro(unit, ResolveSpellName(new MacroEntry(raw, comment)));
+        return new ParsedMacro(
+            unit,
+            ResolveSpellName(new MacroEntry(raw, comment)),
+            ResolveConditions(raw));
     }
 
     /// <summary>
-    /// 解析特殊宏：方括号中的首个单位作为 unit，技能沿用宏技能推导（castsequence 只取逗号前首项）。
+    /// 解析特殊宏：方括号中以 @ 开头的首个单位作为 unit，技能沿用宏技能推导（castsequence 只取逗号前首项）。
     /// </summary>
     internal static ParsedMacro ParseSpecialMacro(string raw, string? comment = null)
     {
@@ -336,15 +338,21 @@ internal static partial class FuyutsuiKeymapConverter
             ? ResolveUnitName(target.Groups["unit"].Value)
             : ReservedUnit.None;
 
-        // 特殊宏也接受 [player]/[玩家]/[31] 这种“方括号内直接写单位”的简写。
-        if (unit == ReservedUnit.None && SpecialUnitRegex().Match(raw) is { Success: true } specialUnit)
-        {
-            unit = ResolveUnitName(specialUnit.Groups["unit"].Value);
-        }
-
         var spell = ResolveSpellName(new MacroEntry(raw, comment));
-        spell = spell.Split(',', 2, StringSplitOptions.TrimEntries)[0];
-        return new ParsedMacro(unit, spell);
+        spell = SplitTopLevel(spell, ',').FirstOrDefault()?.Trim() ?? string.Empty;
+        return new ParsedMacro(unit, spell, ResolveConditions(raw));
+    }
+
+    /// <summary>方括号中以 @ 开头的是目标，其余逗号分隔项作为只读条件摘要。</summary>
+    private static string ResolveConditions(string raw)
+    {
+        var conditions = ConditionRegex().Matches(raw)
+            .SelectMany(bracket => bracket.Value.Length < 2
+                ? []
+                : bracket.Value[1..^1]
+                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .Where(item => !item.StartsWith('@'));
+        return MacroConditionText.Normalize(string.Join(", ", conditions));
     }
 
     private static int ResolveUnitName(string raw)
@@ -356,8 +364,6 @@ internal static partial class FuyutsuiKeymapConverter
             "focus" or "焦点" or "33" => ReservedUnit.Focus,
             "cursor" or "地面" or "34" => ReservedUnit.Cursor,
             "mouseover" or "鼠标" or "35" => ReservedUnit.Mouseover,
-            "channeling" or "引导中" or "36" => ReservedUnit.Channeling,
-            "nochanneling" or "非引导" or "37" => ReservedUnit.NoChanneling,
             _ => ReservedUnit.None
         };
     }
@@ -393,8 +399,14 @@ internal static partial class FuyutsuiKeymapConverter
         {
             var sequenceBody = castSequence.Groups[1].Value.Trim();
             sequenceBody = ResetOptionRegex().Replace(sequenceBody, string.Empty).Trim();
-            foreach (var part in sequenceBody.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            foreach (var rawPart in SplitTopLevel(sequenceBody, ','))
             {
+                var part = rawPart.Trim();
+                if (part.Length == 0)
+                {
+                    continue;
+                }
+
                 if (part.Equals("x", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -443,6 +455,35 @@ internal static partial class FuyutsuiKeymapConverter
         }
 
         return spell;
+    }
+
+    /// <summary>按顶层分隔符切分，方括号内的逗号不作为技能分隔符。</summary>
+    private static IEnumerable<string> SplitTopLevel(string text, char separator)
+    {
+        var start = 0;
+        var bracketDepth = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            switch (text[i])
+            {
+                case '[':
+                    bracketDepth++;
+                    break;
+                case ']' when bracketDepth > 0:
+                    bracketDepth--;
+                    break;
+                default:
+                    if (text[i] == separator && bracketDepth == 0)
+                    {
+                        yield return text[start..i];
+                        start = i + 1;
+                    }
+
+                    break;
+            }
+        }
+
+        yield return text[start..];
     }
 
     private static string StripConditions(string text)
@@ -614,6 +655,4 @@ internal static partial class FuyutsuiKeymapConverter
     [GeneratedRegex(@"\[[^\]]*@(?<unit>cursor|target|focus|player|mouseover)\b[^\]]*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex StaticTargetRegex();
 
-    [GeneratedRegex(@"\[\s*@?(?<unit>player|target|focus|cursor|mouseover|channeling|nochanneling|玩家|目标|焦点|地面|鼠标|引导中|非引导|无目标|0|31|32|33|34|35|36|37)\s*(?:,|\])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex SpecialUnitRegex();
 }
