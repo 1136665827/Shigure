@@ -26,6 +26,7 @@ public sealed class ModuleEditorControl : UserControl
     private readonly DataGridView _formulaAdjustmentsGrid = new();
     private readonly DataGridViewComboBoxColumn _spellColumn = new();
     private readonly DataGridViewComboBoxColumn _unitColumn = new();
+    private readonly DataGridViewComboBoxColumn _macroConditionColumn = new();
     private readonly DataGridViewComboBoxColumn _adjustmentFieldColumn = new();
     private readonly DataGridViewComboBoxColumn _adjustmentTypeColumn = new();
     private readonly ListView _unitsList = new();
@@ -66,8 +67,8 @@ public sealed class ModuleEditorControl : UserControl
         new("队伍 (46)", "46")
     ];
     private static readonly MatchOption[] ClassOptions = BuildClassOptions();
-    // 这三列固定宽度并缓存; "条件"列为 Fill, 图标列固定且不缓存。
-    private static readonly string[] FixedWidthColumns = ["Enabled", "Spell", "Unit"];
+    // 这些列固定宽度并缓存; "条件"列为 Fill, 图标列固定且不缓存。
+    private static readonly string[] FixedWidthColumns = ["Enabled", "Spell", "Unit", "MacroCondition"];
     private static readonly HashSet<string> NonAuraGroupFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "生命值",
@@ -99,6 +100,11 @@ public sealed class ModuleEditorControl : UserControl
     {
         _fieldCatalog = ConditionFieldCatalog.Load(_baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(_baseDirectory);
+        // “更新配置”可能刚重建了 keymap；立即刷新当前规则的技能/目标/宏条件下拉，
+        // 避免必须切换职业或重启应用后才能看到新解析出的宏条件。
+        RefreshKeymapColumns();
+        RefreshAdjustmentFieldColumn();
+        _rulesGrid.Invalidate();
     }
 
     private void InitializeComponent()
@@ -795,7 +801,7 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
         _rulesGrid.ShowCellToolTips = false;
 
-        // 启用/技能/目标 三列宽度固定可调并缓存; 条件列用 Fill 自动充满剩余窗口。
+        // 启用/技能/目标/宏条件列宽度固定可调并缓存; 条件列用 Fill 自动充满剩余窗口。
         _rulesGrid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             Name = "Enabled",
@@ -815,6 +821,12 @@ public sealed class ModuleEditorControl : UserControl
         _unitColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _unitColumn.FlatStyle = FlatStyle.Flat;
         _rulesGrid.Columns.Add(_unitColumn);
+        _macroConditionColumn.Name = "MacroCondition";
+        _macroConditionColumn.HeaderText = "宏条件";
+        _macroConditionColumn.Width = 150;
+        _macroConditionColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+        _macroConditionColumn.FlatStyle = FlatStyle.Flat;
+        _rulesGrid.Columns.Add(_macroConditionColumn);
         _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Condition",
@@ -830,7 +842,7 @@ public sealed class ModuleEditorControl : UserControl
         AddRuleIconColumn("InsertBlank", "+", "在下一行添加空白条件");
         AddRuleIconColumn("Delete", "×", "删除", UiTheme.Danger);
 
-        // 拖拽手柄列: 加在集合末尾(保持 Rows.Add 的位置参数仍对应 启用/技能/目标/条件),
+        // 拖拽手柄列: 加在集合末尾(保持 Rows.Add 的位置参数仍对应 启用/技能/目标/宏条件/条件),
         // 用 DisplayIndex=0 显示到"启用"前面。自绘六点抓手, 按住拖动可调整该条逻辑顺序。
         _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
@@ -930,7 +942,7 @@ public sealed class ModuleEditorControl : UserControl
     }
 
     /// <summary>
-    /// 按当前选中职业的 keymap 重建“技能/目标”下拉选项。
+    /// 按当前选中职业的 keymap 重建“技能/目标/宏条件”下拉选项。
     /// 技能去重(同名技能只出现一次), unit 去重升序; 首项留空表示不填。
     /// 已有行里不在 keymap 中的旧值会补录为额外选项, 避免数据丢失。
     /// </summary>
@@ -959,6 +971,9 @@ public sealed class ModuleEditorControl : UserControl
             _unitColumn.Items.Add(ReservedUnit.ToDisplayText(unit));
         }
 
+        _macroConditionColumn.Items.Clear();
+        _macroConditionColumn.Items.Add(string.Empty);
+
         foreach (DataGridViewRow row in _rulesGrid.Rows)
         {
             if (row.IsNewRow)
@@ -968,6 +983,7 @@ public sealed class ModuleEditorControl : UserControl
 
             EnsureComboItem(_spellColumn, row.Cells["Spell"].Value);
             UpdateUnitCellItems(row);
+            UpdateMacroConditionCellItems(row);
         }
     }
 
@@ -1055,6 +1071,67 @@ public sealed class ModuleEditorControl : UserControl
         }
     }
 
+    private void UpdateMacroConditionCellItems(DataGridViewRow row)
+    {
+        if (row.IsNewRow || row.Cells["MacroCondition"] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        RebuildMacroConditionCell(row, cell.Value?.ToString());
+    }
+
+    /// <summary>
+    /// 按当前技能与目标重建“宏条件”选项。只有一个非空条件时自动选中；
+    /// 自定义技能或动态单位没有 keymap 条目时保留已有值。
+    /// </summary>
+    private void RebuildMacroConditionCell(DataGridViewRow row, string? desiredValue)
+    {
+        if (row.IsNewRow || row.Cells["MacroCondition"] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        var desired = MacroConditionText.ToDisplayText(desiredValue);
+        var spell = row.Cells["Spell"].Value?.ToString();
+        var unitText = row.Cells["Unit"].Value?.ToString();
+        var unit = ReservedUnit.ParseDisplayText(unitText);
+        var allowed = unit is null || string.IsNullOrWhiteSpace(spell)
+            ? (IReadOnlyList<string>)[]
+            : _keymapCatalog.GetMacroConditions(ReadMatchCombo(_classBox), spell, unit);
+
+        cell.Items.Clear();
+        cell.Items.Add(string.Empty);
+        foreach (var condition in allowed)
+        {
+            var displayCondition = MacroConditionText.ToDisplayText(condition);
+            if (!cell.Items.Contains(displayCondition))
+            {
+                cell.Items.Add(displayCondition);
+            }
+        }
+
+        if (desired.Length > 0 && cell.Items.Contains(desired))
+        {
+            cell.Value = desired;
+        }
+        else if (desired.Length > 0 && allowed.Count == 0)
+        {
+            cell.Items.Add(desired);
+            cell.Value = desired;
+        }
+        else
+        {
+            var nonEmptyConditions = allowed
+                .Select(MacroConditionText.ToDisplayText)
+                .Where(condition => !string.IsNullOrWhiteSpace(condition))
+                .ToList();
+            cell.Value = nonEmptyConditions.Count == 1 && allowed.Count == 1
+                ? nonEmptyConditions[0]
+                : string.Empty;
+        }
+    }
+
     private void OnRulesGridCellValueChanged(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
@@ -1062,10 +1139,16 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        // 技能改变时联动刷新该行"目标"的可选值。
-        if (_rulesGrid.Columns[e.ColumnIndex].Name == "Spell")
+        var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
+        // 技能改变时联动刷新该行"目标"，技能或目标改变时再刷新"宏条件"。
+        if (columnName == "Spell")
         {
             UpdateUnitCellItems(_rulesGrid.Rows[e.RowIndex]);
+            UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
+        }
+        else if (columnName == "Unit")
+        {
+            UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
         }
     }
 
@@ -1557,6 +1640,7 @@ public sealed class ModuleEditorControl : UserControl
         bool Enabled,
         string Spell,
         string UnitText,
+        string MacroCondition,
         string Condition,
         IReadOnlyList<string> SubConditions,
         int? DelayMs,
@@ -1796,7 +1880,7 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGridToolTip.Hide(_rulesGrid);
     }
 
-    // 图标列沿用原提示; 条件/技能/目标三列在文本被列宽截断或可点击时给出悬停提示。
+    // 图标列沿用原提示; 条件/技能/目标/宏条件列在文本被列宽截断或可点击时给出悬停提示。
     private string GetRuleCellToolTip(string columnName, int rowIndex, int columnIndex)
     {
         if (columnName is "MoveUp" or "MoveDown" or "Copy" or "InsertBlank" or "Delete")
@@ -1814,7 +1898,7 @@ public sealed class ModuleEditorControl : UserControl
             return "拖动调整顺序";
         }
 
-        if (columnName is not ("Condition" or "Spell" or "Unit"))
+        if (columnName is not ("Condition" or "Spell" or "Unit" or "MacroCondition"))
         {
             return string.Empty;
         }
@@ -2195,6 +2279,7 @@ public sealed class ModuleEditorControl : UserControl
             string.Empty,
             string.Empty,
             string.Empty,
+            string.Empty,
             Array.Empty<string>(),
             null,
             null));
@@ -2406,6 +2491,7 @@ public sealed class ModuleEditorControl : UserControl
             CellBool(row, "Enabled", defaultValue: true),
             CellText(row, "Spell"),
             CellText(row, "Unit"),
+            CellText(row, "MacroCondition"),
             CellText(row, "Condition"),
             // 子条件和延迟挂在 row.Tag, 随行一起被移动/拖拽/复制搬运。
             GetRuleMetadata(row).SubConditions,
@@ -2418,9 +2504,11 @@ public sealed class ModuleEditorControl : UserControl
         row.Cells["Enabled"].Value = values.Enabled;
         EnsureComboItem(_spellColumn, values.Spell);
         row.Cells["Spell"].Value = values.Spell;
+        row.Cells["MacroCondition"].Value = string.Empty;
         row.Cells["Condition"].Value = values.Condition;
         row.Tag = new RuleRowMetadata(values.SubConditions, values.DelayMs, values.LogicDelayMs);
         RebuildUnitCell(row, values.UnitText);
+        RebuildMacroConditionCell(row, values.MacroCondition);
     }
 
     private void OpenConditionEditor(int rowIndex)
@@ -2452,7 +2540,7 @@ public sealed class ModuleEditorControl : UserControl
                 || editor.DelayMs is > 0
                 || editor.LogicDelayMs is > 0)
             {
-                var index = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, editor.ConditionText);
+                var index = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, string.Empty, editor.ConditionText);
                 _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
                     subs,
                     editor.DelayMs,
@@ -2537,7 +2625,7 @@ public sealed class ModuleEditorControl : UserControl
 
         var hint = new Label
         {
-            Text = "目标可选技能支持的单位或上方定义的动态单位；点击“条件”列打开可视化编辑器",
+            Text = "目标可选技能支持的单位或上方定义的动态单位；宏条件来自对应宏的方括号；点击“条件”列打开可视化编辑器",
             Dock = DockStyle.Fill,
             ForeColor = UiTheme.Muted,
             TextAlign = ContentAlignment.MiddleLeft,
@@ -2664,12 +2752,13 @@ public sealed class ModuleEditorControl : UserControl
                 : rule.Unit is { } unit ? ReservedUnit.ToDisplayText(unit) : string.Empty;
             EnsureComboItem(_spellColumn, rule.Spell);
             // 先加行(目标先留空), 再按技能重建目标选项并写回目标值, 避免值不在选项内被吞掉。
-            var index = _rulesGrid.Rows.Add(rule.Enabled, rule.Spell, string.Empty, rule.Condition);
+            var index = _rulesGrid.Rows.Add(rule.Enabled, rule.Spell, string.Empty, string.Empty, rule.Condition);
             _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
                 rule.SubConditions,
                 rule.DelayMs,
                 rule.LogicDelayMs);
             RebuildUnitCell(_rulesGrid.Rows[index], unitText);
+            RebuildMacroConditionCell(_rulesGrid.Rows[index], rule.MacroCondition);
         }
     }
 
@@ -2946,10 +3035,12 @@ public sealed class ModuleEditorControl : UserControl
             var condition = CellText(row, "Condition");
             var spell = CellText(row, "Spell");
             var unitText = CellText(row, "Unit");
+            var macroCondition = CellText(row, "MacroCondition");
             var metadata = GetRuleMetadata(row);
             if (string.IsNullOrWhiteSpace(condition)
                 && string.IsNullOrWhiteSpace(spell)
                 && string.IsNullOrWhiteSpace(unitText)
+                && string.IsNullOrWhiteSpace(macroCondition)
                 && metadata.SubConditions.Count == 0
                 && metadata.DelayMs is not > 0
                 && metadata.LogicDelayMs is not > 0)
@@ -2970,6 +3061,7 @@ public sealed class ModuleEditorControl : UserControl
                 Unit = isDynamic ? null : ReservedUnit.ParseDisplayText(unitText),
                 UnitName = isDynamic ? unitText : null,
                 Spell = spell,
+                MacroCondition = MacroConditionText.ParseDisplayText(macroCondition),
                 Hotkey = string.Empty,
                 Step = string.Empty,
                 SubConditions = subs is { Count: > 0 } ? subs : null,

@@ -79,6 +79,20 @@ public sealed class KeymapCatalog
         return units.ToList();
     }
 
+    /// <summary>指定技能和 unit 在 keymap 中配置过的宏条件，按文件内首次出现顺序返回。</summary>
+    public IReadOnlyList<string> GetMacroConditions(int? classId, string? spell, int? unit)
+    {
+        if (string.IsNullOrWhiteSpace(spell))
+        {
+            return [];
+        }
+
+        var entries = GetEntries(classId);
+        return entries.MacroConditions.TryGetValue((spell, unit.GetValueOrDefault()), out var conditions)
+            ? conditions
+            : [];
+    }
+
     public IReadOnlyCollection<string> GetFailedSpellNames(int? classId)
     {
         return _config?.GetFailedSpells(classId).Values.ToList() ?? [];
@@ -135,6 +149,7 @@ public sealed class KeymapCatalog
         var spells = new List<string>();
         var units = new List<int>();
         var unitsBySpell = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        var macroConditions = new Dictionary<(string Spell, int Unit), List<string>>();
         try
         {
             var root = JsonNode.Parse(File.ReadAllText(path), documentOptions: new JsonDocumentOptions
@@ -188,7 +203,12 @@ public sealed class KeymapCatalog
                         continue;
                     }
 
-                    var unit = JsonHelpers.GetInt(JsonHelpers.Get(entry, "unit")) ?? 0;
+                    var rawUnit = JsonHelpers.GetInt(JsonHelpers.Get(entry, "unit")) ?? 0;
+                    var normalizedMacro = MacroConditionText.NormalizeLegacyUnit(
+                        rawUnit,
+                        JsonHelpers.GetString(JsonHelpers.Get(entry, "宏条件")));
+                    var unit = normalizedMacro.Unit;
+                    var macroCondition = normalizedMacro.Condition;
                     if (seenSpells.Add(spell))
                     {
                         spells.Add(spell);
@@ -209,6 +229,18 @@ public sealed class KeymapCatalog
                     {
                         spellUnits.Add(unit);
                     }
+
+                    var conditionKey = (spell, unit);
+                    if (!macroConditions.TryGetValue(conditionKey, out var conditions))
+                    {
+                        conditions = new List<string>();
+                        macroConditions[conditionKey] = conditions;
+                    }
+
+                    if (!conditions.Contains(macroCondition, StringComparer.Ordinal))
+                    {
+                        conditions.Add(macroCondition);
+                    }
                 }
             }
         }
@@ -221,17 +253,20 @@ public sealed class KeymapCatalog
         return new KeymapEntries(
             spells,
             units,
-            unitsBySpell.ToDictionary(kvp => kvp.Key, kvp => (IReadOnlyList<int>)kvp.Value, StringComparer.Ordinal));
+            unitsBySpell.ToDictionary(kvp => kvp.Key, kvp => (IReadOnlyList<int>)kvp.Value, StringComparer.Ordinal),
+            macroConditions.ToDictionary(kvp => kvp.Key, kvp => (IReadOnlyList<string>)kvp.Value));
     }
 
     private sealed record KeymapEntries(
         IReadOnlyList<string> Spells,
         IReadOnlyList<int> Units,
-        IReadOnlyDictionary<string, IReadOnlyList<int>> UnitsBySpell)
+        IReadOnlyDictionary<string, IReadOnlyList<int>> UnitsBySpell,
+        IReadOnlyDictionary<(string Spell, int Unit), IReadOnlyList<string>> MacroConditions)
     {
         public static readonly KeymapEntries Empty = new(
             [],
             [],
-            new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal));
+            new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal),
+            new Dictionary<(string Spell, int Unit), IReadOnlyList<string>>());
     }
 }

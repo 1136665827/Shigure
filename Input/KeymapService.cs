@@ -7,7 +7,8 @@ public sealed class KeymapService : IKeymapResolver
 {
     private readonly string _baseDirectory;
     private readonly ConfigService _config;
-    private readonly Dictionary<(int Unit, string Spell), string> _hotkeys = new();
+    private readonly Dictionary<(int Unit, string Spell, string MacroCondition), string> _hotkeys = new();
+    private readonly Dictionary<(int Unit, string Spell), string> _fallbackHotkeys = new();
     private int? _currentClassId;
     private int? _currentSpecId;
 
@@ -32,6 +33,7 @@ public sealed class KeymapService : IKeymapResolver
         _currentClassId = classId;
         _currentSpecId = specId;
         _hotkeys.Clear();
+        _fallbackHotkeys.Clear();
 
         var path = KeymapCatalog.ResolveKeymapFilePath(_baseDirectory, _config.GetKeymapName(classId));
         if (!File.Exists(path))
@@ -65,23 +67,44 @@ public sealed class KeymapService : IKeymapResolver
                 continue;
             }
 
-            var unit = JsonHelpers.GetInt(JsonHelpers.Get(entry, "unit")) ?? 0;
+            var rawUnit = JsonHelpers.GetInt(JsonHelpers.Get(entry, "unit")) ?? 0;
             var spell = JsonHelpers.GetString(JsonHelpers.Get(entry, "spell"))
                 ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "技能"));
             var hotkey = JsonHelpers.GetString(JsonHelpers.Get(entry, "hotkey"))
                 ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "热键"));
+            var normalizedMacro = MacroConditionText.NormalizeLegacyUnit(
+                rawUnit,
+                JsonHelpers.GetString(JsonHelpers.Get(entry, "宏条件")));
+            var unit = normalizedMacro.Unit;
+            var macroCondition = normalizedMacro.Condition;
 
             if (!string.IsNullOrWhiteSpace(spell) && !string.IsNullOrWhiteSpace(hotkey))
             {
-                _hotkeys[(unit, spell)] = hotkey;
+                _hotkeys[(unit, spell, macroCondition)] = hotkey;
+                // 兼容未保存“宏条件”的旧模块：保留旧版按单位+技能查询时的最后一项行为。
+                _fallbackHotkeys[(unit, spell)] = hotkey;
             }
         }
     }
 
-    public string? GetHotkey(int? unit, string spell)
+    public string? GetHotkey(int? unit, string spell, string? macroCondition = null)
     {
         var normalizedUnit = unit.GetValueOrDefault();
-        return _hotkeys.TryGetValue((normalizedUnit, spell), out var hotkey) ? hotkey : null;
+        // null 表示旧模块根本没有该字段，严格沿用升级前“单位+技能”的最后一项匹配。
+        if (macroCondition is null)
+        {
+            return _fallbackHotkeys.TryGetValue((normalizedUnit, spell), out var legacyHotkey)
+                ? legacyHotkey
+                : null;
+        }
+
+        var normalizedCondition = MacroConditionText.Normalize(macroCondition);
+        if (_hotkeys.TryGetValue((normalizedUnit, spell, normalizedCondition), out var exactHotkey))
+        {
+            return exactHotkey;
+        }
+
+        return null;
     }
 
     public IReadOnlyDictionary<int, string> GetCurrentFailedSpells()
