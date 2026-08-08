@@ -357,9 +357,26 @@ internal static partial class FuyutsuiKeymapConverter
 
     private static int ResolveUnitName(string raw)
     {
-        return raw.Trim().TrimStart('@').ToLowerInvariant() switch
+        var normalized = raw.Trim().TrimStart('@').ToLowerInvariant();
+        if (normalized.StartsWith("party", StringComparison.Ordinal)
+            && int.TryParse(normalized[5..], out var partyIndex)
+            && partyIndex is >= 1 and <= 4)
         {
-            "player" or "玩家" or "31" => ReservedUnit.Player,
+            // Fuyutsui 队伍槽位：player=1，party1..4=2..5。
+            return partyIndex + 1;
+        }
+
+        if (normalized.StartsWith("raid", StringComparison.Ordinal)
+            && int.TryParse(normalized[4..], out var raidIndex)
+            && raidIndex is >= 1 and <= 30)
+        {
+            return raidIndex;
+        }
+
+        return normalized switch
+        {
+            "player" => 1,
+            "玩家" or "31" => ReservedUnit.Player,
             "target" or "目标" or "32" => ReservedUnit.Target,
             "focus" or "焦点" or "33" => ReservedUnit.Focus,
             "cursor" or "地面" or "34" => ReservedUnit.Cursor,
@@ -652,7 +669,7 @@ internal static partial class FuyutsuiKeymapConverter
     [GeneratedRegex(@"\[[^\]]*\]", RegexOptions.CultureInvariant)]
     private static partial Regex ConditionRegex();
 
-    [GeneratedRegex(@"\[[^\]]*@(?<unit>cursor|target|focus|player|mouseover)\b[^\]]*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\[[^\]]*@(?<unit>cursor|target|focus|player|mouseover|party[1-4]|raid(?:[1-9]|[12][0-9]|30))\b[^\]]*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex StaticTargetRegex();
 
 }
