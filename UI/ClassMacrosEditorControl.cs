@@ -471,6 +471,8 @@ public sealed class ClassMacrosEditorControl : UserControl
     private void WireGrid(DataGridView grid)
     {
         grid.CellContentClick += HandleDeleteClick;
+        grid.CellFormatting += (_, e) => FormatMacroLineBreaks(grid, e);
+        grid.CellParsing += (_, e) => ParseMacroLineBreaks(grid, e);
         grid.CellValueChanged += (_, e) =>
         {
             if (_updatingDerivedColumns)
@@ -538,6 +540,40 @@ public sealed class ClassMacrosEditorControl : UserControl
         grid.MultiSelect = false;
         grid.EditMode = DataGridViewEditMode.EditOnEnter;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+    }
+
+    // 宏文本底层保留真实换行（供解析及保存），表格中以字面量 \n 单行显示。
+    private void FormatMacroLineBreaks(DataGridView grid, DataGridViewCellFormattingEventArgs e)
+    {
+        if ((grid != _staticGrid && grid != _specialGrid)
+            || e.RowIndex < 0
+            || e.ColumnIndex < 0
+            || grid.Columns[e.ColumnIndex].Name != "Text"
+            || e.Value is not string text)
+        {
+            return;
+        }
+
+        e.Value = text
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Replace("\n", "\\n", StringComparison.Ordinal);
+        e.FormattingApplied = true;
+    }
+
+    private void ParseMacroLineBreaks(DataGridView grid, DataGridViewCellParsingEventArgs e)
+    {
+        if ((grid != _staticGrid && grid != _specialGrid)
+            || e.RowIndex < 0
+            || e.ColumnIndex < 0
+            || grid.Columns[e.ColumnIndex].Name != "Text"
+            || e.Value is not string text)
+        {
+            return;
+        }
+
+        e.Value = text.Replace("\\n", "\n", StringComparison.Ordinal);
+        e.ParsingApplied = true;
     }
 
     private static DataGridViewButtonColumn CreateDeleteColumn()
