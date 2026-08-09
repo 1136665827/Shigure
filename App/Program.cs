@@ -32,7 +32,8 @@ internal static class Program
         var baseDirectory = AppPaths.BaseDirectory;
         var moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory(baseDirectory));
         var triggerKeyState = new WindowsTriggerKeyState();
-        var runtimeFactory = new ShigureRuntimeFactory(baseDirectory, moduleStore, triggerKeyState);
+        var processLocator = new WowProcessLocator(baseDirectory);
+        var runtimeFactory = new ShigureRuntimeFactory(baseDirectory, moduleStore, triggerKeyState, processLocator);
         var runtimeSession = new RuntimeSessionCoordinator(runtimeFactory);
 
         Application.Run(new MainForm(
@@ -40,6 +41,7 @@ internal static class Program
             baseDirectory,
             moduleStore,
             triggerKeyState,
+            processLocator,
             runtimeSession));
     }
 }

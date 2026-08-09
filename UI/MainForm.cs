@@ -51,6 +51,7 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly string _baseDirectory;
     private readonly ModuleStore _moduleStore;
     private readonly ITriggerKeyState _triggerKeyState;
+    private readonly WowProcessLocator _processLocator;
     private readonly RuntimeSessionCoordinator _runtimeSession;
     private readonly ModuleEditorControl _moduleEditor;
     private readonly ClassConfigEditorControl _classConfigEditor;
@@ -76,12 +77,14 @@ public sealed class MainForm : Form, IMessageFilter
         string baseDirectory,
         ModuleStore moduleStore,
         ITriggerKeyState triggerKeyState,
+        WowProcessLocator processLocator,
         RuntimeSessionCoordinator runtimeSession)
     {
         _initialOptions = initialOptions;
         _baseDirectory = baseDirectory;
         _moduleStore = moduleStore;
         _triggerKeyState = triggerKeyState;
+        _processLocator = processLocator;
         _runtimeSession = runtimeSession;
         _uiCache = UiCacheStore.Load();
         _statusForm = new StatusForm();
@@ -103,11 +106,11 @@ public sealed class MainForm : Form, IMessageFilter
         _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditorAsync, _baseDirectory);
         _statusForm.AttachModuleEditor(_moduleEditor);
         _classConfigEditor = new ClassConfigEditorControl(
-            () => WowAddonLocator.FindClassDirectory(_initialOptions.WindowTitle),
+            () => WowAddonLocator.FindClassDirectory(_processLocator),
             UpdateConfigFromAddonAsync);
         _statusForm.AttachConfigEditor(_classConfigEditor);
         _classMacrosEditor = new ClassMacrosEditorControl(
-            () => WowAddonLocator.FindClassMacrosPath(_initialOptions.WindowTitle),
+            () => WowAddonLocator.FindClassMacrosPath(_processLocator),
             UpdateConfigFromAddonAsync);
         _statusForm.AttachMacrosEditor(_classMacrosEditor);
         _statusForm.FormClosing += (_, _) =>
@@ -672,14 +675,14 @@ public sealed class MainForm : Form, IMessageFilter
             return;
         }
 
-        var windowTitle = _initialOptions.WindowTitle;
-        var classDirectory = WowAddonLocator.FindClassDirectory(windowTitle);
-        var classMacrosPath = WowAddonLocator.FindClassMacrosPath(windowTitle);
+        var processNames = _processLocator.DescribeConfiguredProcesses();
+        var classDirectory = WowAddonLocator.FindClassDirectory(_processLocator);
+        var classMacrosPath = WowAddonLocator.FindClassMacrosPath(_processLocator);
         if (string.IsNullOrWhiteSpace(classDirectory))
         {
-            _configSourceLabel.Text = $"Fuyutsui class: 未找到（请先打开「{windowTitle}」窗口）";
+            _configSourceLabel.Text = $"Fuyutsui class: 未找到（目标进程: {processNames}）";
             MessageBox.Show(
-                $"未找到「{windowTitle}」窗口下的 Interface\\AddOns\\Fuyutsui\\class 目录。\n请确认游戏已启动且已安装 Fuyutsui。",
+                $"未找到目标进程（{processNames}）对应的 Interface\\AddOns\\Fuyutsui\\class 目录。\n请确认游戏已启动且已安装 Fuyutsui。",
                 "更新配置",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
@@ -884,7 +887,7 @@ public sealed class MainForm : Form, IMessageFilter
 
         ResetRuntimeLogState();
         SetRuntimeControls(running: true);
-        AppendLog($"运行已{(restart ? "重启" : "启动")}: {options.WindowTitle} / {options.ToggleKey} / {ModeLabel(options.Mode)}");
+        AppendLog($"运行已{(restart ? "重启" : "启动")}: {_processLocator.DescribeConfiguredProcesses()} / {options.ToggleKey} / {ModeLabel(options.Mode)}");
         return true;
     }
 

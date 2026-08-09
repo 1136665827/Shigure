@@ -73,10 +73,10 @@ dotnet run --project .\Shigure.csproj
 可选启动参数：
 
 ```powershell
-dotnet run --project .\Shigure.csproj -- --window 魔兽世界 --toggle XBUTTON2 --mode switch --logic-ms 100 --render-ms 100
+dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic-ms 100 --render-ms 100
 ```
 
-- `--window`：目标窗口标题，默认 `魔兽世界`。
+- `wow_process.txt`：每行一个目标进程名（可带或不带 `.exe`）。程序使用 Windows Z 顺序中最靠前的候选进程可见顶层窗口，切换窗口后会自动跟随。
 - `--toggle`：触发键，默认 `XBUTTON2`。
 - `--mode`：发送模式，支持 `switch`、`click`、`hold`。
 - `--logic-ms`：逻辑循环间隔，默认 `100` ms，最小 `50` ms。

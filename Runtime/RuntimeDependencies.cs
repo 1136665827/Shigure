@@ -36,7 +36,7 @@ public sealed record LogicEvaluation(string? ModuleName, LogicDecision? Decision
 
 internal interface IRuntimeKeyOutput
 {
-    KeySendResult Send(string hotkey);
+    KeySendResult Send(string hotkey, nint expectedWindow);
 }
 
 public readonly record struct KeySendResult(bool Succeeded, string? FailureReason)

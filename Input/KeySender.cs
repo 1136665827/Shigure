@@ -2,27 +2,28 @@
 
 public sealed class KeySender : IRuntimeKeyOutput
 {
-    private readonly string _windowTitle;
+    private readonly WowProcessLocator _processLocator;
 
-    public KeySender(string windowTitle)
+    internal KeySender(WowProcessLocator processLocator)
     {
-        _windowTitle = windowTitle;
+        _processLocator = processLocator;
     }
 
     public string? LastFailureReason { get; private set; }
 
     public bool Send(string hotkey)
     {
-        var result = SendCore(hotkey);
+        var result = SendCore(hotkey, expectedWindow: 0);
         LastFailureReason = result.FailureReason;
         return result.Succeeded;
     }
 
     public static int? GetVk(string keyName) => WindowsVirtualKeyMap.Resolve(keyName);
 
-    KeySendResult IRuntimeKeyOutput.Send(string hotkey) => SendCore(hotkey);
+    KeySendResult IRuntimeKeyOutput.Send(string hotkey, nint expectedWindow)
+        => SendCore(hotkey, expectedWindow);
 
-    private KeySendResult SendCore(string hotkey)
+    private KeySendResult SendCore(string hotkey, nint expectedWindow)
     {
         var (mods, mainKey) = ParseHotkey(hotkey);
         if (mainKey is null)
@@ -36,10 +37,15 @@ public sealed class KeySender : IRuntimeKeyOutput
             return Fail($"无法识别主键“{mainKey}”");
         }
 
-        var hwnd = NativeMethods.FindWindow(null, _windowTitle);
+        var hwnd = _processLocator.FindFrontmostWindow();
         if (hwnd == 0)
         {
-            return Fail($"未找到目标窗口“{_windowTitle}”");
+            return Fail($"未找到目标进程的可见窗口（wow_process.txt: {_processLocator.DescribeConfiguredProcesses()}）");
+        }
+
+        if (expectedWindow != 0 && hwnd != expectedWindow)
+        {
+            return Fail("目标窗口已切换，等待重新扫描后再发送按键");
         }
 
         // ParseHotkey 只产出去重后的 CTRL/ALT/SHIFT, 三者都在虚拟键表里且映射到互异 VK,

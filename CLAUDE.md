@@ -13,12 +13,12 @@ Shigure 是一个 **Windows WinForms（.NET 10）** 桌面程序：扫描目标�
 ```powershell
 dotnet build .\Shigure.csproj
 dotnet run --project .\Shigure.csproj
-dotnet run --project .\Shigure.csproj -- --window 魔兽世界 --toggle XBUTTON2 --mode switch --logic-ms 100 --render-ms 100
+dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic-ms 100 --render-ms 100
 ```
 
 - 目标框架 `net10.0-windows`，`WinExe`，`Nullable`/`ImplicitUsings` 均 enable。
 - **没有测试项目**：验证 = 能编译 + 实际运行点开「设置」走查。`dotnet build` 干净通过（0 警告 0 错误）是基线要求。
-- 启动参数见 [README.md](README.md#运行)（`--window/--toggle/--mode/--logic-ms/--render-ms`），解析在 [App/AppOptions.cs](App/AppOptions.cs)。
+- 启动参数见 [README.md](README.md#运行)（`--toggle/--mode/--logic-ms/--render-ms`），解析在 [App/AppOptions.cs](App/AppOptions.cs)。目标进程名来自 `wow_process.txt`。
 
 ### ⚠️ 随机重启会拦截普通运行
 
@@ -74,7 +74,7 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 
 ### 定位
 
-[Infrastructure/WowAddonLocator.cs](Infrastructure/WowAddonLocator.cs) 通过 `FindWindow` → 进程路径 → 向上查找 `Interface\AddOns\Fuyutsui`。提供三个入口：`FindAddonRoot`、`FindClassDirectory`（`class/` 子目录）、`FindClassMacrosPath`（`core/classmacros.lua`）。
+[Infrastructure/WowProcessLocator.cs](Infrastructure/WowProcessLocator.cs) 读取 `wow_process.txt`，按 Windows Z 顺序选择最靠前的候选进程可见顶层窗口；[Infrastructure/WowAddonLocator.cs](Infrastructure/WowAddonLocator.cs) 再由该进程路径向上查找 `Interface\AddOns\Fuyutsui`。提供三个入口：`FindAddonRoot`、`FindClassDirectory`（`class/` 子目录）、`FindClassMacrosPath`（`core/classmacros.lua`）。
 
 ### Lua 解析
 
