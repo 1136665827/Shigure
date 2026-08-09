@@ -253,7 +253,7 @@ public sealed class ShigureRuntime
                 var sendAttemptAt = _timeProvider.GetUtcNow();
                 if (CanSend(decision, sendAttemptAt))
                 {
-                    SendAndPauseLogic(decision);
+                    SendAndPauseLogic(decision, scan.TargetWindowHandle);
                 }
             }
 
@@ -267,14 +267,14 @@ public sealed class ShigureRuntime
             var sendAttemptAt = _timeProvider.GetUtcNow();
             if (CanSend(decision, sendAttemptAt))
             {
-                SendAndPauseLogic(decision);
+                SendAndPauseLogic(decision, scan.TargetWindowHandle);
             }
         }
     }
 
-    private void SendAndPauseLogic(LogicDecision decision)
+    private void SendAndPauseLogic(LogicDecision decision, nint targetWindowHandle)
     {
-        var sendResult = _keySender.Send(decision.Hotkey!);
+        var sendResult = _keySender.Send(decision.Hotkey!, targetWindowHandle);
         if (!sendResult.Succeeded)
         {
             var info = _unitInfo.ToDictionary(

@@ -8,7 +8,10 @@ public sealed record ScreenScanResult(
     IReadOnlyDictionary<int, int>? RowData,
     IReadOnlyDictionary<int, int> BarData,
     IReadOnlyDictionary<int, int> HealAbsorbData,
-    string? FailureReason);
+    string? FailureReason)
+{
+    internal nint TargetWindowHandle { get; init; }
+}
 
 public sealed class PixelScanner : IRuntimeScreenScanner
 {
@@ -16,11 +19,11 @@ public sealed class PixelScanner : IRuntimeScreenScanner
     private const int TopRowFirstSchemeMax = 255;
     private const int HealAbsorbMaxRows = 6;
     private const int HealAbsorbMaxUnits = 30;
-    private readonly string _windowTitle;
+    private readonly WowProcessLocator _processLocator;
 
-    public PixelScanner(string windowTitle)
+    internal PixelScanner(WowProcessLocator processLocator)
     {
-        _windowTitle = windowTitle;
+        _processLocator = processLocator;
         try
         {
             NativeMethods.SetProcessDPIAware();
@@ -35,15 +38,19 @@ public sealed class PixelScanner : IRuntimeScreenScanner
     {
         var emptyBars = new Dictionary<int, int>();
         var emptyAbsorb = new Dictionary<int, int>();
-        var hwnd = NativeMethods.FindWindow(null, _windowTitle);
+        var hwnd = _processLocator.FindFrontmostWindow();
         if (hwnd == 0)
         {
-            return new ScreenScanResult(null, emptyBars, emptyAbsorb, $"未找到目标窗口“{_windowTitle}”");
+            return new ScreenScanResult(
+                null,
+                emptyBars,
+                emptyAbsorb,
+                $"未找到目标进程的可见窗口（wow_process.txt: {_processLocator.DescribeConfiguredProcesses()}）");
         }
 
         if (NativeMethods.IsIconic(hwnd))
         {
-            return new ScreenScanResult(null, emptyBars, emptyAbsorb, $"目标窗口“{_windowTitle}”已最小化");
+            return new ScreenScanResult(null, emptyBars, emptyAbsorb, "最靠前的目标进程窗口已最小化");
         }
 
         var point = new NativeMethods.Point(0, 0);
@@ -82,13 +89,14 @@ public sealed class PixelScanner : IRuntimeScreenScanner
             var healAbsorbData = markerY is null
                 ? emptyAbsorb
                 : ScanHealAbsorbGrid(point.X, point.Y, width, height, markerY.Value);
-            return rowData.Count == 0
+            var result = rowData.Count == 0
                 ? new ScreenScanResult(null, barData, healAbsorbData, "未找到有效的状态像素起始标记")
                 : new ScreenScanResult(
                     rowData,
                     barData,
                     healAbsorbData,
                     markerY is null ? "未找到 CountBars 标记，层数条和治疗吸收数据未采集" : null);
+            return result with { TargetWindowHandle = hwnd };
         }
         catch (Exception ex)
         {
