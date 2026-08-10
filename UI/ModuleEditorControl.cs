@@ -109,6 +109,9 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.Invalidate();
     }
 
+    private const int ModuleFooterBarHeight = 56;
+    private const int ModuleFooterButtonHeight = 36;
+
     private void InitializeComponent()
     {
         Dock = DockStyle.Fill;
@@ -121,29 +124,32 @@ public sealed class ModuleEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             ColumnCount = 2,
-            RowCount = 1,
+            RowCount = 2,
             Margin = new Padding(0)
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, ModuleFooterBarHeight));
         Controls.Add(root);
 
         root.Controls.Add(BuildSidebar(), 0, 0);
         root.Controls.Add(BuildEditor(), 1, 0);
+        root.Controls.Add(BuildSidebarFooter(), 0, 1);
+        root.Controls.Add(BuildActionRow(), 1, 1);
     }
 
     private Control BuildSidebar()
     {
-        var sidebar = new TableLayoutPanel
+        var sidebar = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Padding = new Padding(0, 0, 14, 0),
+            Padding = new Padding(14),
+            Margin = new Padding(0, 0, 12, 12),
             ColumnCount = 1,
-            RowCount = 2
+            RowCount = 1
         };
         sidebar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
 
         _moduleList.Dock = DockStyle.Fill;
         UiTheme.StyleListBox(
@@ -152,39 +158,39 @@ public sealed class ModuleEditorControl : UserControl
             index => index >= 0 && index < _modules.Count
                 ? (_modules[index].Match.ClassId, _modules[index].Match.SpecId)
                 : (null, null));
-        _moduleList.BackColor = UiTheme.Background;
+        _moduleList.BackColor = UiTheme.SurfaceRaised;
         _moduleList.SelectedIndexChanged += (_, _) => SelectModule(_moduleList.SelectedIndex);
         sidebar.Controls.Add(_moduleList, 0, 0);
+        return sidebar;
+    }
 
-        var buttons = new TableLayoutPanel
+    private Control BuildSidebarFooter()
+    {
+        var footer = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Margin = new Padding(0),
-            Padding = new Padding(14, 3, 14, 3),
+            Padding = new Padding(14, 10, 14, 10),
+            Margin = new Padding(0, 0, 12, 0),
             ColumnCount = 3,
             RowCount = 1
         };
-        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 6));
-        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 8));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        footer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
-        reloadButton.AutoSize = false;
+        var reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
+        StyleModuleFooterButton(reloadButton);
         reloadButton.Dock = DockStyle.Fill;
-        reloadButton.Margin = new Padding(0);
         reloadButton.Click += (_, _) => LoadModules();
 
         var getModulesButton = UiTheme.CreateButton(
             "获取模块",
             Color.FromArgb(252, 238, 10),
             Color.Black);
-        getModulesButton.AutoSize = false;
+        StyleModuleFooterButton(getModulesButton);
         getModulesButton.Dock = DockStyle.Fill;
-        getModulesButton.Margin = new Padding(0);
         getModulesButton.Padding = new Padding(0, 2, 24, 2);
-        getModulesButton.TextAlign = ContentAlignment.MiddleCenter;
         getModulesButton.FlatAppearance.BorderColor = Color.FromArgb(252, 238, 10);
         getModulesButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
         getModulesButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
@@ -197,11 +203,9 @@ public sealed class ModuleEditorControl : UserControl
             getModulesButton.DeviceDpi / 96F);
         getModulesButton.Click += (_, _) => OpenModuleWebsite();
 
-        buttons.Controls.Add(reloadButton, 0, 0);
-        buttons.Controls.Add(getModulesButton, 2, 0);
-        sidebar.Controls.Add(buttons, 0, 1);
-
-        return sidebar;
+        footer.Controls.Add(reloadButton, 0, 0);
+        footer.Controls.Add(getModulesButton, 2, 0);
+        return footer;
     }
 
     private static void DrawExternalLinkIcon(
@@ -280,20 +284,18 @@ public sealed class ModuleEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(10, 0, 0, 6),
+            Padding = new Padding(0),
+            Margin = new Padding(0, 0, 0, 12),
             ColumnCount = 1,
-            RowCount = 4
+            RowCount = 3
         };
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-        // 匹配卡片略增高，给首行居中和推荐天赋行的上下间距留出空间。
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
         editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
 
         editor.Controls.Add(BuildNameRow(), 0, 0);
         editor.Controls.Add(BuildMatchRow(), 0, 1);
         editor.Controls.Add(BuildEditorTabs(), 0, 2);
-        editor.Controls.Add(BuildActionRow(), 0, 3);
         return editor;
     }
 
@@ -302,13 +304,13 @@ public sealed class ModuleEditorControl : UserControl
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 12, 0, 8),
+            Margin = new Padding(0, 12, 0, 0),
             Padding = new Padding(0),
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
             RowCount = 2
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var tabBar = new TableLayoutPanel
@@ -317,7 +319,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.Surface,
             ColumnCount = 3,
             RowCount = 1,
-            Margin = new Padding(0),
+            Margin = new Padding(0, 0, 0, 8),
             Padding = new Padding(0)
         };
         tabBar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -326,12 +328,24 @@ public sealed class ModuleEditorControl : UserControl
             tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 3F));
         }
 
+        var contentCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        contentCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        contentCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
         var contentHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0)
         };
+        contentCard.Controls.Add(contentHost, 0, 0);
 
         var pages = new[]
         {
@@ -343,6 +357,7 @@ public sealed class ModuleEditorControl : UserControl
         {
             page.Dock = DockStyle.Fill;
             page.Visible = false;
+            page.BackColor = UiTheme.SurfaceRaised;
             contentHost.Controls.Add(page);
         }
 
@@ -355,7 +370,7 @@ public sealed class ModuleEditorControl : UserControl
         contentHost.Controls.Add(_editorEmptyHint);
         _editorEmptyHint.BringToFront();
 
-        var labels = new Label[3];
+        var tabs = new UiPillTab[3];
         var selectedIndex = -1;
 
         void SelectTab(int index)
@@ -366,12 +381,10 @@ public sealed class ModuleEditorControl : UserControl
             }
 
             selectedIndex = index;
-            for (var i = 0; i < labels.Length; i++)
+            for (var i = 0; i < tabs.Length; i++)
             {
                 var selected = i == index;
-                labels[i].BackColor = selected ? UiTheme.Field : UiTheme.Surface;
-                labels[i].ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
-                labels[i].Invalidate();
+                tabs[i].Selected = selected;
                 pages[i].Visible = selected;
                 if (selected)
                 {
@@ -384,51 +397,14 @@ public sealed class ModuleEditorControl : UserControl
         for (var i = 0; i < titles.Length; i++)
         {
             var index = i;
-            var label = new Label
-            {
-                Text = titles[i],
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                AutoSize = false,
-                BackColor = UiTheme.Surface,
-                ForeColor = UiTheme.Muted,
-                Cursor = Cursors.Hand,
-                Margin = new Padding(i == 0 ? 0 : 1, 0, 0, 0)
-            };
-            label.Click += (_, _) => SelectTab(index);
-            label.MouseEnter += (_, _) =>
-            {
-                if (selectedIndex != index)
-                {
-                    label.BackColor = UiTheme.Hover;
-                }
-            };
-            label.MouseLeave += (_, _) =>
-            {
-                if (selectedIndex != index)
-                {
-                    label.BackColor = UiTheme.Surface;
-                }
-            };
-            label.Paint += (_, e) =>
-            {
-                if (selectedIndex != index)
-                {
-                    return;
-                }
-
-                using var accent = new SolidBrush(UiTheme.Accent);
-                e.Graphics.FillRectangle(accent, 8, label.Height - 3, Math.Max(0, label.Width - 16), 2);
-            };
-            // 标签随窗口/侧栏宽度变化时重绘, 否则选中下划线会停留在旧宽度。
-            label.SizeChanged += (_, _) => label.Invalidate();
-
-            labels[i] = label;
-            tabBar.Controls.Add(label, i, 0);
+            var tab = new UiPillTab(titles[i]);
+            tab.Click += (_, _) => SelectTab(index);
+            tabs[i] = tab;
+            tabBar.Controls.Add(tab, i, 0);
         }
 
         root.Controls.Add(tabBar, 0, 0);
-        root.Controls.Add(contentHost, 0, 1);
+        root.Controls.Add(contentCard, 0, 1);
         SelectTab(0);
         return root;
     }
@@ -553,14 +529,13 @@ public sealed class ModuleEditorControl : UserControl
 
     private Control BuildNameRow()
     {
-        var row = new TableLayoutPanel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 4,
             RowCount = 2,
-            Padding = new Padding(12, 10, 12, 4),
-            Margin = new Padding(0, 0, 0, 10)
+            Padding = new Padding(14, 10, 14, 8),
+            Margin = new Padding(0, 0, 0, 12)
         };
         // 名称/作者各占剩余宽度的一半, 两个输入框等宽并铺满窗口。
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
@@ -584,6 +559,7 @@ public sealed class ModuleEditorControl : UserControl
 
         _pathLabel.Dock = DockStyle.Fill;
         _pathLabel.ForeColor = UiTheme.Muted;
+        _pathLabel.BackColor = Color.Transparent;
         _pathLabel.TextAlign = ContentAlignment.MiddleLeft;
         _pathLabel.AutoEllipsis = true;
         _pathLabel.TextChanged += (_, _) => _pathToolTip.SetToolTip(_pathLabel, _pathLabel.Text);
@@ -593,6 +569,7 @@ public sealed class ModuleEditorControl : UserControl
         // 版本号紧贴窗口右侧, 右对齐显示在"路径"同一行。
         _versionLabel.Dock = DockStyle.Fill;
         _versionLabel.ForeColor = UiTheme.Muted;
+        _versionLabel.BackColor = Color.Transparent;
         _versionLabel.TextAlign = ContentAlignment.MiddleRight;
         _versionLabel.AutoEllipsis = true;
         row.Controls.Add(_versionLabel, 3, 1);
@@ -604,13 +581,12 @@ public sealed class ModuleEditorControl : UserControl
     {
         var matchLabels = new[] { "职业", "专精", "英雄天赋", "队伍类型" };
 
-        var row = new TableLayoutPanel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 12,
             RowCount = 2,
-            Padding = new Padding(12),
+            Padding = new Padding(14),
             Margin = new Padding(0)
         };
         foreach (var label in matchLabels)
@@ -649,7 +625,7 @@ public sealed class ModuleEditorControl : UserControl
         var recommendedTalentRow = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
+            BackColor = Color.Transparent,
             ColumnCount = 2,
             RowCount = 1,
             // 推荐天赋整行相对原位置下移 4px，并与上方匹配项保持清晰间距。
@@ -2218,7 +2194,7 @@ public sealed class ModuleEditorControl : UserControl
 
         var oldSmoothingMode = e.Graphics.SmoothingMode;
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using (var path = CreateRoundedRectanglePath(buttonBounds, 4))
+        using (var path = UiTheme.CreateRoundedRectanglePath(buttonBounds, 4))
         using (var background = new SolidBrush(selected ? UiTheme.Pressed : UiTheme.Hover))
         using (var border = new Pen(selected ? UiTheme.Accent : UiTheme.Border))
         {
@@ -2241,18 +2217,6 @@ public sealed class ModuleEditorControl : UserControl
 
         e.Graphics.SmoothingMode = oldSmoothingMode;
         e.Handled = true;
-    }
-
-    private static GraphicsPath CreateRoundedRectanglePath(Rectangle bounds, int radius)
-    {
-        var path = new GraphicsPath();
-        var diameter = radius * 2;
-        path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
-        path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
-        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
-        path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
-        path.CloseFigure();
-        return path;
     }
 
     // 自绘 2×3 六点抓手, 不依赖字体里是否有 grip 字形; 新行不画。
@@ -2869,55 +2833,127 @@ public sealed class ModuleEditorControl : UserControl
 
     private Control BuildActionRow()
     {
-        var row = new Panel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
+            ColumnCount = 3,
+            RowCount = 1,
             Margin = new Padding(0),
-            Padding = new Padding(12, 0, 12, 0)
+            Padding = new Padding(14, 10, 14, 10)
         };
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 360));
+        row.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var hint = new Label
+        var openFolderButton = UiTheme.CreateButton("打开目录", UiTheme.ButtonKind.Secondary);
+        StyleModuleFooterButton(openFolderButton);
+        openFolderButton.Dock = DockStyle.Fill;
+        openFolderButton.Margin = new Padding(0, 0, 8, 0);
+        openFolderButton.Click += (_, _) => OpenModuleFolder();
+        _pathToolTip.SetToolTip(
+            openFolderButton,
+            "在资源管理器中打开模块目录；若已选中已保存模块则定位到对应文件");
+
+        var spacer = new Panel
         {
-            Text = "目标可选技能支持的单位或上方定义的动态单位；宏条件来自对应宏的方括号；点击“条件”列打开可视化编辑器",
             Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Muted,
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoEllipsis = true,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
 
-        var buttons = new FlowLayoutPanel
+        var buttons = new TableLayoutPanel
         {
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Right,
-            FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised,
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 3,
+            RowCount = 1,
             Margin = new Padding(0),
-            Padding = new Padding(0, 8, 0, 8)
+            Padding = new Padding(0)
         };
-
-        _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
-        _saveButton.Margin = new Padding(8, 0, 0, 0);
-        _saveButton.Click += async (_, _) => await RunModuleCommandAsync(SaveSelectedModuleAsync);
-
-        _deleteButton = UiTheme.CreateButton("删除", UiTheme.ButtonKind.Danger);
-        _deleteButton.Margin = new Padding(8, 0, 0, 0);
-        _deleteButton.Click += async (_, _) => await RunModuleCommandAsync(DeleteSelectedModuleAsync);
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34f));
+        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         _addButton = UiTheme.CreateButton("新建", UiTheme.ButtonKind.Secondary);
-        _addButton.Margin = new Padding(8, 0, 0, 0);
+        StyleModuleFooterButton(_addButton);
+        _addButton.Dock = DockStyle.Fill;
+        _addButton.Margin = new Padding(0, 0, 8, 0);
         _addButton.Click += async (_, _) => await RunModuleCommandAsync(AddModuleAsync);
 
-        buttons.Controls.Add(_saveButton);
-        buttons.Controls.Add(_deleteButton);
-        buttons.Controls.Add(_addButton);
-        row.Controls.Add(hint);
-        row.Controls.Add(buttons);
+        _deleteButton = UiTheme.CreateButton("删除", UiTheme.ButtonKind.Danger);
+        StyleModuleFooterButton(_deleteButton);
+        _deleteButton.Dock = DockStyle.Fill;
+        _deleteButton.Margin = new Padding(0, 0, 8, 0);
+        _deleteButton.Click += async (_, _) => await RunModuleCommandAsync(DeleteSelectedModuleAsync);
+
+        _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
+        StyleModuleFooterButton(_saveButton);
+        _saveButton.Dock = DockStyle.Fill;
+        _saveButton.Margin = new Padding(0);
+        _saveButton.Click += async (_, _) => await RunModuleCommandAsync(SaveSelectedModuleAsync);
+
+        buttons.Controls.Add(_addButton, 0, 0);
+        buttons.Controls.Add(_deleteButton, 1, 0);
+        buttons.Controls.Add(_saveButton, 2, 0);
+
+        row.Controls.Add(openFolderButton, 0, 0);
+        row.Controls.Add(spacer, 1, 0);
+        row.Controls.Add(buttons, 2, 0);
         return row;
     }
+
+    private void OpenModuleFolder()
+    {
+        var moduleDirectory = ModuleStore.ResolveModuleDirectory(_baseDirectory);
+        var filePath = _selectedModule?.FilePath;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{filePath}\"",
+                    UseShellExecute = true
+                });
+                return;
+            }
+
+            if (!Directory.Exists(moduleDirectory))
+            {
+                Directory.CreateDirectory(moduleDirectory);
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{moduleDirectory}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"无法打开模块文件夹：{ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private static void StyleModuleFooterButton(Button button)
+    {
+        button.AutoSize = false;
+        button.Height = ModuleFooterButtonHeight;
+        button.Margin = new Padding(0);
+        button.Padding = new Padding(10, 0, 10, 0);
+        button.TextAlign = ContentAlignment.MiddleCenter;
+    }
+
+    private static void StyleModuleActionButton(Button button)
+        => StyleModuleFooterButton(button);
 
     private void LoadModules()
     {
@@ -3358,6 +3394,7 @@ public sealed class ModuleEditorControl : UserControl
             Text = text,
             Dock = DockStyle.Fill,
             ForeColor = UiTheme.Muted,
+            BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleLeft,
             AutoEllipsis = true
         };

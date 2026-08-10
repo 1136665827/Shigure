@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -223,6 +224,7 @@ internal static class UiTheme
         button.FlatAppearance.BorderColor = backColor == Accent ? Accent : Border;
         button.FlatAppearance.MouseOverBackColor = backColor == Accent ? Color.FromArgb(112, 234, 221) : Hover;
         button.FlatAppearance.MouseDownBackColor = backColor == Accent ? Color.FromArgb(62, 194, 181) : Pressed;
+        ApplyControlRoundedRegion(button, 8);
         return button;
     }
 
@@ -240,6 +242,71 @@ internal static class UiTheme
 
     public static int Scale(Control control, int logicalPixels)
         => Math.Max(1, (int)Math.Round(logicalPixels * control.DeviceDpi / 96F));
+
+    public static GraphicsPath CreateRoundedRectanglePath(Rectangle bounds, int radius)
+    {
+        var path = new GraphicsPath();
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            path.AddRectangle(bounds);
+            return path;
+        }
+
+        var diameter = Math.Max(2, Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height)));
+        var arc = new Rectangle(bounds.Location, new Size(diameter, diameter));
+        path.AddArc(arc, 180, 90);
+        arc.X = bounds.Right - diameter;
+        path.AddArc(arc, 270, 90);
+        arc.Y = bounds.Bottom - diameter;
+        path.AddArc(arc, 0, 90);
+        arc.X = bounds.Left;
+        path.AddArc(arc, 90, 90);
+        path.CloseFigure();
+        return path;
+    }
+
+    public static void ApplyControlRoundedRegion(Control control, int logicalRadius = 8)
+    {
+        void UpdateRegion()
+        {
+            if (control.Width <= 0 || control.Height <= 0)
+            {
+                return;
+            }
+
+            var diameter = Math.Min(
+                Scale(control, logicalRadius) * 2,
+                Math.Min(control.Width, control.Height));
+            var regionHandle = CreateRoundRectRgn(0, 0, control.Width + 1, control.Height + 1, diameter, diameter);
+            if (regionHandle == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var previous = control.Region;
+                control.Region = Region.FromHrgn(regionHandle);
+                previous?.Dispose();
+            }
+            finally
+            {
+                _ = DeleteObject(regionHandle);
+            }
+        }
+
+        control.Resize -= OnRoundedRegionResize;
+        control.Resize += OnRoundedRegionResize;
+        control.HandleCreated -= OnRoundedRegionHandleCreated;
+        control.HandleCreated += OnRoundedRegionHandleCreated;
+        if (control.IsHandleCreated)
+        {
+            UpdateRegion();
+        }
+
+        void OnRoundedRegionResize(object? sender, EventArgs e) => UpdateRegion();
+        void OnRoundedRegionHandleCreated(object? sender, EventArgs e) => UpdateRegion();
+    }
 
     public static void StyleTextBox(TextBox textBox)
     {

@@ -651,7 +651,7 @@ public sealed class StatusForm : Form
             AboutWatermarkOpacity)
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
+            BackColor = UiTheme.Surface,
             AutoScroll = true,
             Margin = new Padding(0)
         };
@@ -663,13 +663,25 @@ public sealed class StatusForm : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             BackColor = Color.Transparent,
             ColumnCount = 1,
-            RowCount = 4,
-            Padding = new Padding(18)
+            RowCount = 3,
+            Padding = new Padding(0),
+            Margin = new Padding(0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var infoCard = new UiCardPanel
+        {
+            AutoSize = true,
+            Dock = DockStyle.Top,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(14),
+            Margin = new Padding(0, 0, 0, 12)
+        };
+        infoCard.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        infoCard.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         var heading = new TableLayoutPanel
         {
@@ -678,7 +690,7 @@ public sealed class StatusForm : Form
             BackColor = Color.Transparent,
             ColumnCount = 1,
             RowCount = 2,
-            Margin = new Padding(0, 0, 0, 22)
+            Margin = new Padding(0, 0, 0, 16)
         };
         heading.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         heading.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -687,6 +699,7 @@ public sealed class StatusForm : Form
             Text = "Shigure",
             AutoSize = true,
             ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
             Font = new Font(Font.FontFamily, 18F, FontStyle.Bold),
             Margin = new Padding(0, 0, 0, 4)
         }, 0, 0);
@@ -695,10 +708,11 @@ public sealed class StatusForm : Form
             Text = "应用信息与 ClassBlocks 可用状态字段参考",
             AutoSize = true,
             ForeColor = UiTheme.Muted,
+            BackColor = Color.Transparent,
             Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
             Margin = new Padding(0)
         }, 0, 1);
-        panel.Controls.Add(heading, 0, 0);
+        infoCard.Controls.Add(heading, 0, 0);
 
         var assembly = Assembly.GetExecutingAssembly();
         var version = AppInfo.Version;
@@ -709,13 +723,13 @@ public sealed class StatusForm : Form
             AutoSize = true,
             Dock = DockStyle.Top,
             BackColor = Color.Transparent,
-            ColumnCount = 3,
+            ColumnCount = 2,
             RowCount = 0,
-            Padding = new Padding(0)
+            Padding = new Padding(0),
+            Margin = new Padding(0)
         };
         details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
         details.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 72));
 
         AddAboutRow(details, "产品", "Shigure");
         AddAboutRow(details, "公司", company);
@@ -727,17 +741,18 @@ public sealed class StatusForm : Form
         var configPath = ConfigService.ResolveConfigPath(AppPaths.BaseDirectory);
         AddAboutRow(details, "模块目录", FormatAboutPath(modulePath), modulePath);
         AddAboutRow(details, "配置目录", FormatAboutPath(configPath), configPath);
-
-        panel.Controls.Add(details, 0, 1);
+        infoCard.Controls.Add(details, 0, 1);
+        panel.Controls.Add(infoCard, 0, 0);
 
         panel.Controls.Add(new Label
         {
             Text = "可用状态字段",
             AutoSize = true,
             ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
             Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
-            Margin = new Padding(0, 18, 0, 12)
-        }, 0, 2);
+            Margin = new Padding(2, 6, 0, 12)
+        }, 0, 1);
 
         var fields = new TableLayoutPanel
         {
@@ -789,7 +804,7 @@ public sealed class StatusForm : Form
             ["类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"],
             104), 1, 2);
 
-        panel.Controls.Add(fields, 0, 3);
+        panel.Controls.Add(fields, 0, 2);
         scrollHost.Controls.Add(panel);
         return scrollHost;
     }
@@ -799,12 +814,12 @@ public sealed class StatusForm : Form
 
     private Control CreateAboutFieldCard(string title, IReadOnlyList<string> items, int minimumHeight)
     {
-        var card = new AboutFieldCardPanel
+        var card = new UiCardPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(16, 14, 16, 14),
+            Padding = new Padding(14),
             Margin = new Padding(0, 0, 12, 12),
             MinimumSize = new Size(0, minimumHeight)
         };
@@ -816,6 +831,7 @@ public sealed class StatusForm : Form
             Text = title,
             Dock = DockStyle.Fill,
             ForeColor = UiTheme.Accent,
+            BackColor = Color.Transparent,
             Font = new Font(Font.FontFamily, 10.5F, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft,
             Margin = new Padding(0)
@@ -826,6 +842,7 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Fill,
             AutoSize = false,
             ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
             Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
             TextAlign = ContentAlignment.TopLeft,
             Margin = new Padding(0, 6, 0, 0)
@@ -853,7 +870,7 @@ public sealed class StatusForm : Form
         }
     }
 
-    private void AddAboutRow(TableLayoutPanel panel, string name, string value, string? copyValue = null)
+    private void AddAboutRow(TableLayoutPanel panel, string name, string value, string? tooltip = null)
     {
         var row = panel.RowCount++;
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -864,6 +881,7 @@ public sealed class StatusForm : Form
             Width = 104,
             Height = 26,
             ForeColor = UiTheme.Muted,
+            BackColor = Color.Transparent,
             AutoEllipsis = true,
             TextAlign = ContentAlignment.MiddleLeft,
             Margin = new Padding(0, 0, 18, 14)
@@ -875,23 +893,12 @@ public sealed class StatusForm : Form
             AutoSize = false,
             AutoEllipsis = true,
             ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0, 0, 12, 14)
+            Margin = new Padding(0, 0, 0, 14)
         };
-        _toolTip.SetToolTip(valueLabel, copyValue ?? value);
+        _toolTip.SetToolTip(valueLabel, tooltip ?? value);
         panel.Controls.Add(valueLabel, 1, row);
-
-        if (!string.IsNullOrWhiteSpace(copyValue))
-        {
-            var copyButton = UiTheme.CreateButton("复制", UiTheme.ButtonKind.Secondary);
-            copyButton.AutoSize = false;
-            copyButton.Dock = DockStyle.Top;
-            copyButton.Height = 28;
-            copyButton.Margin = new Padding(0, 0, 0, 10);
-            copyButton.Padding = new Padding(4, 0, 4, 0);
-            copyButton.Click += (_, _) => Clipboard.SetText(copyValue);
-            panel.Controls.Add(copyButton, 2, row);
-        }
     }
 
     private sealed class WatermarkPanel : Panel
@@ -963,25 +970,6 @@ public sealed class StatusForm : Form
             }
 
             base.Dispose(disposing);
-        }
-    }
-
-    private sealed class AboutFieldCardPanel : TableLayoutPanel
-    {
-        private const int BackgroundOpacity = 166;
-
-        public AboutFieldCardPanel()
-        {
-            SetStyle(ControlStyles.SupportsTransparentBackColor, true);
-            BackColor = Color.Transparent;
-            DoubleBuffered = true;
-        }
-
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            base.OnPaintBackground(e);
-            using var background = new SolidBrush(Color.FromArgb(BackgroundOpacity, UiTheme.Field));
-            e.Graphics.FillRectangle(background, e.ClipRectangle);
         }
     }
 
@@ -1447,7 +1435,7 @@ public sealed class StatusForm : Form
                     : _hovered
                         ? UiTheme.Hover
                         : UiTheme.Background;
-            using (var path = CreateRoundedPath(bounds, Math.Max(6, (int)Math.Round(8 * scale))))
+            using (var path = UiTheme.CreateRoundedRectanglePath(bounds, Math.Max(6, (int)Math.Round(8 * scale))))
             using (var background = new SolidBrush(backgroundColor))
             {
                 graphics.FillPath(background, path);
@@ -1500,18 +1488,6 @@ public sealed class StatusForm : Form
                 var focusBounds = Rectangle.Inflate(bounds, -(int)Math.Round(4 * scale), -(int)Math.Round(4 * scale));
                 ControlPaint.DrawFocusRectangle(graphics, focusBounds, UiTheme.Text, backgroundColor);
             }
-        }
-
-        private static GraphicsPath CreateRoundedPath(Rectangle bounds, int radius)
-        {
-            var diameter = Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height));
-            var path = new GraphicsPath();
-            path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
-            path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
-            path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
-            path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
-            path.CloseFigure();
-            return path;
         }
 
         private static void DrawIcon(Graphics graphics, SettingsNavIcon icon, Rectangle bounds, Color color, float scale)
