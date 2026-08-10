@@ -20,13 +20,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - **没有测试项目**：验证 = 能编译 + 实际运行点开「设置」走查。`dotnet build` 干净通过（0 警告 0 错误）是基线要求。
 - 启动参数见 [README.md](README.md#运行)（`--toggle/--mode/--logic-ms/--render-ms`），解析在 [App/AppOptions.cs](App/AppOptions.cs)。目标进程名来自 `wow_process.txt`。
 
-### ⚠️ 随机重启会拦截普通运行
-
-[App/Program.cs](App/Program.cs) 启动时先调 `RandomizedExecutableLauncher.TryRelaunch`（[App/RandomizedExecutableLauncher.cs](App/RandomizedExecutableLauncher.cs)）：当 `Environment.ProcessPath` 是 `.exe` 时，它会把运行时文件复制到 `tmp/<随机名>/<随机名>.exe` 并启动那个副本，**原进程随即退出**，真正的 `MainForm` 跑在随机副本里。
-
-含义：
-- 直接调试 / 想让进程留在原位时，设环境变量 `SHIGURE_RANDOMIZED_PROCESS=1` 跳过重启（`TryRelaunch` 返回 `AlreadyRelaunched`）。
-- 随机副本通过 `SHIGURE_ORIGINAL_BASE_DIRECTORY` 找回原目录读取 config/keymap/module —— 见 [Infrastructure/AppPaths.cs](Infrastructure/AppPaths.cs) 的 `AppPaths.BaseDirectory`。改动数据路径相关代码要保留这条回溯。
+程序直接从当前 EXE 所在目录运行；`AppPaths.BaseDirectory` 即 `AppContext.BaseDirectory`，配置、按键映射、模块和插件源码均从该目录读取。
 
 ## 架构与数据流
 
@@ -52,7 +46,7 @@ KeySender.Send(hotkey)                    Input/KeySender.cs (+ Input/NativeMeth
 ### 目录约定
 
 ```
-App/            入口、启动参数、随机重启、依赖组装、运行时会话协调
+App/            入口、启动参数、依赖组装、运行时会话协调
 Runtime/        扫描、状态构建、主循环、运行时端口、快照
 Modules/        模块模型/存储/匹配/规则执行、条件求值(FormulaEvaluator)、字段目录、职业逻辑
 Input/          keymap 读取、按键发送、Win32 API

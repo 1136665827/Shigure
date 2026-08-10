@@ -17,17 +17,6 @@ internal static class Program
 
         ApplicationConfiguration.Initialize();
 
-        var relaunchResult = RandomizedExecutableLauncher.TryRelaunch(args);
-        if (relaunchResult == RandomizedRelaunchResult.Started)
-        {
-            return;
-        }
-
-        if (relaunchResult == RandomizedRelaunchResult.Failed)
-        {
-            return;
-        }
-
         var options = AppOptions.FromArgs(args);
         var baseDirectory = AppPaths.BaseDirectory;
         var moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory(baseDirectory));
