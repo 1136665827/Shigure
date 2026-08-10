@@ -1,8 +1,8 @@
 ---
-title: "Shingen 兼容性变更检查清单"
+title: "Shigure 兼容性变更检查清单"
 summary: "用于评估和验证 Fuyutsui 与 Shigure 的像素、配置、宏、字段、路径和版本变更，防止单端修改造成静默语义漂移。"
 aliases:
-  - "Shingen 兼容性清单"
+  - "Shigure 兼容性清单"
   - "双项目变更门禁"
 tags:
   - "scope/integration"
@@ -13,11 +13,11 @@ doc_type: "guide"
 status: "current"
 authority: "contract"
 up:
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]"
 related:
-  - "[[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]"
-  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]"
-  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]"
+  - "[[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]]"
+  - "[[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]"
+  - "[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]"
   - "[[50-参考资料/OPTIMIZATION_zh-CN|Fuyutsui 历史优化审计]]"
 source_files:
   - "Fuyutsui/Fuyutsui.toc"
@@ -40,7 +40,7 @@ source_symbols:
 verified_at: "2026-08-10"
 ---
 
-# Shingen 兼容性变更检查清单
+# Shigure 兼容性变更检查清单
 
 ## AI 摘要
 
@@ -70,9 +70,9 @@ verified_at: "2026-08-10"
 
 | 变更 | 契约入口 | 典型影响 |
 |---|---|---|
-| 主色块数量、RGB、标记或物理布局 | [[40-跨项目/01-Shingen-像素生产消费契约|像素契约]] | `core/block.lua`、PixelScanner、StateBuilder、截图验证 |
-| `states/auras/spells/group` 结构或顺序 | [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 契约]] | LoadPlayerBlocks、Store、Converter、config、module 字段 |
-| 宏顺序、动态占位、热键池 | [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏与热键契约]] | CreateMacro、KeymapConverter、keymap、实际绑定 |
+| 主色块数量、RGB、标记或物理布局 | [[40-跨项目/01-Shigure-像素生产消费契约|像素契约]] | `core/block.lua`、PixelScanner、StateBuilder、截图验证 |
+| `states/auras/spells/group` 结构或顺序 | [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 契约]] | LoadPlayerBlocks、Store、Converter、config、module 字段 |
+| 宏顺序、动态占位、热键池 | [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|宏与热键契约]] | CreateMacro、KeymapConverter、keymap、实际绑定 |
 | 单位编号、宏条件、module schema | 宏与热键契约 | 版本常量、迁移、编辑器、已有 module JSON |
 | `GameState` 名称或类型 | ClassBlocks 契约 | config、条件字段目录、规则、动态字段、UI |
 | AuraContainer API 或秘密值策略 | 像素/ClassBlocks 契约 | Fuyutsui Aura 槽、版本固定参考、游戏内验证 |
@@ -103,7 +103,7 @@ verified_at: "2026-08-10"
 ### 共同检查
 
 - [ ] 用符号搜索确认当前实现文件，不使用历史审计中的旧行号。
-- [ ] 阅读 [[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]和受影响契约。
+- [ ] 阅读 [[10-系统/00-Shigure-双项目系统全景|双项目系统全景]]和受影响契约。
 - [ ] 列出生产者、消费者、生成物和已有持久化数据。
 - [ ] 判断变更是向后兼容、需要迁移，还是必须同时发布。
 - [ ] 记录当前 Fuyutsui `## Version`、接口版本和 Shigure 程序版本。
@@ -241,8 +241,8 @@ flowchart TD
 
 ## 关系
 
-- 上级：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
-- 像素门禁：[[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]
-- 配置门禁：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]
-- 热键门禁：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]
+- 上级：[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]
+- 像素门禁：[[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]]
+- 配置门禁：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]
+- 热键门禁：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]
 - 历史审计：[[50-参考资料/OPTIMIZATION_zh-CN|Fuyutsui 优化建议]]

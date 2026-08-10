@@ -7,7 +7,7 @@ related:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
   - "[[50-参考资料/TEXTURE_LAYOUT_zh-CN|纹理排序说明]]"
   - "[[50-参考资料/AuraContainer_AI_Reference_zh-CN|AuraContainer AI 技术参考]]"
-  - "[[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]"
+  - "[[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]]"
 purpose: "供 AI 生成、审查、修改屏幕像素输出与横向条时作为单一事实来源"
 tags:
   - "project/fuyutsui"

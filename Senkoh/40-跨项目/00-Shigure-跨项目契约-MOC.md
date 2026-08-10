@@ -1,8 +1,8 @@
 ---
-title: "Shingen 跨项目契约 MOC"
+title: "Shigure 跨项目契约 MOC"
 summary: "汇总 Fuyutsui 与 Shigure 之间的像素、配置和热键三条接口，以及兼容性变更的检查入口。"
 aliases:
-  - "Shingen 接口地图"
+  - "Shigure 接口地图"
   - "跨项目契约入口"
 tags:
   - "scope/integration"
@@ -13,9 +13,9 @@ doc_type: "moc"
 status: "current"
 authority: "contract"
 up:
-  - "[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
+  - "[[00-导航/00-Shigure-知识库首页|Shigure 知识库首页]]"
 related:
-  - "[[10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
+  - "[[10-系统/00-Shigure-双项目系统全景|Shigure 双项目系统全景]]"
   - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
   - "[[30-Shigure/00-Shigure-MOC|Shigure MOC]]"
 source_files:
@@ -35,17 +35,17 @@ source_symbols:
 verified_at: "2026-08-10"
 ---
 
-# Shingen 跨项目契约 MOC
+# Shigure 跨项目契约 MOC
 
 ## AI 摘要
 
 跨项目契约描述“两个项目必须以完全相同方式理解的事实”，而不是复述两边源码。当前有三条主契约：
 
-- [[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]：Fuyutsui 如何画，Shigure 如何采样和解码。
-- [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]：职业 Lua 声明如何变成 Shigure 的字段映射。
-- [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]：职业宏顺序如何变成可解析、可发送的热键。
+- [[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]]：Fuyutsui 如何画，Shigure 如何采样和解码。
+- [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]：职业 Lua 声明如何变成 Shigure 的字段映射。
+- [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]：职业宏顺序如何变成可解析、可发送的热键。
 
-契约没有独立协商或握手机制。仓库内置 `Fuyutsui/` 让两端源码能够同版本发布，但不会自动消除协议漂移；任何格式变化仍必须按 [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]] 同步修改、重新生成并验证游戏部署副本。
+契约没有独立协商或握手机制。仓库内置 `Fuyutsui/` 让两端源码能够同版本发布，但不会自动消除协议漂移；任何格式变化仍必须按 [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性变更检查清单]] 同步修改、重新生成并验证游戏部署副本。
 
 ## 范围
 
@@ -106,10 +106,10 @@ verified_at: "2026-08-10"
 
 | 计划修改 | 必须进入 |
 |---|---|
-| RGB、像素数量、标记色、条宽高、网格行列 | [[40-跨项目/01-Shingen-像素生产消费契约|像素契约]] |
-| `states/auras/spells/group` 格式、顺序、占位 | [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 契约]] |
-| dynamic/static/special 规则、宏键池、单位或条件 | [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏与热键契约]] |
-| 任意共享名称、版本、路径或生成方式 | [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查清单]] |
+| RGB、像素数量、标记色、条宽高、网格行列 | [[40-跨项目/01-Shigure-像素生产消费契约|像素契约]] |
+| `states/auras/spells/group` 格式、顺序、占位 | [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 契约]] |
+| dynamic/static/special 规则、宏键池、单位或条件 | [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|宏与热键契约]] |
+| 任意共享名称、版本、路径或生成方式 | [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性检查清单]] |
 
 若修改只属于一端的内部重构，但输入输出完全不变，应在提交说明和功能页中明确“契约未变”。
 
@@ -147,7 +147,7 @@ flowchart TB
 
 ## 关系
 
-- 上级：[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
-- 全景：[[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]
+- 上级：[[00-导航/00-Shigure-知识库首页|Shigure 知识库首页]]
+- 全景：[[10-系统/00-Shigure-双项目系统全景|双项目系统全景]]
 - 生产端：[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]
 - 消费端：[[30-Shigure/00-Shigure-MOC|Shigure MOC]]

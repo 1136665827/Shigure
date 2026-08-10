@@ -1,5 +1,5 @@
 ---
-title: "Shingen 像素生产消费契约"
+title: "Shigure 像素生产消费契约"
 summary: "定义 Fuyutsui 主色块、CountBars 和治疗吸收网格的屏幕编码，以及 Shigure 的采样、原始解码和状态构建责任。"
 aliases:
   - "Fuyutsui Shigure 像素协议"
@@ -13,7 +13,7 @@ doc_type: "contract"
 status: "current"
 authority: "contract"
 up:
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]"
 related:
   - "[[50-参考资料/BLOCK_AI_Reference_zh-CN|Fuyutsui block 技术参考]]"
   - "[[50-参考资料/TEXTURE_LAYOUT_zh-CN|Fuyutsui 纹理排序说明]]"
@@ -35,7 +35,7 @@ source_symbols:
 verified_at: "2026-08-09"
 ---
 
-# Shingen 像素生产消费契约
+# Shigure 像素生产消费契约
 
 ## AI 摘要
 
@@ -152,7 +152,7 @@ Shigure 从客户区左边缘向下寻找红色标记字节 `(1,0,0)`，以该 y
 - `StateBuilder` 对吸收值和生命值的组合语义。
 - Fuyutsui 在分辨率、UI 缩放或专精变化时的重排方式。
 
-只改变业务字段顺序而不改变 RGB 算法时，也必须更新 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 契约]]及生成配置。
+只改变业务字段顺序而不改变 RGB 算法时，也必须更新 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config 契约]]及生成配置。
 
 ## 源码索引
 
@@ -189,7 +189,7 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
+- 上级：[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]
 - 生产端：[[50-参考资料/BLOCK_AI_Reference_zh-CN|Fuyutsui block 技术参考]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收|队伍与治疗吸收]]
 - 消费端：[[30-Shigure/02-Shigure-像素扫描与协议解码|像素扫描与协议解码]]、[[30-Shigure/03-Shigure-配置合并与GameState构建|GameState 构建]]
-- 相邻契约：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config]]
+- 相邻契约：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config]]

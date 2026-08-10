@@ -1,5 +1,5 @@
 ---
-title: "Shingen ClassMacros 到 keymap 与按键契约"
+title: "Shigure ClassMacros 到 keymap 与按键契约"
 summary: "定义 Fuyutsui 职业宏的槽位展开、覆盖绑定，以及 Shigure keymap 生成、单位与宏条件解析和按键发送的一致性要求。"
 aliases:
   - "ClassMacros keymap 契约"
@@ -13,7 +13,7 @@ doc_type: "contract"
 status: "current"
 authority: "contract"
 up:
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]"
 related:
   - "[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|Fuyutsui ClassMacros 规则参考]]"
   - "[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描|Fuyutsui 动作条键位扫描]]"
@@ -40,7 +40,7 @@ source_symbols:
 verified_at: "2026-08-10"
 ---
 
-# Shingen ClassMacros 到 keymap 与按键契约
+# Shigure ClassMacros 到 keymap 与按键契约
 
 ## AI 摘要
 
@@ -215,8 +215,8 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
+- 上级：[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]
 - 生产端规则：[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|Fuyutsui ClassMacros 规则参考]]
 - 消费与执行：[[30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]]
 - 编辑同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Fuyutsui 配置宏编辑与同步]]
-- 验收：[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]
+- 验收：[[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性变更检查清单]]

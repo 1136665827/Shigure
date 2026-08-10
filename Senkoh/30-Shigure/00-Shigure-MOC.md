@@ -12,10 +12,10 @@ project: Shigure
 doc_type: moc
 status: current
 authority: source-derived
-up: "[[00-导航/00-Shingen-知识库首页]]"
+up: "[[00-导航/00-Shigure-知识库首页]]"
 related:
-  - "[[10-系统/00-Shingen-双项目系统全景]]"
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC]]"
+  - "[[10-系统/00-Shigure-双项目系统全景]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC]]"
   - "[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]"
 source_files:
   - App/Program.cs
@@ -40,8 +40,8 @@ verified_at: 2026-08-10
 
 ## 图谱位置
 
-- 上级：[[00-导航/00-Shingen-知识库首页]]、[[10-系统/00-Shingen-双项目系统全景]]
-- 跨项目入口：[[40-跨项目/00-Shingen-跨项目契约-MOC]]
+- 上级：[[00-导航/00-Shigure-知识库首页]]、[[10-系统/00-Shigure-双项目系统全景]]
+- 跨项目入口：[[40-跨项目/00-Shigure-跨项目契约-MOC]]
 - 插件入口：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 - 项目原始说明：`README.md`、`CLAUDE.md`、`打包说明.md`
 
@@ -61,9 +61,9 @@ Program.Main
 
 插件与程序之间不是 API 调用关系，而是三个文件/像素契约：
 
-1. 实时状态：[[40-跨项目/01-Shingen-像素生产消费契约]]。
-2. 状态布局：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
-3. 宏与按键：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]。
+1. 实时状态：[[40-跨项目/01-Shigure-像素生产消费契约]]。
+2. 状态布局：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]。
+3. 宏与按键：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]。
 
 ## 按功能阅读
 
@@ -119,7 +119,7 @@ Program.Main
 
 ## 修改导航
 
-- 改像素颜色、步骤上限或吸收网格：同时查看 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 和 [[40-跨项目/01-Shingen-像素生产消费契约]]。
+- 改像素颜色、步骤上限或吸收网格：同时查看 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 和 [[40-跨项目/01-Shigure-像素生产消费契约]]。
 - 改 Fuyutsui 状态字段：同时查看 [[30-Shigure/03-Shigure-配置合并与GameState构建]] 和 [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]。
 - 改单位编号或宏条件：同时查看 [[30-Shigure/05-Shigure-模块存储匹配与版本迁移]]、[[30-Shigure/08-Shigure-Keymap解析与按键发送]] 和跨项目宏契约。
 - 改并发或关闭流程：先看 [[30-Shigure/01-Shigure-启动随机副本与会话协调]]、[[30-Shigure/04-Shigure-运行循环触发模式与快照]]、[[30-Shigure/10-Shigure-UI功能地图与数据所有权]]。
@@ -137,7 +137,7 @@ Program.Main
 
 ## 知识图谱链接
 
-- 上游总览：[[10-系统/00-Shingen-双项目系统全景]]
+- 上游总览：[[10-系统/00-Shigure-双项目系统全景]]
 - 实时数据生产者入口：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
 - 生产者细节：[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]
 - 相关原始资料：`README.md`、`CLAUDE.md`

@@ -147,7 +147,7 @@ NAME_PLATE_UNIT_REMOVED
 - 增加 boss 单位支持需同时新增缓存、状态声明、事件入口和 C# 配置字段。
 - 更改类型枚举或驱散曲线时同步 [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 与 Shigure 的业务判断。
 - 更改敌人数口径时记录地图、战斗和范围边界；它会直接改变 AoE/目标选择策略。
-- 更改目标/焦点字段名或顺序需重新生成配置，遵循 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+- 更改目标/焦点字段名或顺序需重新生成配置，遵循 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]。
 
 ## 源码索引
 

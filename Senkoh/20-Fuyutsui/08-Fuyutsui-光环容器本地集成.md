@@ -174,7 +174,7 @@ WoW 在敌对单位上处理 `HELPFUL`、友方单位上处理 `HARMFUL` 时，S
 - 修改 AuraContainer API 调用前核对当前 Blizzard 模板/API；这是版本敏感区。
 - 新增单位类型需扩展容器 key、收集顺序、反应过滤、释放和重绑五条路径。
 - 新增 `maxApps` 会改变横向扫描布局，需同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 和生成配置。
-- 修改 group aura/dispel offset 同步 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+- 修改 group aura/dispel offset 同步 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]。
 - 若未来拆出文件，必须把它加入 `.toc` 且保持在 `block.lua` 所需常量与 `main.lua` 调用之前加载。
 
 ## 源码索引

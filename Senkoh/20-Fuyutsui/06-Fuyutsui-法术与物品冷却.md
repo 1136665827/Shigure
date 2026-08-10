@@ -17,7 +17,7 @@ up:
 related:
   - "[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]"
   - "[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]"
-  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
+  - "[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]"
 source_files:
   - Fuyutsui/core/spells.lua
   - Fuyutsui/core/block.lua
@@ -40,7 +40,7 @@ verified_at: 2026-08-09
 
 上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] · [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] · [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+相关：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] · [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] · [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]
 
 ## AI 快速摘要
 
@@ -157,7 +157,7 @@ ItemID 是版本敏感数据；新增同类物品必须更新聚合列表和相�
 
 ## 修改影响
 
-- 修改职业 `spells` 后必须执行 ClassBlocks→config 同步，见 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+- 修改职业 `spells` 后必须执行 ClassBlocks→config 同步，见 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]。
 - 修改冷却哨兵、曲线或 GCD 规则时同步 Shigure 的状态判断和测试。
 - 修改横向条预留/终点布局时同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
 - 增加驱散类型或能力表时同时检查目标类型曲线、队伍 dispel 槽和 AuraContainer 过滤。
@@ -175,4 +175,4 @@ ItemID 是版本敏感数据；新增同类物品必须更新聚合列表和相�
 
 ## 知识图谱
 
-本页使用 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 的主行与 CountBars，向 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] 提供类型曲线、向 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 提供驱散过滤；其配置同步边界由 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]] 管理。
+本页使用 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 的主行与 CountBars，向 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] 提供类型曲线、向 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 提供驱散过滤；其配置同步边界由 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]] 管理。

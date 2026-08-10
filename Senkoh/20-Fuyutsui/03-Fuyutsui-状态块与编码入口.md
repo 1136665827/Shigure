@@ -16,7 +16,7 @@ up:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
   - "[[50-参考资料/TEXTURE_LAYOUT_zh-CN]]"
-  - "[[40-跨项目/01-Shingen-像素生产消费契约]]"
+  - "[[40-跨项目/01-Shigure-像素生产消费契约]]"
   - "[[30-Shigure/02-Shigure-像素扫描与协议解码]]"
 source_files:
   - Fuyutsui/main.lua
@@ -37,7 +37,7 @@ verified_at: 2026-08-09
 
 上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[50-参考资料/TEXTURE_LAYOUT_zh-CN]] · [[40-跨项目/01-Shingen-像素生产消费契约]] · [[30-Shigure/02-Shigure-像素扫描与协议解码]]
+相关：[[50-参考资料/TEXTURE_LAYOUT_zh-CN]] · [[40-跨项目/01-Shigure-像素生产消费契约]] · [[30-Shigure/02-Shigure-像素扫描与协议解码]]
 
 ## AI 快速摘要
 
@@ -135,7 +135,7 @@ Lua 传给 `SetColorTexture` 时再除以 255。因此第 255 槽是 `(0,255,B)`
 - 最多 30 个成员，5 列、6 行；每槽为 1 个成员锚点、100 个条身单元和 1 个终点。
 - 玩家锚点值为 1，`party1..4` 为 2..5，`raidN` 为 N；锚点帮助消费端确认槽身份。
 
-详细扫描几何见 [[40-跨项目/01-Shingen-像素生产消费契约]]。
+详细扫描几何见 [[40-跨项目/01-Shigure-像素生产消费契约]]。
 
 ## 核心数据与不变量
 
@@ -173,4 +173,4 @@ Lua 传给 `SetColorTexture` 时再除以 255。因此第 255 槽是 `(0,255,B)`
 
 ## 知识图谱
 
-本页把 [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]] 产生的专精运行时对象映射为视觉协议；字段由 [[20-Fuyutsui/04-Fuyutsui-玩家状态]] 至 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 的领域逻辑写入，跨进程契约由 [[40-跨项目/01-Shingen-像素生产消费契约]] 约束，最终由 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 消费。
+本页把 [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]] 产生的专精运行时对象映射为视觉协议；字段由 [[20-Fuyutsui/04-Fuyutsui-玩家状态]] 至 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 的领域逻辑写入，跨进程契约由 [[40-跨项目/01-Shigure-像素生产消费契约]] 约束，最终由 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 消费。

@@ -1,23 +1,23 @@
 ---
-title: "Shingen 双项目系统全景"
+title: "Shigure 双项目系统全景"
 summary: "描述内置 Fuyutsui 与 Shigure 的职责边界、端到端闭环、配置生成和游戏插件部署链路。"
 aliases:
-  - "Shingen 系统架构"
+  - "Shigure 系统架构"
   - "Fuyutsui 与 Shigure 全景"
 tags:
-  - "project/shingen"
+  - "project/shigure"
   - "doc/overview"
   - "area/architecture"
-project: "Shingen"
+project: "Shigure"
 doc_type: "overview"
 status: "current"
 authority: "source-derived"
 up:
-  - "[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
+  - "[[00-导航/00-Shigure-知识库首页|Shigure 知识库首页]]"
 related:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
   - "[[30-Shigure/00-Shigure-MOC|Shigure MOC]]"
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]"
 source_files:
   - "Fuyutsui/Fuyutsui.toc"
   - "Fuyutsui/core/core.lua"
@@ -39,7 +39,7 @@ source_symbols:
 verified_at: "2026-08-10"
 ---
 
-# Shingen 双项目系统全景
+# Shigure 双项目系统全景
 
 ## AI 摘要
 
@@ -47,9 +47,9 @@ verified_at: "2026-08-10"
 
 因此存在三条必须同步维护的跨项目接口：
 
-1. [[40-跨项目/01-Shingen-像素生产消费契约|屏幕像素生产消费契约]]。
-2. [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]。
-3. [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]。
+1. [[40-跨项目/01-Shigure-像素生产消费契约|屏幕像素生产消费契约]]。
+2. [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]。
+3. [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]。
 
 任何一端单独改变这些接口，都可能让系统“仍能启动但语义已经错误”。
 
@@ -151,7 +151,7 @@ verified_at: "2026-08-10"
 | 随机副本或基础目录解析 | config/keymap/module/cache 路径及打包结果 |
 | 内置插件目录或部署策略 | csproj 发布内容、编辑器路径、AddonSyncService、游戏目录权限和重载流程 |
 
-完整验收见 [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]。
+完整验收见 [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性变更检查清单]]。
 
 ## 源码索引
 
@@ -222,7 +222,7 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
+- 上级：[[00-导航/00-Shigure-知识库首页|Shigure 知识库首页]]
 - 生产端：[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]
 - 消费端：[[30-Shigure/00-Shigure-MOC|Shigure MOC]]
-- 接口：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
+- 接口：[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]

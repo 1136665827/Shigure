@@ -1,23 +1,23 @@
 ---
-title: "Shingen 知识库首页"
+title: "Shigure 知识库首页"
 summary: "Shigure 与内置 Fuyutsui 双组件知识库的唯一入口，提供事实优先级、部署链路、MOC 和跨组件契约导航。"
 aliases:
-  - "Shingen 文档首页"
+  - "Shigure 文档首页"
   - "双项目知识库入口"
 tags:
-  - "project/shingen"
+  - "project/shigure"
   - "doc/moc"
   - "area/navigation"
-project: "Shingen"
+project: "Shigure"
 doc_type: "moc"
 status: "current"
 authority: "source-derived"
 up: []
 related:
-  - "[[10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
+  - "[[10-系统/00-Shigure-双项目系统全景|Shigure 双项目系统全景]]"
   - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
   - "[[30-Shigure/00-Shigure-MOC|Shigure MOC]]"
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]"
   - "[[50-参考资料/00-参考资料-MOC|参考资料 MOC]]"
 source_files:
   - "Fuyutsui/Fuyutsui.toc"
@@ -31,7 +31,7 @@ source_symbols:
 verified_at: "2026-08-10"
 ---
 
-# Shingen 知识库首页
+# Shigure 知识库首页
 
 ## AI 摘要
 
@@ -40,7 +40,7 @@ verified_at: "2026-08-10"
 - **Fuyutsui** 是 WoW Retail Lua AddOn。它读取游戏 API，把状态编码为屏幕顶部像素和横向条，并创建游戏内宏及覆盖绑定。
 - **Shigure** 是 Windows WinForms 程序。它截取并解码这些像素，构建 `GameState`，按模块规则选择动作，再向 WoW 窗口发送热键；仓库内 `Fuyutsui/` 是它编辑、生成配置和部署游戏插件时使用的唯一权威源。
 
-两者仍通过像素和按键形成生产者—消费者闭环，但源码、构建和发布已整合在同一仓库。Shigure 启动时会把内置插件按 SHA-256 单向部署到目标游戏；游戏目录是运行副本，不是编辑源。开始任何修改前，先读 [[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]，再沿本页的任务路由进入组件 MOC 和跨项目契约。
+两者仍通过像素和按键形成生产者—消费者闭环，但源码、构建和发布已整合在同一仓库。Shigure 启动时会把内置插件按 SHA-256 单向部署到目标游戏；游戏目录是运行副本，不是编辑源。开始任何修改前，先读 [[10-系统/00-Shigure-双项目系统全景|双项目系统全景]]，再沿本页的任务路由进入组件 MOC 和跨项目契约。
 
 ### 事实优先级
 
@@ -74,23 +74,23 @@ verified_at: "2026-08-10"
 
 | 任务 | 首读 | 随后阅读 |
 |---|---|---|
-| 理解整个系统 | [[10-系统/00-Shingen-双项目系统全景|双项目系统全景]] | 两个项目 MOC |
-| 修改顶部 510 格、CountBars 或治疗吸收网格 | [[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]] | [[50-参考资料/BLOCK_AI_Reference_zh-CN|Fuyutsui 像素实现参考]]、[[30-Shigure/02-Shigure-像素扫描与协议解码|Shigure 像素扫描]] |
-| 修改职业状态、光环、法术或队伍布局 | [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 契约]] | [[50-参考资料/TEXTURE_LAYOUT_zh-CN|纹理与索引布局]]、[[30-Shigure/03-Shigure-配置合并与GameState构建|GameState 构建]] |
-| 修改职业宏、单位编号或热键池 | [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]] | [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|ClassMacros 规则参考]]、[[30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]] |
+| 理解整个系统 | [[10-系统/00-Shigure-双项目系统全景|双项目系统全景]] | 两个项目 MOC |
+| 修改顶部 510 格、CountBars 或治疗吸收网格 | [[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]] | [[50-参考资料/BLOCK_AI_Reference_zh-CN|Fuyutsui 像素实现参考]]、[[30-Shigure/02-Shigure-像素扫描与协议解码|Shigure 像素扫描]] |
+| 修改职业状态、光环、法术或队伍布局 | [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 到 config 契约]] | [[50-参考资料/TEXTURE_LAYOUT_zh-CN|纹理与索引布局]]、[[30-Shigure/03-Shigure-配置合并与GameState构建|GameState 构建]] |
+| 修改职业宏、单位编号或热键池 | [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]] | [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|ClassMacros 规则参考]]、[[30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]] |
 | 修改 Fuyutsui 事件或刷新频率 | [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度|Fuyutsui 事件与刷新调度]] | [[30-Shigure/04-Shigure-运行循环触发模式与快照|Shigure 运行循环]] |
 | 修改内置插件部署、路径或发布内容 | [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Fuyutsui 编辑与部署]] | [[30-Shigure/11-Shigure-本地数据路径构建与验证|路径、构建与验证]] |
 | 修改 Shigure 模块 JSON 或规则语义 | [[30-Shigure/05-Shigure-模块存储匹配与版本迁移|模块存储与匹配]] | [[30-Shigure/06-Shigure-规则条件与特殊动作|规则条件]]、[[30-Shigure/07-Shigure-动态单位数量与公式|动态字段]] |
-| 评估兼容性和发布风险 | [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]] | 受影响契约页及项目功能页 |
+| 评估兼容性和发布风险 | [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性变更检查清单]] | 受影响契约页及项目功能页 |
 
 ## 阅读链路
 
 推荐 AI 使用以下顺序建立上下文：
 
-1. 阅读 [[00-导航/01-Shingen-AI阅读顺序与术语|AI 阅读顺序与术语]]，统一名称和编号语义。
-2. 阅读 [[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]，确认组件边界和端到端链路。
+1. 阅读 [[00-导航/01-Shigure-AI阅读顺序与术语|AI 阅读顺序与术语]]，统一名称和编号语义。
+2. 阅读 [[10-系统/00-Shigure-双项目系统全景|双项目系统全景]]，确认组件边界和端到端链路。
 3. 根据任务进入 [[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]] 或 [[30-Shigure/00-Shigure-MOC|Shigure MOC]]。
-4. 只要改动跨越进程或生成文件，就进入 [[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]。
+4. 只要改动跨越进程或生成文件，就进入 [[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]。
 5. 最后打开 frontmatter 的 `source_files` 和 `source_symbols` 核对当前实现。
 
 不要从历史审计中的旧行号直接跳到实现；先重新搜索当前符号。
@@ -156,7 +156,7 @@ verified_at: "2026-08-10"
 
 ```mermaid
 flowchart TB
-  Home["Shingen 知识库首页"]
+  Home["Shigure 知识库首页"]
   System["双项目系统全景"]
   FMOC["Fuyutsui MOC"]
   SMOC["Shigure MOC"]
@@ -185,5 +185,5 @@ flowchart TB
 
 ## 关系
 
-- 下级：[[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]、[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]、[[30-Shigure/00-Shigure-MOC|Shigure MOC]]、[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
-- 使用说明：[[00-导航/01-Shingen-AI阅读顺序与术语|AI 阅读顺序与术语]]
+- 下级：[[10-系统/00-Shigure-双项目系统全景|双项目系统全景]]、[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]、[[30-Shigure/00-Shigure-MOC|Shigure MOC]]、[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]
+- 使用说明：[[00-导航/01-Shigure-AI阅读顺序与术语|AI 阅读顺序与术语]]

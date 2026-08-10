@@ -5,7 +5,7 @@ language: "zh-CN"
 primary_file: "core/classmacros.lua"
 related:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
-  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]"
+  - "[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]"
   - "[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Shigure Fuyutsui 配置宏编辑与同步]]"
 purpose: "供 AI 理解、审查、新增职业宏时作为单一事实来源；说明 ClassMacros 三表规则、按专精解析 dynamicSpells、MacroBodies 查表与 CreateMacro 展开逻辑"
 tags:

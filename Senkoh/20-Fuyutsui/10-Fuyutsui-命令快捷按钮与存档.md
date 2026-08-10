@@ -16,7 +16,7 @@ up:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
   - "[[20-Fuyutsui/04-Fuyutsui-玩家状态]]"
-  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
+  - "[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]"
   - "[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]"
 source_files:
   - Fuyutsui/core/core.lua
@@ -38,7 +38,7 @@ verified_at: 2026-08-09
 
 上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[20-Fuyutsui/04-Fuyutsui-玩家状态]] · [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]] · [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
+相关：[[20-Fuyutsui/04-Fuyutsui-玩家状态]] · [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]] · [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
 
 ## AI 快速摘要
 
@@ -163,7 +163,7 @@ timer 是会话运行时对象；SavedVariables 可能在退出时留下 `delay=
 ## 修改影响
 
 - 新增开关需同时增加默认值、命令、getter、职业状态声明、快捷按钮（若需要）和 Shigure 配置字段。
-- 修改宏插入索引或单位语义，必须同步 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]。
+- 修改宏插入索引或单位语义，必须同步 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]。
 - 改 SavedVariables 形状时提供显式迁移，保留现有角色数据；不要依赖 `CopyDefaults()` 完成类型迁移。
 - 为快捷按钮增加显示命令时复用 `UpdateQuickToggleVisibility()`，并明确是否角色级保存。
 
@@ -179,4 +179,4 @@ timer 是会话运行时对象；SavedVariables 可能在退出时留下 `delay=
 
 ## 知识图谱
 
-本页把用户输入和 `FuyutsuiADB` 转为 [[20-Fuyutsui/04-Fuyutsui-玩家状态]] 的配置像素；插入法术序号依赖 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 的 ClassMacros 顺序，并通过 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]] 与 Shigure 的按键发送保持一致。
+本页把用户输入和 `FuyutsuiADB` 转为 [[20-Fuyutsui/04-Fuyutsui-玩家状态]] 的配置像素；插入法术序号依赖 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 的 ClassMacros 顺序，并通过 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]] 与 Shigure 的按键发送保持一致。

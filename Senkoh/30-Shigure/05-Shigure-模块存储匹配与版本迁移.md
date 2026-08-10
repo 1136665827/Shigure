@@ -142,5 +142,5 @@ README 曾写映射版本 2，已于 2026-08-09 修正；旧副本可能仍含�
 
 - 规则消费者：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
 - 动态数据：[[30-Shigure/07-Shigure-动态单位数量与公式]]
-- Keymap 契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- Keymap 契约：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]
 - 相关 UI：[[30-Shigure/10-Shigure-UI功能地图与数据所有权]]
