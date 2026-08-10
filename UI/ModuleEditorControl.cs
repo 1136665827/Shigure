@@ -27,6 +27,7 @@ public sealed class ModuleEditorControl : UserControl
     private readonly DataGridViewComboBoxColumn _spellColumn = new();
     private readonly DataGridViewComboBoxColumn _unitColumn = new();
     private readonly DataGridViewComboBoxColumn _macroConditionColumn = new();
+    private ToolStripDropDown? _rulesComboDropDown;
     private readonly DataGridViewComboBoxColumn _adjustmentFieldColumn = new();
     private readonly DataGridViewComboBoxColumn _adjustmentTypeColumn = new();
     private readonly ListView _unitsList = new();
@@ -816,18 +817,24 @@ public sealed class ModuleEditorControl : UserControl
         _spellColumn.Width = 150;
         _spellColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _spellColumn.FlatStyle = FlatStyle.Flat;
+        _spellColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
+        _spellColumn.ReadOnly = true;
         _rulesGrid.Columns.Add(_spellColumn);
         _unitColumn.Name = "Unit";
         _unitColumn.HeaderText = "目标";
         _unitColumn.Width = 150;
         _unitColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _unitColumn.FlatStyle = FlatStyle.Flat;
+        _unitColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
+        _unitColumn.ReadOnly = true;
         _rulesGrid.Columns.Add(_unitColumn);
         _macroConditionColumn.Name = "MacroCondition";
         _macroConditionColumn.HeaderText = "宏条件";
         _macroConditionColumn.Width = 150;
         _macroConditionColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _macroConditionColumn.FlatStyle = FlatStyle.Flat;
+        _macroConditionColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
+        _macroConditionColumn.ReadOnly = true;
         _rulesGrid.Columns.Add(_macroConditionColumn);
         _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
@@ -869,8 +876,8 @@ public sealed class ModuleEditorControl : UserControl
         });
         _rulesGrid.Columns["RuleNumber"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
         _rulesGrid.Columns["RuleNumber"]!.DefaultCellStyle.ForeColor = UiTheme.Muted;
-        _rulesGrid.Columns["RuleNumber"]!.DisplayIndex = 0;
-        _rulesGrid.Columns["Drag"]!.DisplayIndex = 1;
+        _rulesGrid.Columns["Drag"]!.DisplayIndex = 0;
+        _rulesGrid.Columns["RuleNumber"]!.DisplayIndex = 1;
 
         _rulesGrid.AllowDrop = true;
         _rulesGrid.CellClick += OnRulesGridCellClick;
@@ -888,14 +895,6 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.DataError += (_, e) => e.ThrowException = false;
         _rulesGrid.ColumnWidthChanged += OnColumnWidthChanged;
         _rulesGrid.CellValueChanged += OnRulesGridCellValueChanged;
-        // 组合框改值默认要等失焦才提交; 立即提交以便"目标"随"技能"实时联动。
-        _rulesGrid.CurrentCellDirtyStateChanged += (_, _) =>
-        {
-            if (_rulesGrid.IsCurrentCellDirty && _rulesGrid.CurrentCell is DataGridViewComboBoxCell)
-            {
-                _rulesGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-            }
-        };
         RefreshKeymapColumns();
         ApplyColumnWidths(UiCacheStore.Load().ModuleRulesGridColumns);
 
@@ -1715,6 +1714,12 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
+        if (_rulesGrid.Rows[e.RowIndex].Cells[e.ColumnIndex] is DataGridViewComboBoxCell)
+        {
+            ShowRulesComboDropDown(e.RowIndex, e.ColumnIndex);
+            return;
+        }
+
         if (columnName == "MoveUp")
         {
             MoveRule(e.RowIndex, -1);
@@ -1749,6 +1754,173 @@ public sealed class ModuleEditorControl : UserControl
         {
             OpenConditionEditor(e.RowIndex);
         }
+    }
+
+    // 不进入 WinForms 原生 ComboBox 编辑态，直接显示受控的深色列表，避免白边、尺寸跳变和按钮错位。
+    private void ShowRulesComboDropDown(int rowIndex, int columnIndex)
+    {
+        CloseRulesComboDropDown();
+
+        var row = _rulesGrid.Rows[rowIndex];
+        if (row.IsNewRow)
+        {
+            rowIndex = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, string.Empty, string.Empty);
+            row = _rulesGrid.Rows[rowIndex];
+        }
+
+        if (row.Cells[columnIndex] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        _rulesGrid.CurrentCell = cell;
+        var values = cell.Items.Cast<object>()
+            .Select(item => item?.ToString() ?? string.Empty)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (values.Count == 0 && cell.OwningColumn is DataGridViewComboBoxColumn column)
+        {
+            values.AddRange(column.Items.Cast<object>()
+                .Select(item => item?.ToString() ?? string.Empty)
+                .Distinct(StringComparer.Ordinal));
+        }
+
+        var currentValue = cell.Value?.ToString() ?? string.Empty;
+        if (!values.Contains(currentValue, StringComparer.Ordinal))
+        {
+            values.Insert(0, currentValue);
+        }
+
+        var scale = Math.Max(1f, _rulesGrid.DeviceDpi / 96f);
+        var itemHeight = Math.Max((int)Math.Round(32 * scale), _rulesGrid.Font.Height + (int)Math.Round(12 * scale));
+        var visibleItems = Math.Clamp(values.Count, 1, 9);
+        var cellBounds = _rulesGrid.GetCellDisplayRectangle(columnIndex, rowIndex, cutOverflow: true);
+        var measuredWidth = values.Count == 0
+            ? 0
+            : values.Max(value => TextRenderer.MeasureText(DisplayRulesComboValue(value), _rulesGrid.Font).Width);
+        var listWidth = Math.Clamp(
+            Math.Max(cellBounds.Width, measuredWidth + (int)Math.Round(40 * scale)),
+            (int)Math.Round(150 * scale),
+            (int)Math.Round(420 * scale));
+        var listHeight = visibleItems * itemHeight + 2;
+
+        var listBox = new ListBox
+        {
+            BackColor = UiTheme.Surface,
+            ForeColor = UiTheme.Text,
+            BorderStyle = BorderStyle.None,
+            DrawMode = DrawMode.OwnerDrawFixed,
+            IntegralHeight = false,
+            ItemHeight = itemHeight,
+            Font = _rulesGrid.Font,
+            Size = new Size(listWidth, listHeight)
+        };
+        listBox.Items.AddRange(values.Cast<object>().ToArray());
+        listBox.DrawItem += OnRulesComboListDrawItem;
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index >= 0 && index != listBox.SelectedIndex)
+            {
+                listBox.SelectedIndex = index;
+            }
+        };
+
+        var selectedIndex = values.FindIndex(value => string.Equals(value, currentValue, StringComparison.Ordinal));
+        if (selectedIndex >= 0)
+        {
+            listBox.SelectedIndex = selectedIndex;
+        }
+
+        var host = new ToolStripControlHost(listBox)
+        {
+            AutoSize = false,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+            Size = listBox.Size
+        };
+        var dropDown = new ToolStripDropDown
+        {
+            AutoSize = false,
+            AutoClose = true,
+            BackColor = UiTheme.Border,
+            DropShadowEnabled = true,
+            Margin = Padding.Empty,
+            Padding = new Padding(1),
+            Size = new Size(listWidth + 2, listHeight + 2)
+        };
+        dropDown.Items.Add(host);
+        _rulesComboDropDown = dropDown;
+
+        void ApplySelectedValue()
+        {
+            if (listBox.SelectedIndex < 0 || listBox.SelectedIndex >= values.Count)
+            {
+                return;
+            }
+
+            cell.Value = values[listBox.SelectedIndex];
+            _rulesGrid.InvalidateCell(cell);
+            dropDown.Close(ToolStripDropDownCloseReason.ItemClicked);
+        }
+
+        listBox.Click += (_, _) => ApplySelectedValue();
+        listBox.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.Handled = true;
+                ApplySelectedValue();
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                e.Handled = true;
+                dropDown.Close(ToolStripDropDownCloseReason.Keyboard);
+            }
+        };
+        dropDown.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_rulesComboDropDown, dropDown))
+            {
+                _rulesComboDropDown = null;
+            }
+        };
+
+        dropDown.Show(_rulesGrid, new Point(cellBounds.Left, cellBounds.Bottom), ToolStripDropDownDirection.BelowRight);
+        listBox.Focus();
+    }
+
+    private static string DisplayRulesComboValue(string value)
+        => string.IsNullOrEmpty(value) ? "（留空）" : value;
+
+    private static void OnRulesComboListDrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (sender is not ListBox listBox || e.Index < 0 || e.Index >= listBox.Items.Count)
+        {
+            return;
+        }
+
+        var selected = (e.State & DrawItemState.Selected) != 0;
+        using (var background = new SolidBrush(selected ? UiTheme.AccentSoft : UiTheme.Surface))
+        {
+            e.Graphics.FillRectangle(background, e.Bounds);
+        }
+
+        var text = DisplayRulesComboValue(listBox.Items[e.Index]?.ToString() ?? string.Empty);
+        var textBounds = new Rectangle(e.Bounds.Left + 10, e.Bounds.Top, Math.Max(0, e.Bounds.Width - 20), e.Bounds.Height);
+        TextRenderer.DrawText(
+            e.Graphics,
+            text,
+            listBox.Font,
+            textBounds,
+            selected ? UiTheme.Accent : UiTheme.Text,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+    }
+
+    private void CloseRulesComboDropDown()
+    {
+        _rulesComboDropDown?.Close(ToolStripDropDownCloseReason.AppClicked);
+        _rulesComboDropDown = null;
     }
 
     private void OnRulesGridCellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
@@ -1819,6 +1991,12 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
+        if (columnName is "Spell" or "Unit" or "MacroCondition")
+        {
+            PaintRuleComboBoxCell(e);
+            return;
+        }
+
         if (columnName == "Drag")
         {
             PaintRuleDragHandle(e);
@@ -2002,6 +2180,78 @@ public sealed class ModuleEditorControl : UserControl
             color,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         e.Handled = true;
+    }
+
+    // 避免 WinForms 按系统主题绘制高亮白色方块，统一成深色圆角按钮和青色箭头。
+    private void PaintRuleComboBoxCell(DataGridViewCellPaintingEventArgs e)
+    {
+        e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+        if (e.Graphics is null)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var selected = (_rulesGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].State & DataGridViewElementStates.Selected) != 0;
+        var cellStyle = e.CellStyle ?? _rulesGrid.DefaultCellStyle;
+        var textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
+        var buttonSize = Math.Min(24, Math.Max(18, e.CellBounds.Height - 12));
+        var buttonBounds = new Rectangle(
+            e.CellBounds.Right - buttonSize - 7,
+            e.CellBounds.Top + (e.CellBounds.Height - buttonSize) / 2,
+            buttonSize,
+            buttonSize);
+        var textBounds = new Rectangle(
+            e.CellBounds.Left + 10,
+            e.CellBounds.Top,
+            Math.Max(0, buttonBounds.Left - e.CellBounds.Left - 16),
+            e.CellBounds.Height);
+
+        TextRenderer.DrawText(
+            e.Graphics,
+            e.FormattedValue?.ToString() ?? string.Empty,
+            cellStyle.Font ?? _rulesGrid.Font,
+            textBounds,
+            textColor,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+
+        var oldSmoothingMode = e.Graphics.SmoothingMode;
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var path = CreateRoundedRectanglePath(buttonBounds, 4))
+        using (var background = new SolidBrush(selected ? UiTheme.Pressed : UiTheme.Hover))
+        using (var border = new Pen(selected ? UiTheme.Accent : UiTheme.Border))
+        {
+            e.Graphics.FillPath(background, path);
+            e.Graphics.DrawPath(border, path);
+        }
+
+        var centerX = buttonBounds.Left + buttonBounds.Width / 2;
+        var centerY = buttonBounds.Top + buttonBounds.Height / 2 + 1;
+        var arrow = new[]
+        {
+            new Point(centerX - 4, centerY - 2),
+            new Point(centerX + 4, centerY - 2),
+            new Point(centerX, centerY + 3)
+        };
+        using (var arrowBrush = new SolidBrush(selected ? UiTheme.Accent : UiTheme.Muted))
+        {
+            e.Graphics.FillPolygon(arrowBrush, arrow);
+        }
+
+        e.Graphics.SmoothingMode = oldSmoothingMode;
+        e.Handled = true;
+    }
+
+    private static GraphicsPath CreateRoundedRectanglePath(Rectangle bounds, int radius)
+    {
+        var path = new GraphicsPath();
+        var diameter = radius * 2;
+        path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     // 自绘 2×3 六点抓手, 不依赖字体里是否有 grip 字形; 新行不画。
