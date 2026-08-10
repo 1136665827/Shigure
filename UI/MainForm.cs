@@ -31,6 +31,8 @@ public sealed class MainForm : Form, IMessageFilter
     private Label _moduleFilterLabel = null!;
     private Label _moduleCountLabel = null!;
     private Label _configSourceLabel = null!;
+    private Button _updateConfigButton = null!;
+    private readonly ToolTip _settingsToolTip = new();
     private Button _settingsButton = null!;
     private string _toggleKeyName = "XBUTTON2";
     private string? _selectedModuleId;
@@ -117,10 +119,12 @@ public sealed class MainForm : Form, IMessageFilter
             () => Path.Combine(_addonSyncService.SourceRoot, "class"),
             UpdateConfigAfterSaveAsync);
         _statusForm.AttachConfigEditor(_classConfigEditor);
+        _classConfigEditor.DirtyStateChanged += dirty => _statusForm.SetPageDirty(SettingsPage.Config, dirty);
         _classMacrosEditor = new ClassMacrosEditorControl(
             () => Path.Combine(_addonSyncService.SourceRoot, "core", "classmacros.lua"),
             UpdateConfigAfterSaveAsync);
         _statusForm.AttachMacrosEditor(_classMacrosEditor);
+        _classMacrosEditor.DirtyStateChanged += dirty => _statusForm.SetPageDirty(SettingsPage.Macros, dirty);
         _statusForm.FormClosing += (_, _) =>
         {
             CancelToggleKeyCapture();
@@ -445,180 +449,204 @@ public sealed class MainForm : Form, IMessageFilter
 
     private Control BuildSettingsPanel()
     {
-        var panel = new TableLayoutPanel
+        var scrollHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(0),
-            ColumnCount = 1,
-            Margin = new Padding(0),
-            RowCount = 3
+            AutoScroll = true,
+            Margin = new Padding(0)
         };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var settingsGrid = new TableLayoutPanel
+        var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Top,
             AutoSize = true,
-            BackColor = UiTheme.SurfaceRaised,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = UiTheme.Surface,
             ColumnCount = 2,
             RowCount = 2,
-            Padding = new Padding(16, 16, 16, 10),
-            Margin = new Padding(0, 0, 0, 14)
+            Padding = new Padding(0),
+            Margin = new Padding(0)
         };
-        settingsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
-        settingsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 246));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250));
 
+        Label CreateTitle(string text) => new()
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 11F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        };
+        Label CreateDescription(string text) => new()
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Muted,
+            AutoEllipsis = true,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        };
         Label CreateSettingLabel(string text) => new()
         {
             Text = text,
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
             ForeColor = UiTheme.Muted,
-            Margin = new Padding(0, 0, 12, 14)
+            Margin = new Padding(0)
         };
 
-        const int settingControlWidth = 190;
+        var inputCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(0, 0, 7, 14)
+        };
+        inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+        inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        inputCard.Controls.Add(CreateTitle("输入与运行"), 0, 0);
+        inputCard.SetColumnSpan(inputCard.GetControlFromPosition(0, 0)!, 2);
+        inputCard.Controls.Add(CreateDescription("设置触发方式；修改后运行循环会自动重启"), 0, 1);
+        inputCard.SetColumnSpan(inputCard.GetControlFromPosition(0, 1)!, 2);
 
-        _toggleKeyButton = UiTheme.CreateButton("XBUTTON2", UiTheme.Field, UiTheme.Text);
+        _toggleKeyButton = UiTheme.CreateButton("XBUTTON2", UiTheme.ButtonKind.Secondary);
         _toggleKeyButton.AutoSize = false;
-        _toggleKeyButton.Width = settingControlWidth;
-        _toggleKeyButton.Height = 36;
-        _toggleKeyButton.Padding = new Padding(6, 0, 6, 0);
+        _toggleKeyButton.Size = new Size(190, 38);
         _toggleKeyButton.TextAlign = ContentAlignment.MiddleCenter;
         _toggleKeyButton.Anchor = AnchorStyles.Left;
-        _toggleKeyButton.Margin = new Padding(0, 0, 0, 12);
+        _toggleKeyButton.Margin = new Padding(0, 8, 0, 8);
         _toggleKeyButton.Click += (_, _) => BeginCaptureToggleKey();
-        settingsGrid.Controls.Add(CreateSettingLabel("触发键"), 0, 0);
-        settingsGrid.Controls.Add(_toggleKeyButton, 1, 0);
+        _settingsToolTip.SetToolTip(_toggleKeyButton, "点击后按下新的键盘键或鼠标侧键");
+        inputCard.Controls.Add(CreateSettingLabel("触发键"), 0, 2);
+        inputCard.Controls.Add(_toggleKeyButton, 1, 2);
 
         _modeComboBox = new ComboBox();
         UiTheme.StyleComboBox(_modeComboBox);
         _modeComboBox.Items.AddRange(new object[] { "开关", "单击", "按住" });
         _modeComboBox.SelectedIndex = 0;
-        _modeComboBox.Width = settingControlWidth;
+        _modeComboBox.Width = 190;
         _modeComboBox.Anchor = AnchorStyles.Left;
-        _modeComboBox.Margin = new Padding(0, 0, 0, 12);
-        settingsGrid.Controls.Add(CreateSettingLabel("发送模式"), 0, 1);
-        settingsGrid.Controls.Add(_modeComboBox, 1, 1);
+        _modeComboBox.Margin = new Padding(0, 8, 0, 8);
+        _settingsToolTip.SetToolTip(_modeComboBox, "开关：按一次切换；单击：每次触发发送一次；按住：持续按下时运行");
+        inputCard.Controls.Add(CreateSettingLabel("发送模式"), 0, 3);
+        inputCard.Controls.Add(_modeComboBox, 1, 3);
 
-        var configPanel = new TableLayoutPanel
+        var configCard = new UiCardPanel
         {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            BackColor = UiTheme.SurfaceRaised,
-            ColumnCount = 2,
-            RowCount = 3,
-            Padding = new Padding(16, 16, 16, 14),
-            Margin = new Padding(0, 0, 0, 14)
-        };
-        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
-        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        configPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        configPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        configPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-        var configTitle = new Label
-        {
-            Text = "配置同步",
             Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Text,
-            Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0)
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(7, 0, 0, 14)
         };
-        configPanel.Controls.Add(configTitle, 0, 0);
-        configPanel.SetColumnSpan(configTitle, 2);
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        configCard.Controls.Add(CreateTitle("配置同步"), 0, 0);
+        configCard.Controls.Add(CreateDescription("从项目 Fuyutsui 生成 config/keymap，并同步到游戏"), 0, 1);
+        _configSourceLabel = CreateInfoLabel("项目目录是唯一配置源；尚未执行手动更新");
+        _configSourceLabel.Dock = DockStyle.Fill;
+        _configSourceLabel.AutoSize = false;
+        _configSourceLabel.AutoEllipsis = true;
+        _configSourceLabel.TextAlign = ContentAlignment.TopLeft;
+        _configSourceLabel.Margin = new Padding(0, 10, 0, 8);
+        _settingsToolTip.SetToolTip(_configSourceLabel, _configSourceLabel.Text);
+        configCard.Controls.Add(_configSourceLabel, 0, 2);
+        _updateConfigButton = UiTheme.CreateButton("更新配置", UiTheme.ButtonKind.Secondary);
+        _updateConfigButton.AutoSize = false;
+        _updateConfigButton.Size = new Size(122, 38);
+        _updateConfigButton.Anchor = AnchorStyles.Left;
+        _updateConfigButton.Margin = new Padding(0);
+        _updateConfigButton.Click += async (_, _) => await UpdateConfigFromProjectWithFeedbackAsync();
+        configCard.Controls.Add(_updateConfigButton, 0, 3);
 
-        _configSourceLabel = CreateInfoLabel("Fuyutsui: 项目目录为配置源；更新配置时生成 config/keymap 并同步到游戏");
-        _configSourceLabel.Margin = new Padding(0, 4, 0, 10);
-        configPanel.Controls.Add(_configSourceLabel, 0, 1);
-        configPanel.SetColumnSpan(_configSourceLabel, 2);
-
-        var updateConfigButton = UiTheme.CreateButton("更新配置", UiTheme.Field, UiTheme.Text);
-        updateConfigButton.AutoSize = false;
-        updateConfigButton.Size = new Size(116, 38);
-        updateConfigButton.Padding = new Padding(8, 0, 8, 0);
-        updateConfigButton.TextAlign = ContentAlignment.MiddleCenter;
-        updateConfigButton.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-        updateConfigButton.Margin = new Padding(0);
-        updateConfigButton.Click += async (_, _) => await UpdateConfigFromProjectAsync();
-        configPanel.Controls.Add(updateConfigButton, 0, 2);
-        configPanel.SetColumnSpan(updateConfigButton, 2);
-
-        var moduleInfo = new TableLayoutPanel
+        var moduleCard = new UiCardPanel
         {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            BackColor = UiTheme.SurfaceRaised,
+            Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 2,
-            Padding = new Padding(16, 16, 16, 14),
+            RowCount = 4,
+            Padding = new Padding(18),
             Margin = new Padding(0)
         };
-        moduleInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
-        moduleInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        moduleInfo.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-        moduleInfo.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
+        moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        moduleCard.Controls.Add(CreateTitle("模块选择"), 0, 0);
+        moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 0)!, 2);
+        moduleCard.Controls.Add(CreateDescription("按实时职业与专精自动匹配，或手动指定模块"), 0, 1);
+        moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 1)!, 2);
         _moduleComboBox = new ComboBox();
         UiTheme.StyleComboBox(_moduleComboBox);
-        _moduleComboBox.Width = 520;
-        _moduleComboBox.Anchor = AnchorStyles.Left;
-        _moduleComboBox.Margin = new Padding(0, 0, 0, 12);
-        moduleInfo.Controls.Add(CreateSettingLabel("模块选择"), 0, 0);
-        moduleInfo.Controls.Add(_moduleComboBox, 1, 0);
-
-        var moduleStatus = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            ColumnCount = 1,
-            RowCount = 2,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0)
-        };
-        moduleStatus.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        moduleStatus.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        moduleStatus.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
+        _moduleComboBox.Dock = DockStyle.Fill;
+        _moduleComboBox.Margin = new Padding(0, 8, 14, 8);
+        _settingsToolTip.SetToolTip(_moduleComboBox, "列表会根据当前游戏状态筛选可用模块");
+        moduleCard.Controls.Add(_moduleComboBox, 0, 2);
+        var refreshModulesButton = UiTheme.CreateButton("刷新模块", UiTheme.ButtonKind.Secondary);
+        refreshModulesButton.AutoSize = false;
+        refreshModulesButton.Dock = DockStyle.Fill;
+        refreshModulesButton.Margin = new Padding(0, 8, 0, 8);
+        refreshModulesButton.Click += (_, _) => RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        moduleCard.Controls.Add(refreshModulesButton, 1, 2);
         var moduleInfoText = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             AutoSize = true,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0)
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 8, 0, 0)
         };
-
         _moduleFilterLabel = CreateInfoLabel("筛选: 等待游戏状态");
         _moduleCountLabel = CreateInfoLabel("可选模块: 0");
         moduleInfoText.Controls.Add(_moduleFilterLabel);
         moduleInfoText.Controls.Add(_moduleCountLabel);
+        moduleCard.Controls.Add(moduleInfoText, 0, 3);
+        moduleCard.SetColumnSpan(moduleInfoText, 2);
 
-        var refreshModulesButton = UiTheme.CreateButton("刷新模块", UiTheme.Field, UiTheme.Text);
-        refreshModulesButton.AutoSize = false;
-        refreshModulesButton.Size = new Size(116, 38);
-        refreshModulesButton.Padding = new Padding(8, 0, 8, 0);
-        refreshModulesButton.TextAlign = ContentAlignment.MiddleCenter;
-        refreshModulesButton.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-        refreshModulesButton.Margin = new Padding(0, 0, 0, 8);
-        refreshModulesButton.Click += (_, _) => RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        panel.Controls.Add(inputCard, 0, 0);
+        panel.Controls.Add(configCard, 1, 0);
+        panel.Controls.Add(moduleCard, 0, 1);
+        panel.SetColumnSpan(moduleCard, 2);
+        scrollHost.Controls.Add(panel);
+        scrollHost.Resize += (_, _) => panel.Width = Math.Max(0, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
+        return scrollHost;
+    }
 
-        moduleStatus.Controls.Add(refreshModulesButton, 0, 0);
-        moduleStatus.Controls.Add(moduleInfoText, 0, 1);
-        moduleInfo.Controls.Add(moduleStatus, 1, 1);
-
-        panel.Controls.Add(settingsGrid, 0, 0);
-        panel.Controls.Add(configPanel, 0, 1);
-        panel.Controls.Add(moduleInfo, 0, 2);
-        return panel;
+    private async Task UpdateConfigFromProjectWithFeedbackAsync()
+    {
+        _updateConfigButton.Enabled = false;
+        _updateConfigButton.Text = "更新中…";
+        _configSourceLabel.ForeColor = UiTheme.Warning;
+        _configSourceLabel.Text = "正在生成配置并同步游戏插件…";
+        try
+        {
+            var updated = await UpdateConfigFromProjectAsync();
+            _configSourceLabel.ForeColor = updated ? UiTheme.Success : UiTheme.Danger;
+        }
+        catch
+        {
+            _configSourceLabel.ForeColor = UiTheme.Danger;
+            throw;
+        }
+        finally
+        {
+            _updateConfigButton.Text = "更新配置";
+            _updateConfigButton.Enabled = true;
+            _settingsToolTip.SetToolTip(_configSourceLabel, _configSourceLabel.Text);
+        }
     }
 
     private async Task SynchronizeAddonAtStartupAsync()
@@ -634,7 +662,7 @@ public sealed class MainForm : Form, IMessageFilter
         }
     }
 
-    private async Task UpdateConfigFromProjectAsync()
+    private async Task<bool> UpdateConfigFromProjectAsync()
     {
         try
         {
@@ -643,16 +671,19 @@ public sealed class MainForm : Form, IMessageFilter
             {
                 ShowProjectConfigUpdateResult(result);
             }
+            return true;
         }
         catch (Exception ex)
         {
             if (_shutdownStarted)
             {
-                return;
+                return false;
             }
 
             AppendLog($"更新配置失败: {ex.Message}");
             MessageBox.Show(ex.Message, "更新配置失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _configSourceLabel.Text = $"更新失败：{ex.Message}";
+            return false;
         }
     }
 
@@ -829,11 +860,22 @@ public sealed class MainForm : Form, IMessageFilter
             ? $"\n游戏插件: 已复制 {result.AddonSync.CopiedFiles.Count}，哈希相同 {result.AddonSync.SkippedFiles.Count}\n{result.AddonSync.TargetRoot}"
             : $"\n游戏插件: {syncIssue}";
 
-        MessageBox.Show(
-            $"已从项目 Fuyutsui 更新 {result.Config.UpdatedFiles.Count} 个职业配置。{keymapText}{syncText}{warningText}",
-            "更新配置",
-            MessageBoxButtons.OK,
-            syncIssue is null && warningCount == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        _configSourceLabel.Text = syncIssue is null && warningCount == 0
+            ? $"已更新 {result.Config.UpdatedFiles.Count} 个配置文件，并完成游戏同步"
+            : $"配置已更新；{syncIssue ?? $"存在 {warningCount} 条转换警告"}";
+        _configSourceLabel.ForeColor = syncIssue is null && warningCount == 0
+            ? UiTheme.Success
+            : UiTheme.Warning;
+        _settingsToolTip.SetToolTip(_configSourceLabel, _configSourceLabel.Text);
+
+        if (syncIssue is not null || warningCount > 0)
+        {
+            MessageBox.Show(
+                $"已从项目 Fuyutsui 更新 {result.Config.UpdatedFiles.Count} 个职业配置。{keymapText}{syncText}{warningText}",
+                "更新配置",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private void LogAddonSyncResult(string operation, FuyutsuiAddonSyncResult result)
@@ -1499,6 +1541,7 @@ public sealed class MainForm : Form, IMessageFilter
         }
 
         _statusForm.ApplyCachedBounds(_uiCache.SettingsWindowBounds);
+        _statusForm.ApplyCachedPage(_uiCache.SelectedSettingsPage);
     }
 
     private void SaveUiCache()
@@ -1523,6 +1566,8 @@ public sealed class MainForm : Form, IMessageFilter
         {
             _uiCache.SettingsWindowBounds = _statusForm.GetCachedBounds();
         }
+
+        _uiCache.SelectedSettingsPage = _statusForm.SelectedPageKey;
 
         _uiCache.ToggleKey = _toggleKeyName;
         _uiCache.SelectedModuleId = _selectedModuleId;
