@@ -13,16 +13,16 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]"
-  - "[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]"
+  - "[[30-Shigure/06-Shigure-规则条件与特殊动作]]"
+  - "[[30-Shigure/03-Shigure-配置合并与GameState构建]]"
 source_files:
-  - Shigure/Modules/ModuleUnit.cs
-  - Shigure/Modules/UnitSelector.cs
-  - Shigure/Modules/FormulaEvaluator.cs
-  - Shigure/Modules/ModuleStore.cs
-  - Shigure/UI/UnitEditorForm.cs
+  - Modules/ModuleUnit.cs
+  - Modules/UnitSelector.cs
+  - Modules/FormulaEvaluator.cs
+  - Modules/ModuleStore.cs
+  - UI/UnitEditorForm.cs
 source_symbols:
   - ModuleUnit
   - ModuleCountField
@@ -39,10 +39,10 @@ verified_at: 2026-08-09
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 上游组员状态：[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
-- 下游条件/目标：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 相关模块 schema：[[docs/30-Shigure/05-Shigure-模块存储匹配与版本迁移]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 上游组员状态：[[30-Shigure/03-Shigure-配置合并与GameState构建]]
+- 下游条件/目标：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 相关模块 schema：[[30-Shigure/05-Shigure-模块存储匹配与版本迁移]]
 
 ## 范围与非范围
 
@@ -138,18 +138,18 @@ verified_at: 2026-08-09
 
 ## 源码索引
 
-- `Shigure/Modules/ModuleUnit.cs:6-116`：动态单位与数量定义。
-- `Shigure/Modules/UnitSelector.cs:15-109`：选择/计数分派。
-- `Shigure/Modules/UnitSelector.cs:112-286`：生命、角色、光环、驱散和吸收算法。
-- `Shigure/Modules/UnitSelector.cs:317-327`：`RoleNotZero` 的精确语义。
-- `Shigure/Modules/ModuleStore.cs:828-896`：固定求值顺序和动态命名空间。
-- `Shigure/Modules/ModuleStore.cs:898-1095`：Condition、Formula/Delta 和写入目标。
-- `Shigure/Modules/FormulaEvaluator.cs:7-299`：公式解析、函数、标识符和整数结果。
-- `Shigure/UI/UnitEditorForm.cs:801-828`：动态名称约束。
+- `Modules/ModuleUnit.cs:6-116`：动态单位与数量定义。
+- `Modules/UnitSelector.cs:15-109`：选择/计数分派。
+- `Modules/UnitSelector.cs:112-286`：生命、角色、光环、驱散和吸收算法。
+- `Modules/UnitSelector.cs:317-327`：`RoleNotZero` 的精确语义。
+- `Modules/ModuleStore.cs:828-896`：固定求值顺序和动态命名空间。
+- `Modules/ModuleStore.cs:898-1095`：Condition、Formula/Delta 和写入目标。
+- `Modules/FormulaEvaluator.cs:7-299`：公式解析、函数、标识符和整数结果。
+- `UI/UnitEditorForm.cs:801-828`：动态名称约束。
 
 ## 知识图谱链接
 
-- 数据来源：[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
-- 规则消费者：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- UI 编辑入口：[[docs/30-Shigure/10-Shigure-UI功能地图与数据所有权]]
-- 插件组员语义：[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
+- 数据来源：[[30-Shigure/03-Shigure-配置合并与GameState构建]]
+- 规则消费者：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- UI 编辑入口：[[30-Shigure/10-Shigure-UI功能地图与数据所有权]]
+- 插件组员语义：[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]

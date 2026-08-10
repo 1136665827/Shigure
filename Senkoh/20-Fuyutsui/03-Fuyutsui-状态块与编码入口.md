@@ -13,11 +13,11 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/TEXTURE_LAYOUT_zh-CN]]"
-  - "[[docs/40-跨项目/01-Shingen-像素生产消费契约]]"
-  - "[[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]"
+  - "[[50-参考资料/TEXTURE_LAYOUT_zh-CN]]"
+  - "[[40-跨项目/01-Shingen-像素生产消费契约]]"
+  - "[[30-Shigure/02-Shigure-像素扫描与协议解码]]"
 source_files:
   - Fuyutsui/main.lua
   - Fuyutsui/core/block.lua
@@ -35,9 +35,9 @@ verified_at: 2026-08-09
 
 # Fuyutsui 状态块与编码入口
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/TEXTURE_LAYOUT_zh-CN]] · [[docs/40-跨项目/01-Shingen-像素生产消费契约]] · [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]
+相关：[[50-参考资料/TEXTURE_LAYOUT_zh-CN]] · [[40-跨项目/01-Shingen-像素生产消费契约]] · [[30-Shigure/02-Shigure-像素扫描与协议解码]]
 
 ## AI 快速摘要
 
@@ -47,7 +47,7 @@ verified_at: 2026-08-09
 
 本页负责布局生成、RGB 索引、三类输出和跨进程不变量。
 
-本页不解释每个 `B` 值的业务含义；玩家、目标、法术和队伍语义分别见 [[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]]、[[docs/20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
+本页不解释每个 `B` 值的业务含义；玩家、目标、法术和队伍语义分别见 [[20-Fuyutsui/04-Fuyutsui-玩家状态]]、[[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
 
 ## 输入与输出
 
@@ -135,7 +135,7 @@ Lua 传给 `SetColorTexture` 时再除以 255。因此第 255 槽是 `(0,255,B)`
 - 最多 30 个成员，5 列、6 行；每槽为 1 个成员锚点、100 个条身单元和 1 个终点。
 - 玩家锚点值为 1，`party1..4` 为 2..5，`raidN` 为 N；锚点帮助消费端确认槽身份。
 
-详细扫描几何见 [[docs/40-跨项目/01-Shingen-像素生产消费契约]]。
+详细扫描几何见 [[40-跨项目/01-Shingen-像素生产消费契约]]。
 
 ## 核心数据与不变量
 
@@ -157,8 +157,8 @@ Lua 传给 `SetColorTexture` 时再除以 255。因此第 255 槽是 `(0,255,B)`
 
 ## 修改影响
 
-- 改 `LoadPlayerBlocks()` 的任何顺序，都必须同步 [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]] 和配置生成器。
-- 改 `EncodeBlockChannels()`、510 槽数量、行高或锚点色，必须同步 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]。
+- 改 `LoadPlayerBlocks()` 的任何顺序，都必须同步 [[30-Shigure/03-Shigure-配置合并与GameState构建]] 和配置生成器。
+- 改 `EncodeBlockChannels()`、510 槽数量、行高或锚点色，必须同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
 - 改 CountBars 预留算法或治疗吸收几何，同样属于跨项目协议变更。
 - 新增职业字段前先检查裸键唯一性、SpellID 唯一性、最终 group 末索引及 C# 字段名唯一性。
 
@@ -173,4 +173,4 @@ Lua 传给 `SetColorTexture` 时再除以 255。因此第 255 槽是 `(0,255,B)`
 
 ## 知识图谱
 
-本页把 [[docs/20-Fuyutsui/01-Fuyutsui-加载与生命周期]] 产生的专精运行时对象映射为视觉协议；字段由 [[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]] 至 [[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 的领域逻辑写入，跨进程契约由 [[docs/40-跨项目/01-Shingen-像素生产消费契约]] 约束，最终由 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]] 消费。
+本页把 [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]] 产生的专精运行时对象映射为视觉协议；字段由 [[20-Fuyutsui/04-Fuyutsui-玩家状态]] 至 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 的领域逻辑写入，跨进程契约由 [[40-跨项目/01-Shingen-像素生产消费契约]] 约束，最终由 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 消费。

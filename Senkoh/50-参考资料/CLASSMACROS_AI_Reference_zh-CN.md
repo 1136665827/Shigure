@@ -4,9 +4,9 @@ summary: "说明 ClassMacros 的动态、静态、特殊宏声明，以及 Creat
 language: "zh-CN"
 primary_file: "core/classmacros.lua"
 related:
-  - "[[Fuyutsui/Keymap|Fuyutsui Keymap]]"
-  - "[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]"
-  - "[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Shigure Fuyutsui 配置宏编辑与同步]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]"
+  - "[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Shigure Fuyutsui 配置宏编辑与同步]]"
 purpose: "供 AI 理解、审查、新增职业宏时作为单一事实来源；说明 ClassMacros 三表规则、按专精解析 dynamicSpells、MacroBodies 查表与 CreateMacro 展开逻辑"
 tags:
   - "project/fuyutsui"
@@ -17,7 +17,7 @@ doc_type: "implementation-reference"
 status: "current"
 authority: "source-derived"
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[50-参考资料/00-参考资料-MOC|参考资料 MOC]]"
 source_files:
   - "Fuyutsui/core/classmacros.lua"
   - "Fuyutsui/core/macro.lua"
@@ -106,7 +106,7 @@ macro.lua:CreateMacro(dynamic, static, special)
 
 - 总槽位数 = `7 × 39 = 273`。
 - 按钮名：`s1`、`s2`、…（与 `macroKind` 下标一致）。
-- 人读对照表见 `Keymap.md`（ID 1 = `CTRL-NUMPAD1`，以此类推）。
+- 当前键池定义直接见 `Fuyutsui/core/keybinds.lua`（ID 1 = `CTRL-NUMPAD1`，以此类推）。
 
 **AI 改宏时**：关心的是解析后的 `dynamic` 占用多少槽、以及 static/special 数组下标对应的全局热键；不必手算，除非要核对外部程序按键映射。
 
@@ -433,7 +433,7 @@ staticSpells = {
 | `core/macro.lua` | 热键表、`ClearMacros`、顺序占键、`resolveMacroBody`、安全按钮 | 仅当要改分配规则/键池时才动 |
 | `main.lua` | `ResolveDynamicSpells`、`LoadPlayerMacros` 选职业+专精 | 一般不动 |
 | `core/player.lua` | 加载/切换专精时调用 `LoadPlayerMacros` | 一般不动 |
-| `Keymap.md` | 人读热键 ID 对照 | 键池变更时同步 |
+| `Fuyutsui/core/keybinds.lua` | 当前热键 ID 与顺序权威源 | 键池变更时同步 |
 | `core/keybinds.lua` / `config.lua` keymap | 动作条扫描 → 像素协议 | **另一套**按键编码，与 ClassMacros 覆盖绑定无关 |
 | `class/*.lua` | ClassBlocks 色块 | 不放宏 |
 

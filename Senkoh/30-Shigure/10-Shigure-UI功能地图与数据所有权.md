@@ -12,38 +12,38 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]"
-  - "[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]"
+  - "[[30-Shigure/04-Shigure-运行循环触发模式与快照]]"
+  - "[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]"
 source_files:
-  - Shigure/UI/MainForm.cs
-  - Shigure/UI/StatusForm.cs
-  - Shigure/UI/ModuleEditorControl.cs
-  - Shigure/UI/ClassConfigEditorControl.cs
-  - Shigure/UI/ClassMacrosEditorControl.cs
-  - Shigure/UI/ConditionEditorForm.cs
-  - Shigure/UI/UnitEditorForm.cs
-  - Shigure/UI/UiTheme.cs
+  - UI/MainForm.cs
+  - UI/StatusForm.cs
+  - UI/ModuleEditorControl.cs
+  - UI/ClassConfigEditorControl.cs
+  - UI/ClassMacrosEditorControl.cs
+  - UI/ConditionEditorForm.cs
+  - UI/UnitEditorForm.cs
+  - UI/UiTheme.cs
 source_symbols:
   - MainForm
   - StatusForm
   - ModuleEditorControl
   - ClassConfigEditorControl
   - ClassMacrosEditorControl
-verified_at: 2026-08-09
+verified_at: 2026-08-10
 ---
 
 # Shigure UI 功能地图与数据所有权
 
 > [!abstract] AI 快速摘要
-> `MainForm` 是一个无边框、置顶、可拖动的 680×64 浮条，拥有运行启停、设置入口、模块选择、同步任务队列和会话事件过滤。`StatusForm` 是九页只读/诊断窗口；模块、ClassBlocks 和 ClassMacros 三个编辑器分别写模块 JSON、插件 ClassBlocks Lua、插件 ClassMacros Lua。后台状态只通过 `RenderSnapshot` 进入 UI，UI 不直接修改运行循环内部字段。
+> `MainForm` 是一个无边框、置顶、可拖动的 680×64 浮条，拥有运行启停、设置入口、模块选择、生成/部署任务队列和会话事件过滤。`StatusForm` 是九页只读/诊断窗口；模块、ClassBlocks 和 ClassMacros 三个编辑器分别写模块 JSON、项目内置 ClassBlocks Lua、项目内置 ClassMacros Lua。后台状态只通过 `RenderSnapshot` 进入 UI。
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 运行时数据来源：[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]
-- 编辑/同步链：[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 运行时数据来源：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
+- 编辑/同步链：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
 
 ## 范围与非范围
 
@@ -54,19 +54,19 @@ verified_at: 2026-08-09
 | UI 区域 | 主要职责 | 读取 | 写入/命令 |
 |---|---|---|---|
 | `MainForm` 浮条 | 启停、打开设置/状态、关闭、拖动 | 会话状态、UI 缓存 | `SetEnabled`、重启/停止、窗口偏好 |
-| 通用设置 | 窗口标题、触发键、模式、模块选择、同步 | `AppOptions`、模块目录 | 缓存/设置、会话重启、同步队列 |
+| 通用设置 | 触发键、模式、模块选择、配置生成与插件部署 | `AppOptions`、模块目录、项目 Fuyutsui | 缓存/设置、会话重启、同步队列 |
 | `StatusForm` | 九个状态/诊断页 | `RenderSnapshot`、日志 | 不拥有运行状态 |
 | 模块编辑器 | 匹配、规则、动态单位、数量、调整/公式、排序 | 模块快照 | `module/*.json` |
-| ClassBlocks 编辑器 | 职业/专精状态块编辑 | Fuyutsui class Lua | ClassBlocks table，再生成 config |
-| ClassMacros 编辑器 | common/spec/static/special 宏编辑 | ClassMacros Lua | ClassMacros table，再生成 keymap |
+| ClassBlocks 编辑器 | 职业/专精状态块编辑 | `Fuyutsui/class/*.lua` 项目源 | ClassBlocks table、config、当前 Lua 游戏部署 |
+| ClassMacros 编辑器 | common/spec/static/special 宏编辑 | `Fuyutsui/core/classmacros.lua` 项目源 | ClassMacros table、keymap、当前 Lua 游戏部署 |
 | 条件/单位对话框 | 构造受限条件和动态定义 | 当前草稿 | 返回编辑器内存模型 |
 
 `UiTheme` 集中定义主题和控件样式；素材由项目资源嵌入，不是运行时业务数据。
 
 ## MainForm 生命周期
 
-1. 构造 `StatusForm` 和三个编辑器，注入插件定位/保存回调，订阅协调器事件。
-2. `OnShown` 自动启动运行会话。
+1. 构造 `StatusForm` 和三个编辑器，注入项目 Fuyutsui 路径/保存回调，订阅协调器事件。
+2. `OnShown` 先尝试把项目插件全量部署到游戏，再自动启动运行会话；部署失败只记录日志。
 3. 设置更新排入串行配置尾任务；启动/重启先等待该队列。
 4. 后台事件通过 WinForms invoke/post 切回 UI 线程，并用 session ID 丢弃旧会话快照。
 5. 首次关闭请求被取消，异步停止/释放运行时并等待配置队列；完成后再次关闭并释放窗口。
@@ -87,7 +87,7 @@ verified_at: 2026-08-09
 | 当前/候选模块 | `ModuleStore` | 克隆快照 | 编辑器编辑副本后保存 |
 | session 生命周期 | `RuntimeSessionCoordinator` | 带 session ID 的事件 | 只能请求 start/restart/stop |
 | 配置/Keymap 同步次序 | `MainForm._configUpdateTail` | UI 任务链 | 由排队 API 串行追加 |
-| Lua 文件 | Fuyutsui 插件目录 | Store 解析 | Store 替换 table 后直接写回 |
+| Lua 文件 | 项目 `Fuyutsui/` | Store 解析 | Store 替换 table 后直接写回，再由部署服务复制到游戏 |
 | config/keymap JSON | 转换器 | 刷新 catalog/新运行会话 | 不应由状态页直接修改 |
 
 ## 编辑器的重要限制
@@ -113,6 +113,7 @@ verified_at: 2026-08-09
 | 模块手工 Hotkey 消失 | UI 保存明确清空 `Hotkey`/`Step` |
 | “禁用模块”仍匹配 | 根级 `Enabled` 未被运行时消费 |
 | 保存 Lua 后大量格式变化 | table 内 canonical round-trip 是当前设计 |
+| 保存成功但游戏插件未更新 | 检查 `wow_process.txt`、游戏目录权限、日志中的单文件部署结果和 WoW 重载 |
 | 模块下拉选择“自动跳回” | 当前状态不匹配，但手动 ID 仍缓存等待以后匹配 |
 | 日志历史不完整 | StatusForm 主动截断内存文本 |
 
@@ -125,19 +126,19 @@ verified_at: 2026-08-09
 
 ## 源码索引
 
-- `Shigure/UI/MainForm.cs:74-194`：子窗口/编辑器组合、自动启动和异步关闭。
-- `Shigure/UI/MainForm.cs:238-353`：浮条外观、拖动和主要按钮。
-- `Shigure/UI/MainForm.cs:434-666`：通用设置、模块选择和配置尾队列。
-- `Shigure/UI/MainForm.cs:668-1008`：同步、会话重启、事件 marshaling 与 session 过滤。
-- `Shigure/UI/MainForm.cs:1010-1144`：模块实时过滤和手选 ID。
-- `Shigure/UI/StatusForm.cs:55-139`、`690-727`：九页、隐藏行为、可见刷新和日志截断。
-- `Shigure/UI/ModuleEditorControl.cs:2668-3070`：模型回填/保存及 `Hotkey`/`Step` 清空。
-- `Shigure/UI/ClassConfigEditorControl.cs:997-1004`、`1741-1751`：legacy 提示和固定字段。
-- `Shigure/UI/ClassMacrosEditorControl.cs:621-693`、`908-1003`：宏加载/保存回调。
+- `UI/MainForm.cs:74-194`：子窗口/编辑器组合、自动启动和异步关闭。
+- `UI/MainForm.cs:238-353`：浮条外观、拖动和主要按钮。
+- `UI/MainForm.cs:434-666`：通用设置、模块选择和配置尾队列。
+- `UI/MainForm.cs:668-1008`：同步、会话重启、事件 marshaling 与 session 过滤。
+- `UI/MainForm.cs:1010-1144`：模块实时过滤和手选 ID。
+- `UI/StatusForm.cs:55-139`、`690-727`：九页、隐藏行为、可见刷新和日志截断。
+- `UI/ModuleEditorControl.cs:2668-3070`：模型回填/保存及 `Hotkey`/`Step` 清空。
+- `UI/ClassConfigEditorControl.cs:997-1004`、`1741-1751`：legacy 提示和固定字段。
+- `UI/ClassMacrosEditorControl.cs:621-693`、`908-1003`：宏加载/保存回调。
 
 ## 知识图谱链接
 
-- 状态来源：[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]
-- 模块数据：[[docs/30-Shigure/05-Shigure-模块存储匹配与版本迁移]]
-- Lua 同步：[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
-- 路径与缓存：[[docs/30-Shigure/11-Shigure-本地数据路径构建与验证]]
+- 状态来源：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
+- 模块数据：[[30-Shigure/05-Shigure-模块存储匹配与版本迁移]]
+- Lua 同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
+- 路径与缓存：[[30-Shigure/11-Shigure-本地数据路径构建与验证]]

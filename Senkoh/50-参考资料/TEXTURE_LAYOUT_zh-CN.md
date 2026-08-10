@@ -12,10 +12,11 @@ doc_type: "protocol-layout"
 status: "current"
 authority: "source-derived"
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[50-参考资料/00-参考资料-MOC|参考资料 MOC]]"
 related:
-  - "[[docs/BLOCK_AI_Reference_zh-CN|block.lua AI 技术参考]]"
-  - "[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[50-参考资料/BLOCK_AI_Reference_zh-CN|block.lua AI 技术参考]]"
+  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]"
 source_files:
   - "Fuyutsui/main.lua"
   - "Fuyutsui/core/block.lua"

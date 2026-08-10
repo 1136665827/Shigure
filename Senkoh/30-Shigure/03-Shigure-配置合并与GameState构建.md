@@ -12,15 +12,15 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]"
-  - "[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
+  - "[[30-Shigure/02-Shigure-像素扫描与协议解码]]"
+  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
 source_files:
-  - Shigure/Infrastructure/ConfigService.cs
-  - Shigure/Runtime/StateBuilder.cs
-  - Shigure/Runtime/GameState.cs
-  - Shigure/config/common.json
+  - Infrastructure/ConfigService.cs
+  - Runtime/StateBuilder.cs
+  - Runtime/GameState.cs
+  - config/common.json
 source_symbols:
   - ConfigService.LoadFromBaseDirectory
   - ConfigService.BuildStateConfig
@@ -38,14 +38,14 @@ verified_at: 2026-08-09
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 上游扫描：[[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]
-- 上游配置生成：[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-- 下游规则：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 上游扫描：[[30-Shigure/02-Shigure-像素扫描与协议解码]]
+- 上游配置生成：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- 下游规则：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
 
 ## 范围与非范围
 
-本页定义运行时 JSON 配置如何被选中、合并和解释，不描述 Lua 编辑器如何生成这些文件；转换流程见 [[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]。也不定义模块匹配与公式。
+本页定义运行时 JSON 配置如何被选中、合并和解释，不描述 Lua 编辑器如何生成这些文件；转换流程见 [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]。也不定义模块匹配与公式。
 
 ## 输入与输出
 
@@ -124,22 +124,22 @@ README 中“缺失/非数字关系比较为 false”的概括不能直接套用
 
 - 新增状态字段：修改 Fuyutsui ClassBlocks、状态目录、转换器并重新生成 config；再检查条件编辑器是否要提供该字段。
 - 改组员布局：同时修改生产端、ClassBlocks 到 config 契约、`StateBuilder` 解释以及最多 510 步容量。
-- 改健康/吸收定义：同步 [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] 和像素契约。
+- 改健康/吸收定义：同步 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] 和像素契约。
 - 改合并算法：现有职业 JSON 可能依赖“专精整体覆盖”，必须做迁移或兼容读取。
 
 ## 源码索引
 
-- `Shigure/Infrastructure/ConfigService.cs:25-30`：拆分目录和旧单文件回退。
-- `Shigure/Infrastructure/ConfigService.cs:49-88`：13 职业完整性与宽松 JSON 解析。
-- `Shigure/Infrastructure/ConfigService.cs:105-139`：浅合并和固定通用字段恢复。
-- `Shigure/Infrastructure/ConfigService.cs:142-184`：Keymap 文件名和特殊法术映射。
-- `Shigure/Runtime/StateBuilder.cs:14-51`：职业/专精选择和总体构建。
-- `Shigure/Runtime/StateBuilder.cs:54-146`：标量、组员、bar 和类型默认值。
-- `Shigure/Runtime/GameState.cs:12-91`：状态容器和基础路径/类型读取。
-- `Shigure/config/common.json:1-13`：步骤 1/2/3 的当前事实。
+- `Infrastructure/ConfigService.cs:25-30`：拆分目录和旧单文件回退。
+- `Infrastructure/ConfigService.cs:49-88`：13 职业完整性与宽松 JSON 解析。
+- `Infrastructure/ConfigService.cs:105-139`：浅合并和固定通用字段恢复。
+- `Infrastructure/ConfigService.cs:142-184`：Keymap 文件名和特殊法术映射。
+- `Runtime/StateBuilder.cs:14-51`：职业/专精选择和总体构建。
+- `Runtime/StateBuilder.cs:54-146`：标量、组员、bar 和类型默认值。
+- `Runtime/GameState.cs:12-91`：状态容器和基础路径/类型读取。
+- `config/common.json:1-13`：步骤 1/2/3 的当前事实。
 
 ## 知识图谱链接
 
-- 上游布局：[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-- 下游求值：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]、[[docs/30-Shigure/07-Shigure-动态单位数量与公式]]
-- 编辑与同步：[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
+- 上游布局：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- 下游求值：[[30-Shigure/06-Shigure-规则条件与特殊动作]]、[[30-Shigure/07-Shigure-动态单位数量与公式]]
+- 编辑与同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]

@@ -13,10 +13,10 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/20-Fuyutsui/01-Fuyutsui-加载与生命周期]]"
-  - "[[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]]"
+  - "[[20-Fuyutsui/01-Fuyutsui-加载与生命周期]]"
+  - "[[20-Fuyutsui/04-Fuyutsui-玩家状态]]"
 source_files:
   - Fuyutsui/core/core.lua
   - Fuyutsui/core/events.lua
@@ -32,18 +32,18 @@ verified_at: 2026-08-09
 
 # Fuyutsui 事件与刷新调度
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/20-Fuyutsui/01-Fuyutsui-加载与生命周期]] · [[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]]
+相关：[[20-Fuyutsui/01-Fuyutsui-加载与生命周期]] · [[20-Fuyutsui/04-Fuyutsui-玩家状态]]
 
 > [!summary] AI 快速摘要
 > 一个原生 Frame 接收所有插件事件，并按事件名调用 `Fuyutsui[event]`。`OnUpdate` 每帧更新读条和一个队伍成员；累计超过 0.2 秒更新冷却、辅助、符文、距离、敌人数和物品；累计超过 1 秒更新战斗时间和天启骑士数量。AuraContainer 自己响应光环变化，不由该 `OnUpdate` 轮询。
 
 ## 范围
 
-本页负责“什么时候刷新”。各字段如何计算分别见：[[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]]、[[docs/20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
+本页负责“什么时候刷新”。各字段如何计算分别见：[[20-Fuyutsui/04-Fuyutsui-玩家状态]]、[[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
 
-不覆盖 AuraContainer 内部事件调度，见 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
+不覆盖 AuraContainer 内部事件调度，见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
 
 ## 事件框架
 
@@ -133,7 +133,7 @@ WoW event
 
 ## 失败模式与风险
 
-1. **队伍缩编可能卡住轮转。** `updateIndex` 在重建队伍时不归一；若它大于新的 `#groupList`，`UpdateGroupInRangeAndHealth()` 会在递增前直接返回。详见 [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
+1. **队伍缩编可能卡住轮转。** `updateIndex` 在重建队伍时不归一；若它大于新的 `#groupList`，`UpdateGroupInRangeAndHealth()` 会在递增前直接返回。详见 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
 2. **战斗开始时间可能为空。** 初始 `UpdatePlayerCombat()` 只写战斗布尔；若启用时已经在战斗且没有收到 `PLAYER_REGEN_DISABLED`，1 秒档可能用 nil 做减法。
 3. **冷却事件包含调试输出。** `SPELL_UPDATE_COOLDOWN` 对每个新见 spellID 打印一次链接，却不直接更新冷却；实际冷却依赖 0.2 秒轮询。
 4. **空处理事件增加认知噪音。** `SPELL_UPDATE_USES`、范围检查、时间线事件等存在空函数；不能因“已注册”就推断功能已实现。
@@ -144,9 +144,9 @@ WoW event
 
 - 新增事件前判断能否使用现有 0.2/1 秒档；每帧路径对战斗性能影响最大。
 - 改施法事件参数时核对当前 WoW API 签名和 secret value。
-- 改刷新频率会改变 Shigure 看到的状态延迟，需同步 [[docs/40-跨项目/01-Shingen-像素生产消费契约]]。
+- 改刷新频率会改变 Shigure 看到的状态延迟，需同步 [[40-跨项目/01-Shingen-像素生产消费契约]]。
 - 改队伍轮询必须同时验证缩编、扩编、离队和 30 人边界。
-- 改光环刷新策略前先读 [[docs/AuraContainer_AI_Reference_zh-CN]] 与 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
+- 改光环刷新策略前先读 [[50-参考资料/AuraContainer_AI_Reference_zh-CN]] 与 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
 
 ## 源码索引
 
@@ -160,4 +160,4 @@ WoW event
 
 ## 知识图谱
 
-本页从 [[docs/20-Fuyutsui/01-Fuyutsui-加载与生命周期]] 接收启用入口，向 [[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]]、[[docs/20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 和 [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] 分发刷新时机；最终输出由 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]] 消费。
+本页从 [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]] 接收启用入口，向 [[20-Fuyutsui/04-Fuyutsui-玩家状态]]、[[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 和 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] 分发刷新时机；最终输出由 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 消费。

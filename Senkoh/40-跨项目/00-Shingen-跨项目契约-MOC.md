@@ -13,25 +13,26 @@ doc_type: "moc"
 status: "current"
 authority: "contract"
 up:
-  - "[[docs/00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
+  - "[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
 related:
-  - "[[docs/10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
-  - "[[docs/30-Shigure/00-Shigure-MOC|Shigure MOC]]"
+  - "[[10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[30-Shigure/00-Shigure-MOC|Shigure MOC]]"
 source_files:
   - "Fuyutsui/main.lua"
   - "Fuyutsui/core/block.lua"
   - "Fuyutsui/core/classmacros.lua"
-  - "Shigure/Runtime/PixelScanner.cs"
-  - "Shigure/Infrastructure/FuyutsuiConfigConverter.cs"
-  - "Shigure/Infrastructure/FuyutsuiKeymapConverter.cs"
+  - "Runtime/PixelScanner.cs"
+  - "Infrastructure/FuyutsuiConfigConverter.cs"
+  - "Infrastructure/FuyutsuiKeymapConverter.cs"
+  - "Infrastructure/FuyutsuiAddonSyncService.cs"
 source_symbols:
   - "Fuyutsui:LoadPlayerBlocks"
   - "Fuyutsui:CreateMacro"
   - "PixelScanner.ScanScreenData"
   - "FuyutsuiConfigConverter.UpdateFromClassDirectory"
   - "FuyutsuiKeymapConverter.UpdateFromClassMacros"
-verified_at: "2026-08-09"
+verified_at: "2026-08-10"
 ---
 
 # Shingen 跨项目契约 MOC
@@ -40,11 +41,11 @@ verified_at: "2026-08-09"
 
 跨项目契约描述“两个项目必须以完全相同方式理解的事实”，而不是复述两边源码。当前有三条主契约：
 
-- [[docs/40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]：Fuyutsui 如何画，Shigure 如何采样和解码。
-- [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]：职业 Lua 声明如何变成 Shigure 的字段映射。
-- [[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]：职业宏顺序如何变成可解析、可发送的热键。
+- [[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]：Fuyutsui 如何画，Shigure 如何采样和解码。
+- [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 同步契约]]：职业 Lua 声明如何变成 Shigure 的字段映射。
+- [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 到 keymap 与按键契约]]：职业宏顺序如何变成可解析、可发送的热键。
 
-契约没有独立协商或握手机制。任何格式变化都必须按 [[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]] 同步修改和验证两端。
+契约没有独立协商或握手机制。仓库内置 `Fuyutsui/` 让两端源码能够同版本发布，但不会自动消除协议漂移；任何格式变化仍必须按 [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]] 同步修改、重新生成并验证游戏部署副本。
 
 ## 范围
 
@@ -70,12 +71,12 @@ verified_at: "2026-08-09"
 ## 运行链路
 
 ```text
-ClassBlocks ──Fuyutsui LoadPlayerBlocks──> blocks ──绘制──> 屏幕像素
+内置 ClassBlocks ──部署──> 游戏 ClassBlocks ──LoadPlayerBlocks──> blocks ──绘制──> 屏幕像素
      └──Shigure ConfigConverter──> config ─────────────────────┐
                                                                ├─> GameState
 屏幕像素 ──PixelScanner──> RowData / BarData / AbsorbData ─────┘
 
-ClassMacros ──Fuyutsui CreateMacro──> WoW 覆盖绑定
+内置 ClassMacros ──部署──> 游戏 ClassMacros ──CreateMacro──> WoW 覆盖绑定
       └──Shigure KeymapConverter──> keymap ──规则选技能/单位──> hotkey
                                                                └──KeySender──> 覆盖绑定
 ```
@@ -86,6 +87,7 @@ ClassMacros ──Fuyutsui CreateMacro──> WoW 覆盖绑定
 
 - **同一事实只有一个契约主页。** 项目页可以解释本地算法，但共享字段顺序、字节含义和单位编号必须回链到这里。
 - **生产和生成必须同源。** `LoadPlayerBlocks` 与 ConfigConverter 对 `ClassBlocks` 顺序的理解必须一致；`CreateMacro` 与 KeymapConverter 对宏槽位的理解必须一致。
+- **内置源单向部署。** 仓库/发布目录中的 `Fuyutsui/` 是唯一权威源，游戏 `Interface/AddOns/Fuyutsui` 是可覆盖的运行副本；同步不删除游戏额外文件，也不把游戏修改反向合并。
 - **生成文件可重建。** `config`、`keymap` 是消费端缓存/产物，不是绕过 Lua 源文件的长期修复点。
 - **协议变化必须显式。** 当前像素中没有独立版本字节；无法依赖运行时自动协商。
 - **名称也是接口。** 状态、光环、技能和动态字段名称进入 JSON 和 module 条件，重命名具有数据迁移成本。
@@ -97,16 +99,17 @@ ClassMacros ──Fuyutsui CreateMacro──> WoW 覆盖绑定
 - Fuyutsui 宏槽位偏移改变，而 KeymapConverter 未同步，模块最终按下另一个宏的键。
 - 仅检查主色块成功，没有检查 CountBars 和治疗吸收网格的部分失败。
 - 手工修复生成 JSON，下一次“更新配置”后问题复现。
+- 手工修改游戏 AddOn 副本后，下次启动或全量更新被内置源覆盖，且 config/keymap 仍来自项目源。
 - 旧 README 或历史审计被当作当前契约，覆盖了源码中的版本 3 单位迁移和已拆分文件位置。
 
 ## 修改影响与路由
 
 | 计划修改 | 必须进入 |
 |---|---|
-| RGB、像素数量、标记色、条宽高、网格行列 | [[docs/40-跨项目/01-Shingen-像素生产消费契约|像素契约]] |
-| `states/auras/spells/group` 格式、顺序、占位 | [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 契约]] |
-| dynamic/static/special 规则、宏键池、单位或条件 | [[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏与热键契约]] |
-| 任意共享名称、版本、路径或生成方式 | [[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查清单]] |
+| RGB、像素数量、标记色、条宽高、网格行列 | [[40-跨项目/01-Shingen-像素生产消费契约|像素契约]] |
+| `states/auras/spells/group` 格式、顺序、占位 | [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 契约]] |
+| dynamic/static/special 规则、宏键池、单位或条件 | [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏与热键契约]] |
+| 任意共享名称、版本、路径或生成方式 | [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查清单]] |
 
 若修改只属于一端的内部重构，但输入输出完全不变，应在提交说明和功能页中明确“契约未变”。
 
@@ -144,7 +147,7 @@ flowchart TB
 
 ## 关系
 
-- 上级：[[docs/00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
-- 全景：[[docs/10-系统/00-Shingen-双项目系统全景|双项目系统全景]]
-- 生产端：[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]
-- 消费端：[[docs/30-Shigure/00-Shigure-MOC|Shigure MOC]]
+- 上级：[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
+- 全景：[[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]
+- 生产端：[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]
+- 消费端：[[30-Shigure/00-Shigure-MOC|Shigure MOC]]

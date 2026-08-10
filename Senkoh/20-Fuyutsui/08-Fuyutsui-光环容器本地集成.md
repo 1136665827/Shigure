@@ -13,11 +13,11 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/AuraContainer_AI_Reference_zh-CN]]"
-  - "[[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]"
-  - "[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]"
+  - "[[50-参考资料/AuraContainer_AI_Reference_zh-CN]]"
+  - "[[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]"
+  - "[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]"
 source_files:
   - Fuyutsui/core/block.lua
   - Fuyutsui/main.lua
@@ -35,9 +35,9 @@ verified_at: 2026-08-09
 
 # Fuyutsui 光环容器本地集成
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/AuraContainer_AI_Reference_zh-CN]] · [[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] · [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
+相关：[[50-参考资料/AuraContainer_AI_Reference_zh-CN]] · [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] · [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
 
 ## AI 快速摘要
 
@@ -45,7 +45,7 @@ verified_at: 2026-08-09
 
 ## 范围与非范围
 
-本页描述 Fuyutsui 如何使用 Blizzard AuraContainer API。API 的更完整背景和历史审计见 [[docs/AuraContainer_AI_Reference_zh-CN]]；但历史审计不是当前事实，发生冲突时以 `core/block.lua` 和当前 `.toc` 为准。
+本页描述 Fuyutsui 如何使用 Blizzard AuraContainer API。API 的更完整背景和历史审计见 [[50-参考资料/AuraContainer_AI_Reference_zh-CN]]；但历史审计不是当前事实，发生冲突时以 `core/block.lua` 和当前 `.toc` 为准。
 
 本页不解释所有职业光环清单，也不逐职业罗列技能。
 
@@ -139,7 +139,7 @@ WoW 在敌对单位上处理 `HELPFUL`、友方单位上处理 `HARMFUL` 时，S
 - `group.dispel` 只包含玩家当前 `includeDispelTypes` 会处理的减益；像素显示驱散类别固定色，不显示剩余时间。
 - roster 重建后重新 `SetUnit` 并强制全量刷新；未使用的旧容器禁用并隐藏。
 
-成员地址及 30 人边界见 [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
+成员地址及 30 人边界见 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
 
 ## 其他牧师特殊槽
 
@@ -173,8 +173,8 @@ WoW 在敌对单位上处理 `HELPFUL`、友方单位上处理 `HARMFUL` 时，S
 
 - 修改 AuraContainer API 调用前核对当前 Blizzard 模板/API；这是版本敏感区。
 - 新增单位类型需扩展容器 key、收集顺序、反应过滤、释放和重绑五条路径。
-- 新增 `maxApps` 会改变横向扫描布局，需同步 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]] 和生成配置。
-- 修改 group aura/dispel offset 同步 [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+- 新增 `maxApps` 会改变横向扫描布局，需同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]] 和生成配置。
+- 修改 group aura/dispel offset 同步 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
 - 若未来拆出文件，必须把它加入 `.toc` 且保持在 `block.lua` 所需常量与 `main.lua` 调用之前加载。
 
 ## 源码索引
@@ -189,4 +189,4 @@ WoW 在敌对单位上处理 `HELPFUL`、友方单位上处理 `HARMFUL` 时，S
 
 ## 知识图谱
 
-本页把 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 分配的光环索引绑定到 Blizzard AuraContainer，并从 [[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 接收驱散能力、向 [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] 填充成员槽；专项背景由 [[docs/AuraContainer_AI_Reference_zh-CN]] 补充。
+本页把 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 分配的光环索引绑定到 Blizzard AuraContainer，并从 [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 接收驱散能力、向 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] 填充成员槽；专项背景由 [[50-参考资料/AuraContainer_AI_Reference_zh-CN]] 补充。

@@ -13,10 +13,10 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]"
-  - "[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]"
+  - "[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]"
+  - "[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]"
 source_files:
   - Fuyutsui/Fuyutsui.toc
   - Fuyutsui/core/core.lua
@@ -34,9 +34,9 @@ verified_at: 2026-08-09
 
 # Fuyutsui 加载与生命周期
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] · [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
+相关：[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] · [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
 
 > [!summary] AI 快速摘要
 > `Fuyutsui.toc` 是加载顺序的唯一事实来源。`core/core.lua` 先创建全局对象和事件框架；静态配置、像素输出、命令、宏和键位模块随后加载；13 个职业文件全部执行但只有当前职业越过首行卫语句；领域模块最后加载，`main.lua` 只提供布局和宏编排。当前 toc 不含、磁盘也不存在 `auracontainer.lua`。
@@ -45,7 +45,7 @@ verified_at: 2026-08-09
 
 本页覆盖：文件加载、`ADDON_LOADED`/`PLAYER_LOGIN`、SavedVariables 初始化、启用顺序、职业/专精装载与重建。
 
-不覆盖：事件的业务语义（见 [[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]）和像素索引规则（见 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]）。
+不覆盖：事件的业务语义（见 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]）和像素索引规则（见 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]）。
 
 ## 精确加载顺序
 
@@ -62,7 +62,7 @@ verified_at: 2026-08-09
 
 ### 不存在的旁路文件
 
-当前 toc 在 `core/keybinds.lua` 后直接加载职业文件，仓库也没有 `Fuyutsui/auracontainer.lua`。旧资料中“加载 `auracontainer.lua` 中央 Buff 演示 UI”的描述不能用于当前运行时。真实光环接线见 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
+当前 toc 在 `core/keybinds.lua` 后直接加载职业文件，仓库也没有 `Fuyutsui/auracontainer.lua`。旧资料中“加载 `auracontainer.lua` 中央 Buff 演示 UI”的描述不能用于当前运行时。真实光环接线见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
 
 ## 启动状态机
 
@@ -136,7 +136,7 @@ verified_at: 2026-08-09
 
 ## 失败模式与风险
 
-1. **普通天赋事件未清横向条。** `UpdatePlayerSpecInfo()` 只清主色块；若不是通过两个自定义切换法术触发，旧 `spellIdToBar`、`nextAvailableIndex` 和旧计数条可能继续存在或使新条向后追加。修改生命周期时须与 [[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 一起验证。
+1. **普通天赋事件未清横向条。** `UpdatePlayerSpecInfo()` 只清主色块；若不是通过两个自定义切换法术触发，旧 `spellIdToBar`、`nextAvailableIndex` 和旧计数条可能继续存在或使新条向后追加。修改生命周期时须与 [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 一起验证。
 2. **没有注册 `PLAYER_SPECIALIZATION_CHANGED`。** 当前依赖 `PLAYER_TALENT_UPDATE` 和两个法术成功事件覆盖专精变化；新切换路径需要游戏内验证。
 3. **toc 元数据含全角逗号。** `Fuyutsui.toc:1` 的 Interface 列表在 `120007` 后使用 `，`，可能影响严格解析器。
 4. **库目录大小写。** toc/XML 使用 `Libs`，仓库目录显示为 `libs`；Windows 通常不敏感，跨文件系统打包时应检查。
@@ -144,9 +144,9 @@ verified_at: 2026-08-09
 
 ## 修改影响
 
-- 改 toc：检查所有前置表和方法是否在消费者之前存在，并更新本页及 [[docs/20-Fuyutsui/00-Fuyutsui-MOC]]。
+- 改 toc：检查所有前置表和方法是否在消费者之前存在，并更新本页及 [[20-Fuyutsui/00-Fuyutsui-MOC]]。
 - 改专精重建：同时验证主色条、CountBars、AuraContainer、安全宏和 Shigure 配置重载。
-- 改固定启动像素 1/2/3：这是跨项目破坏性变更，必须同步 [[docs/40-跨项目/01-Shingen-像素生产消费契约]] 和 [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]。
+- 改固定启动像素 1/2/3：这是跨项目破坏性变更，必须同步 [[40-跨项目/01-Shingen-像素生产消费契约]] 和 [[30-Shigure/03-Shigure-配置合并与GameState构建]]。
 - 改 SavedVariables：提供旧 `FuyutsuiADB` 迁移或兼容读取。
 
 ## 源码索引
@@ -160,4 +160,4 @@ verified_at: 2026-08-09
 
 ## 知识图谱
 
-上游是 [[docs/10-系统/00-Shingen-双项目系统全景]]；本页向下连接 [[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]、[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 和 [[docs/20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]。跨项目影响汇总在 [[docs/40-跨项目/00-Shingen-跨项目契约-MOC]]。
+上游是 [[10-系统/00-Shingen-双项目系统全景]]；本页向下连接 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]、[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 和 [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]。跨项目影响汇总在 [[40-跨项目/00-Shingen-跨项目契约-MOC]]。

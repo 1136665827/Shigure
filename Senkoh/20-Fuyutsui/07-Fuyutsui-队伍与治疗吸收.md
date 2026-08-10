@@ -13,11 +13,11 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]"
-  - "[[docs/40-跨项目/01-Shingen-像素生产消费契约]]"
-  - "[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]"
+  - "[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]"
+  - "[[40-跨项目/01-Shingen-像素生产消费契约]]"
+  - "[[30-Shigure/03-Shigure-配置合并与GameState构建]]"
 source_files:
   - Fuyutsui/core/group.lua
   - Fuyutsui/core/block.lua
@@ -35,9 +35,9 @@ verified_at: 2026-08-09
 
 # Fuyutsui 队伍与治疗吸收
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] · [[docs/40-跨项目/01-Shingen-像素生产消费契约]] · [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
+相关：[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] · [[40-跨项目/01-Shingen-像素生产消费契约]] · [[30-Shigure/03-Shigure-配置合并与GameState构建]]
 
 ## AI 快速摘要
 
@@ -45,7 +45,7 @@ verified_at: 2026-08-09
 
 ## 范围与非范围
 
-本页负责队伍成员模型、地址公式、分帧状态和吸收网格。队伍 AuraContainer 的过滤、持续时间和驱散类型绘制见 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]；Shigure 的屏幕扫描几何见 [[docs/40-跨项目/01-Shingen-像素生产消费契约]]。
+本页负责队伍成员模型、地址公式、分帧状态和吸收网格。队伍 AuraContainer 的过滤、持续时间和驱散类型绘制见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]；Shigure 的屏幕扫描几何见 [[40-跨项目/01-Shingen-像素生产消费契约]]。
 
 ## 输入与输出
 
@@ -108,7 +108,7 @@ GROUP_ROSTER_UPDATE / 专精重建
 
 如果 `group.aura` 存在，每个 offset 建一个 `HELPFUL|PLAYER` 槽；如果 `group.dispel` 存在，则按玩家当前实际会驱散的类型建立一个减益槽。两者都落在成员块地址公式内。
 
-光环持续时间使用顶部像素 `B`，驱散槽使用固定类型色。定义与刷新细节见 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
+光环持续时间使用顶部像素 `B`，驱散槽使用固定类型色。定义与刷新细节见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
 
 ## 治疗吸收网格协议
 
@@ -145,8 +145,8 @@ GROUP_ROSTER_UPDATE / 专精重建
 ## 修改影响
 
 - 修复缩编时应在 `UpdateGroup()` 把 `updateIndex` 归一为 1，并清除旧成员实际占用的完整 1..510 范围。
-- 改成员顺序、最大人数或字段偏移，必须同步 [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]。
-- 改吸收网格的列数、槽宽、锚点 RGB 或终点色，必须同步 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]。
+- 改成员顺序、最大人数或字段偏移，必须同步 [[30-Shigure/03-Shigure-配置合并与GameState构建]]。
+- 改吸收网格的列数、槽宽、锚点 RGB 或终点色，必须同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
 - 新增 group aura/dispel 字段时检查 `group.num` 和第 30 人末索引。
 
 ## 源码索引
@@ -160,4 +160,4 @@ GROUP_ROSTER_UPDATE / 专精重建
 
 ## 知识图谱
 
-本页从 [[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 接收 roster 与分帧更新，通过 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 输出成员块，并与 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 共同填充每名成员；跨进程几何由 [[docs/40-跨项目/01-Shingen-像素生产消费契约]] 约束。
+本页从 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 接收 roster 与分帧更新，通过 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 输出成员块，并与 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 共同填充每名成员；跨进程几何由 [[40-跨项目/01-Shingen-像素生产消费契约]] 约束。

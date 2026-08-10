@@ -13,19 +13,19 @@ doc_type: "contract"
 status: "current"
 authority: "contract"
 up:
-  - "[[docs/40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
 related:
-  - "[[docs/BLOCK_AI_Reference_zh-CN|Fuyutsui block 技术参考]]"
-  - "[[docs/TEXTURE_LAYOUT_zh-CN|Fuyutsui 纹理排序说明]]"
-  - "[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收|Fuyutsui 队伍与治疗吸收]]"
-  - "[[docs/30-Shigure/02-Shigure-像素扫描与协议解码|Shigure 像素扫描与协议解码]]"
-  - "[[docs/30-Shigure/03-Shigure-配置合并与GameState构建|Shigure GameState 构建]]"
+  - "[[50-参考资料/BLOCK_AI_Reference_zh-CN|Fuyutsui block 技术参考]]"
+  - "[[50-参考资料/TEXTURE_LAYOUT_zh-CN|Fuyutsui 纹理排序说明]]"
+  - "[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收|Fuyutsui 队伍与治疗吸收]]"
+  - "[[30-Shigure/02-Shigure-像素扫描与协议解码|Shigure 像素扫描与协议解码]]"
+  - "[[30-Shigure/03-Shigure-配置合并与GameState构建|Shigure GameState 构建]]"
 source_files:
   - "Fuyutsui/core/block.lua"
   - "Fuyutsui/main.lua"
   - "Fuyutsui/core/group.lua"
-  - "Shigure/Runtime/PixelScanner.cs"
-  - "Shigure/Runtime/StateBuilder.cs"
+  - "Runtime/PixelScanner.cs"
+  - "Runtime/StateBuilder.cs"
 source_symbols:
   - "EncodeBlockChannels"
   - "Fuyutsui:CreateTexture"
@@ -56,7 +56,7 @@ Shigure 可在主色块成功时对后两者降级：找不到 CountBars 标记�
 - `StateBuilder` 如何使用 config 把这些原始值变成业务状态。
 - 生产或消费协议变更时的同步责任。
 
-本契约不定义 `ClassBlocks` 中业务字段的完整顺序；见 [[docs/TEXTURE_LAYOUT_zh-CN|纹理排序说明]]。它也不定义 AuraContainer 上游 API；见 [[docs/AuraContainer_AI_Reference_zh-CN|AuraContainer 技术参考]]。
+本契约不定义 `ClassBlocks` 中业务字段的完整顺序；见 [[50-参考资料/TEXTURE_LAYOUT_zh-CN|纹理排序说明]]。它也不定义 AuraContainer 上游 API；见 [[50-参考资料/AuraContainer_AI_Reference_zh-CN|AuraContainer 技术参考]]。
 
 ## 输入与输出
 
@@ -152,7 +152,7 @@ Shigure 从客户区左边缘向下寻找红色标记字节 `(1,0,0)`，以该 y
 - `StateBuilder` 对吸收值和生命值的组合语义。
 - Fuyutsui 在分辨率、UI 缩放或专精变化时的重排方式。
 
-只改变业务字段顺序而不改变 RGB 算法时，也必须更新 [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 契约]]及生成配置。
+只改变业务字段顺序而不改变 RGB 算法时，也必须更新 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config 契约]]及生成配置。
 
 ## 源码索引
 
@@ -161,11 +161,11 @@ Shigure 从客户区左边缘向下寻找红色标记字节 `(1,0,0)`，以该 y
 | 主色块、CountBars、吸收网格和 Aura 像素 | `Fuyutsui/core/block.lua` |
 | 当前专精索引分配 | `Fuyutsui/main.lua:LoadPlayerBlocks` |
 | 队伍列表与吸收刷新入口 | `Fuyutsui/core/group.lua`、`core/events.lua` |
-| 屏幕截图和三通道解码 | `Shigure/Runtime/PixelScanner.cs` |
-| 原始值到业务状态 | `Shigure/Runtime/StateBuilder.cs` |
-| config 合并 | `Shigure/Infrastructure/ConfigService.cs` |
+| 屏幕截图和三通道解码 | `Runtime/PixelScanner.cs` |
+| 原始值到业务状态 | `Runtime/StateBuilder.cs` |
+| config 合并 | `Infrastructure/ConfigService.cs` |
 
-低层生产端细节见 [[docs/BLOCK_AI_Reference_zh-CN|block 技术参考]]，索引来源见 [[docs/TEXTURE_LAYOUT_zh-CN|纹理排序说明]]。
+低层生产端细节见 [[50-参考资料/BLOCK_AI_Reference_zh-CN|block 技术参考]]，索引来源见 [[50-参考资料/TEXTURE_LAYOUT_zh-CN|纹理排序说明]]。
 
 ## 知识图谱
 
@@ -189,7 +189,7 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[docs/40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
-- 生产端：[[docs/BLOCK_AI_Reference_zh-CN|Fuyutsui block 技术参考]]、[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收|队伍与治疗吸收]]
-- 消费端：[[docs/30-Shigure/02-Shigure-像素扫描与协议解码|像素扫描与协议解码]]、[[docs/30-Shigure/03-Shigure-配置合并与GameState构建|GameState 构建]]
-- 相邻契约：[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config]]
+- 上级：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
+- 生产端：[[50-参考资料/BLOCK_AI_Reference_zh-CN|Fuyutsui block 技术参考]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收|队伍与治疗吸收]]
+- 消费端：[[30-Shigure/02-Shigure-像素扫描与协议解码|像素扫描与协议解码]]、[[30-Shigure/03-Shigure-配置合并与GameState构建|GameState 构建]]
+- 相邻契约：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 到 config]]

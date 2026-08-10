@@ -1,6 +1,6 @@
 ---
 title: Shigure Fuyutsui 配置、宏编辑与同步
-summary: 说明从游戏目录定位 Fuyutsui、受限 Lua 表 round-trip、ClassBlocks 到 config 及 ClassMacros 到 keymap 的转换和串行同步。
+summary: 说明以内置 Fuyutsui 为权威源进行 Lua round-trip、config/keymap 生成、SHA-256 游戏部署和串行同步。
 aliases:
   - Shigure Lua 转换器
   - Fuyutsui 同步
@@ -12,54 +12,62 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
-  - "[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
+  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
+  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
 source_files:
-  - Shigure/Infrastructure/WowAddonLocator.cs
-  - Shigure/Infrastructure/LuaLiteParser.cs
-  - Shigure/Infrastructure/ClassBlocksStore.cs
-  - Shigure/Infrastructure/ClassMacrosStore.cs
-  - Shigure/Infrastructure/FuyutsuiConfigConverter.cs
-  - Shigure/Infrastructure/FuyutsuiKeymapConverter.cs
-  - Shigure/UI/MainForm.cs
+  - Infrastructure/FuyutsuiAddonSyncService.cs
+  - Infrastructure/WowAddonLocator.cs
+  - Infrastructure/WowProcessLocator.cs
+  - Infrastructure/LuaLiteParser.cs
+  - Infrastructure/ClassBlocksStore.cs
+  - Infrastructure/ClassMacrosStore.cs
+  - Infrastructure/FuyutsuiConfigConverter.cs
+  - Infrastructure/FuyutsuiKeymapConverter.cs
+  - UI/MainForm.cs
 source_symbols:
-  - WowAddonLocator.FindAddonRoot
-  - WowAddonLocator.FindClassDirectory
+  - FuyutsuiAddonSyncService.SynchronizeAll
+  - FuyutsuiAddonSyncService.SynchronizeFile
+  - WowAddonLocator.FindAddOnsDirectory
+  - WowProcessLocator.FindFrontmostProcessPath
   - LuaLiteParser.TryExtractAssignedTable
   - ClassBlocksStore.Save
   - ClassMacrosStore.Save
   - FuyutsuiConfigConverter.UpdateFromClassDirectory
   - FuyutsuiKeymapConverter.UpdateFromClassMacros
-  - MainForm.UpdateConfigFromAddonAsync
-verified_at: 2026-08-09
+  - MainForm.UpdateConfigFromProjectCoreAsync
+verified_at: 2026-08-10
 ---
 
 # Shigure Fuyutsui 配置、宏编辑与同步
 
 > [!abstract] AI 快速摘要
-> Shigure 能从目标窗口进程路径向父目录回溯，寻找 `Interface/AddOns/Fuyutsui`。它用自定义的受限 Lua 数据解析器读取并重写 ClassBlocks/ClassMacros 中的指定表，再生成 `config/*.json` 和 `keymap/*.json`。解析器不执行 Lua，但 round-trip 会把表内部规范化重写；跨多个文件的转换没有事务，失败时可能只完成一部分。MainForm 用尾任务队列串行配置更新，并在启动/重启运行时前等待该队列。
+> Shigure 始终以 `AppPaths.BaseDirectory/Fuyutsui` 为插件权威源，用受限 Lua 数据解析器重写 ClassBlocks/ClassMacros，再生成 `config/*.json` 和 `keymap/*.json`。启动与“更新配置”会全量部署插件，编辑器保存会部署当前 Lua；部署按 SHA-256 跳过相同文件，不删除游戏额外文件。生成和部署由 MainForm 尾任务队列串行执行，但跨多个 Lua/JSON/游戏文件仍不是事务。
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- Fuyutsui 状态生产者：[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
-- ClassBlocks 契约：[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-- ClassMacros 契约：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- Fuyutsui 状态生产者：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
+- ClassBlocks 契约：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- ClassMacros 契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
 
 ## 范围与非范围
 
-本页覆盖目录发现、Lua 数据子集、编辑回写、两类转换器及同步并发。像素实时扫描和最终按键发送分别见 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]、[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]。
+本页覆盖项目源定位、游戏部署目录发现、Lua 数据子集、编辑回写、两类转换器及同步并发。像素实时扫描和最终按键发送分别见 [[30-Shigure/02-Shigure-像素扫描与协议解码]]、[[30-Shigure/08-Shigure-Keymap解析与按键发送]]。
 
-## 定位 Fuyutsui
+## 项目源与游戏部署目录
 
-1. 用完全匹配的游戏窗口标题取得 HWND。
-2. 取得 PID，以 `PROCESS_QUERY_LIMITED_INFORMATION` 打开进程并查询可执行文件路径。
-3. 从 EXE 目录开始沿祖先目录向上回溯。
-4. 每一级检查 `Interface/AddOns/Fuyutsui`，找到即返回插件根目录。
+项目源固定为 `Path.Combine(AppPaths.BaseDirectory, "Fuyutsui")`。配置页读取 `Fuyutsui/class`，宏页读取 `Fuyutsui/core/classmacros.lua`；两者不再把游戏 AddOns 目录当编辑源。
 
-这不是固定安装路径，但仍依赖窗口标题和进程路径可查询。它没有验证插件签名或目录内容版本。
+游戏部署目标按以下过程计算：
+
+1. `WowProcessLocator` 每次读取业务根目录下的 `wow_process.txt`，忽略空行、`#`/`;` 注释，并去掉可选 `.exe` 后缀。
+2. 枚举这些名称对应的进程 ID，再按 Windows 顶层窗口 Z 顺序取第一个候选进程的可见窗口。
+3. 由该窗口 PID 查询进程 EXE 路径，从 EXE 目录逐级向上寻找 `Interface/AddOns` 或 `Interface`。
+4. 找到后把目标固定为其下的 `Fuyutsui`；即使 AddOns/Fuyutsui 尚不存在，也可在部署时创建。若祖先中没有 Interface，则回退到游戏 EXE 同级的预期 `Interface/AddOns`。
+
+`FuyutsuiAddonSyncService` 只允许部署项目源内的文件。全量同步递归枚举源目录；单文件同步先验证路径没有逃出源根。目标同名文件 SHA-256 相同则跳过，不同则覆盖，缺失目录自动创建；游戏目录额外文件不会删除或反向合并。
 
 ## LuaLiteParser 的安全与语法边界
 
@@ -105,7 +113,7 @@ verified_at: 2026-08-09
 - 未建模的表内字段或格式不保证保留。
 - 仍是直接覆盖 Lua 文件，无原子替换、备份或跨文件事务。
 
-原始宏结构说明见 [[docs/CLASSMACROS_AI_Reference_zh-CN]]。
+原始宏结构说明见 [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]]。
 
 ## ClassMacros → keymap
 
@@ -119,7 +127,9 @@ verified_at: 2026-08-09
 
 ## 同步队列和运行时重启
 
-`MainForm` 用 `_configUpdateTail` 形成串行尾任务，避免多个配置保存/转换同时写文件。定位插件并同步时，转换器在后台任务中执行，随后刷新配置/Keymap 目录并重启运行时；UI 日志只展示前 20 条警告。
+`MainForm` 用 `_configUpdateTail` 形成串行尾任务，避免多个配置保存、转换和部署同时写文件。“更新配置”会生成全部 config/keymap 并全量部署插件；配置/宏编辑器保存仍会重新生成全部 config/keymap，但只部署刚保存的 Lua。随后刷新目录并在已有会话时重启运行时；UI 日志只展示前 20 条转换警告或部署失败。
+
+`OnShown` 在启动运行会话前先单独执行一次全量插件部署；它不重新生成 config/keymap。找不到游戏进程或启动部署失败只记日志，程序继续启动。
 
 启动或重启运行会先等待当前配置队列，确保新会话读取到已排队更新。窗口关闭也等待运行时释放和配置队列完成。但是队列只解决**进程内并发顺序**，不把多个 Lua/JSON 文件变成事务；中途异常之前的写入仍然存在。
 
@@ -127,7 +137,9 @@ verified_at: 2026-08-09
 
 | 症状 | 优先检查 |
 |---|---|
-| 无法定位插件 | 窗口标题、进程权限、实际目录祖先是否包含标准插件路径 |
+| 项目 Fuyutsui 不存在 | 发布目录是否完整包含 `Fuyutsui/`，csproj 的复制规则是否生效 |
+| 无法定位游戏部署目录 | `wow_process.txt`、候选进程可见窗口、进程查询权限和实际游戏路径 |
+| 项目保存成功但游戏未变化 | 游戏未运行、目标不可写、单文件部署失败，或 WoW 尚未重载插件 |
 | Lua 看似合法却解析失败 | 是否用了函数/表达式/hex/long string 等不支持语法；赋值名是否被注释先命中 |
 | 保存后注释/排版变化 | 表内部会 canonical 重写；仅表外文本有较强保留保证 |
 | 旧 ClassBlocks 页面为空 | legacy sparse 专精不被完整建模；不要保存混合文件 |
@@ -135,6 +147,7 @@ verified_at: 2026-08-09
 | 某状态永远为 0 | 步骤顺序、重复名覆盖、是否超过 510 |
 | Keymap 后半被截断 | 动态项每项消耗 30，整体超过 273 |
 | 刚保存但运行时仍用旧数据 | 等待同步队列结束并确认会话已重启 |
+| 游戏目录手工修改消失 | 游戏副本不是权威源；下次全量或同文件部署会以项目源覆盖 |
 
 ## 修改影响
 
@@ -142,21 +155,24 @@ verified_at: 2026-08-09
 - 改 ClassBlocks 顺序要同步 Fuyutsui 生产者、config 转换器、StateBuilder 和 510 容量检查。
 - 改键池顺序、数量或目标映射要同步 Fuyutsui 动作条扫描、Keymap 转换器和 v3 单位契约。
 - 若需要可靠回滚，应为 Lua 和批量 JSON 引入备份/临时文件/事务清单，不能只依赖 UI 队列。
+- 改发布或路径规则时必须同时验证 `Shigure.csproj`、随机副本的 `AppPaths.BaseDirectory`、AddonSyncService 和 `wow_process.txt`。
 
 ## 源码索引
 
-- `Shigure/Infrastructure/WowAddonLocator.cs:10-130`：标题、进程路径和祖先回溯。
-- `Shigure/Infrastructure/LuaLiteParser.cs:90-480`：赋值定位、table/值/字符串/数字/注释子集。
-- `Shigure/Infrastructure/ClassBlocksStore.cs:102-207`：modern 判定、替换保存与 legacy 行为。
-- `Shigure/Infrastructure/ClassMacrosStore.cs:63-354`：宏表加载、直接写回和 canonical 序列化。
-- `Shigure/Infrastructure/FuyutsuiConfigConverter.cs:44-483`：13 职业、步骤顺序、组员与字段规范化。
-- `Shigure/Infrastructure/FuyutsuiKeymapConverter.cs:21-475`：273 键池、单位映射、宏/注释解析。
-- `Shigure/UI/MainForm.cs:612-778`：串行更新尾、定位、转换、刷新和告警。
-- `Shigure/UI/MainForm.cs:781-958`：运行前等待队列并重启会话。
+- `Infrastructure/FuyutsuiAddonSyncService.cs`：项目源校验、SHA-256 全量/单文件部署和逐文件失败记录。
+- `Infrastructure/WowProcessLocator.cs`：进程名配置、Z 顺序窗口选择和进程路径查询。
+- `Infrastructure/WowAddonLocator.cs`：由目标进程路径推导 `Interface/AddOns`。
+- `Infrastructure/LuaLiteParser.cs:90-480`：赋值定位、table/值/字符串/数字/注释子集。
+- `Infrastructure/ClassBlocksStore.cs:102-207`：modern 判定、替换保存与 legacy 行为。
+- `Infrastructure/ClassMacrosStore.cs:63-354`：宏表加载、直接写回和 canonical 序列化。
+- `Infrastructure/FuyutsuiConfigConverter.cs:44-483`：13 职业、步骤顺序、组员与字段规范化。
+- `Infrastructure/FuyutsuiKeymapConverter.cs:21-475`：273 键池、单位映射、宏/注释解析。
+- `UI/MainForm.cs:624-867`：启动部署、串行更新尾、转换、全量/单文件部署、刷新和告警。
+- `UI/MainForm.cs:781-958`：运行前等待队列并重启会话。
 
 ## 知识图谱链接
 
-- 生产者入口：[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
-- 状态契约：[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-- 按键契约：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
-- 消费端：[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]、[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]
+- 生产者入口：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
+- 状态契约：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- 按键契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 消费端：[[30-Shigure/03-Shigure-配置合并与GameState构建]]、[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
