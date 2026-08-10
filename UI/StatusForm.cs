@@ -1,10 +1,24 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Reflection;
 
 namespace Shigure;
 
 internal enum SettingsPage
+{
+    General,
+    Config,
+    Macros,
+    Modules,
+    Status,
+    Party,
+    Logic,
+    Logs,
+    About
+}
+
+internal enum SettingsNavIcon
 {
     General,
     Config,
@@ -24,7 +38,7 @@ public sealed class StatusForm : Form
     private const int AboutWatermarkTopMargin = 16;
     private const float AboutWatermarkOpacity = 0.08F;
 
-    private readonly List<(Button Button, Control View, SettingsPage Page)> _navItems = new();
+    private readonly List<(SettingsNavButton Button, Control View, SettingsPage Page)> _navItems = new();
     private readonly Dictionary<ListView, Label> _listCounts = new();
     private readonly HashSet<SettingsPage> _dirtyPages = new();
     private readonly ToolTip _toolTip = new();
@@ -113,7 +127,7 @@ public sealed class StatusForm : Form
             ColumnCount = 2,
             Margin = new Padding(0)
         };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 176));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 216));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         Controls.Add(root);
@@ -170,18 +184,18 @@ public sealed class StatusForm : Form
         };
 
         AddNavGroup(nav, "常用");
-        AddNavItem(nav, SettingsPage.General, "通用", CreatePageShell("通用", "运行控制、配置同步与模块选择", _settingsHost));
+        AddNavItem(nav, SettingsPage.General, SettingsNavIcon.General, "通用", CreatePageShell("通用", "运行控制、配置同步与模块选择", _settingsHost));
         AddNavGroup(nav, "编辑");
-        AddNavItem(nav, SettingsPage.Config, "配置", CreatePageShell("配置", "编辑职业、专精和扫描字段", _configHost));
-        AddNavItem(nav, SettingsPage.Macros, "宏", CreatePageShell("宏", "维护职业动态宏、静态宏与特殊宏", _macrosHost));
-        AddNavItem(nav, SettingsPage.Modules, "模块", CreatePageShell("模块", "创建、匹配并维护运行模块", _moduleHost));
+        AddNavItem(nav, SettingsPage.Config, SettingsNavIcon.Config, "配置", CreatePageShell("配置", "编辑职业、专精和扫描字段", _configHost));
+        AddNavItem(nav, SettingsPage.Macros, SettingsNavIcon.Macros, "宏", CreatePageShell("宏", "维护职业动态宏、静态宏与特殊宏", _macrosHost));
+        AddNavItem(nav, SettingsPage.Modules, SettingsNavIcon.Modules, "模块", CreatePageShell("模块", "创建、匹配并维护运行模块", _moduleHost));
         AddNavGroup(nav, "监控");
-        AddNavItem(nav, SettingsPage.Status, "状态", CreatePageShell("状态", string.Empty, BuildStatusPage()));
-        AddNavItem(nav, SettingsPage.Party, "队伍", CreatePageShell("队伍", "当前队伍单位与扫描字段摘要", BuildSection("队伍成员", _partyList, "实时队伍数据")));
-        AddNavItem(nav, SettingsPage.Logic, "逻辑", CreatePageShell("逻辑", "运行时推荐目标与调试值", BuildSection("逻辑信息", _unitInfoList, "当前模块的决策输出")));
-        AddNavItem(nav, SettingsPage.Logs, "日志", CreatePageShell("日志", "运行、模块匹配与施放记录", BuildLogPage()));
+        AddNavItem(nav, SettingsPage.Status, SettingsNavIcon.Status, "状态", CreatePageShell("状态", string.Empty, BuildStatusPage()));
+        AddNavItem(nav, SettingsPage.Party, SettingsNavIcon.Party, "队伍", CreatePageShell("队伍", "当前队伍单位与扫描字段摘要", BuildSection("队伍成员", _partyList, "实时队伍数据")));
+        AddNavItem(nav, SettingsPage.Logic, SettingsNavIcon.Logic, "逻辑", CreatePageShell("逻辑", "运行时推荐目标与调试值", BuildSection("逻辑信息", _unitInfoList, "当前模块的决策输出")));
+        AddNavItem(nav, SettingsPage.Logs, SettingsNavIcon.Logs, "日志", CreatePageShell("日志", "运行、模块匹配与施放记录", BuildLogPage()));
         AddNavGroup(nav, "系统");
-        AddNavItem(nav, SettingsPage.About, "关于", CreatePageShell("关于", "应用信息与状态字段参考", _aboutHost));
+        AddNavItem(nav, SettingsPage.About, SettingsNavIcon.About, "关于", CreatePageShell("关于", "应用信息与状态字段参考", _aboutHost));
         _aboutHost.Controls.Add(BuildAboutPanel());
 
         root.Controls.Add(navShell, 0, 0);
@@ -210,10 +224,10 @@ public sealed class StatusForm : Form
             BackColor = UiTheme.Background,
             ColumnCount = 1,
             RowCount = 3,
-            Padding = new Padding(14, 18, 14, 14),
+            Padding = new Padding(12, 16, 12, 12),
             Margin = new Padding(0)
         };
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 
@@ -223,7 +237,7 @@ public sealed class StatusForm : Form
             BackColor = UiTheme.Background,
             ColumnCount = 1,
             RowCount = 2,
-            Margin = new Padding(4, 0, 0, 0)
+            Margin = new Padding(10, 0, 0, 0)
         };
         brand.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         brand.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
@@ -255,6 +269,11 @@ public sealed class StatusForm : Form
             AutoScroll = true,
             BackColor = UiTheme.Background,
             Margin = new Padding(0)
+        };
+        shell.Paint += (_, e) =>
+        {
+            using var divider = new Pen(UiTheme.Border);
+            e.Graphics.DrawLine(divider, shell.ClientSize.Width - 1, 0, shell.ClientSize.Width - 1, shell.ClientSize.Height);
         };
         shell.Controls.Add(nav, 0, 1);
         shell.Controls.Add(new Label
@@ -563,7 +582,11 @@ public sealed class StatusForm : Form
             _dirtyPages.Remove(page);
         }
 
-        _navItems.FirstOrDefault(item => item.Page == page).Button?.Invalidate();
+        var navItem = _navItems.FirstOrDefault(item => item.Page == page).Button;
+        if (navItem is not null)
+        {
+            navItem.IsDirty = dirty;
+        }
     }
 
     private void AddNavGroup(FlowLayoutPanel nav, string text)
@@ -572,59 +595,31 @@ public sealed class StatusForm : Form
         {
             Text = text,
             AutoSize = false,
-            Size = new Size(126, 26),
+            Size = new Size(192, 30),
             ForeColor = UiTheme.Muted,
-            Font = new Font(Font.FontFamily, 8F, FontStyle.Bold),
+            Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
             TextAlign = ContentAlignment.BottomLeft,
-            Padding = new Padding(8, 0, 0, 3),
-            Margin = new Padding(0, nav.Controls.Count == 0 ? 0 : 8, 0, 2)
+            Padding = new Padding(10, 0, 0, 4),
+            Margin = new Padding(0, nav.Controls.Count == 0 ? 0 : 10, 0, 3)
         });
     }
 
-    private void AddNavItem(FlowLayoutPanel nav, SettingsPage page, string text, Control view)
+    private void AddNavItem(FlowLayoutPanel nav, SettingsPage page, SettingsNavIcon icon, string text, Control view)
     {
         view.Dock = DockStyle.Fill;
         view.Visible = false;
         _contentHost.Controls.Add(view);
 
-        var button = new Button
+        var button = new SettingsNavButton(icon)
         {
             Text = text,
             AutoSize = false,
-            Size = new Size(126, 38),
-            TextAlign = ContentAlignment.MiddleLeft,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = UiTheme.Background,
-            ForeColor = UiTheme.Muted,
+            Size = new Size(192, 44),
+            Font = new Font(Font.FontFamily, 10F, FontStyle.Regular),
             Margin = new Padding(0, 0, 0, 3),
-            Padding = new Padding(16, 0, 0, 0),
             Cursor = Cursors.Hand,
-            TabStop = true
-        };
-        button.FlatAppearance.BorderSize = 0;
-        button.FlatAppearance.MouseOverBackColor = UiTheme.Hover;
-        button.FlatAppearance.MouseDownBackColor = UiTheme.Pressed;
-        button.Paint += (_, e) =>
-        {
-            if (_selectedPage == page)
-            {
-                using var accent = new SolidBrush(UiTheme.Accent);
-                e.Graphics.FillRectangle(accent, 0, 7, UiTheme.Scale(button, 3), button.Height - 14);
-            }
-
-            if (!_dirtyPages.Contains(page))
-            {
-                return;
-            }
-
-            using var warning = new SolidBrush(UiTheme.Warning);
-            var dotSize = UiTheme.Scale(button, 7);
-            e.Graphics.FillEllipse(
-                warning,
-                button.ClientSize.Width - UiTheme.Scale(button, 18),
-                (button.ClientSize.Height - dotSize) / 2,
-                dotSize,
-                dotSize);
+            TabStop = true,
+            AccessibleName = text
         };
 
         button.Click += (_, _) => SelectView(page);
@@ -638,9 +633,7 @@ public sealed class StatusForm : Form
         foreach (var (button, view, itemPage) in _navItems)
         {
             var selected = itemPage == page;
-            button.BackColor = selected ? UiTheme.AccentSoft : UiTheme.Background;
-            button.ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
-            button.Invalidate();
+            button.IsSelected = selected;
             view.Visible = selected;
             if (selected)
             {
@@ -1334,5 +1327,298 @@ public sealed class StatusForm : Form
         }
 
         listView.EndUpdate();
+    }
+
+    private sealed class SettingsNavButton : Button
+    {
+        private readonly SettingsNavIcon _icon;
+        private bool _hovered;
+        private bool _pressed;
+        private bool _isSelected;
+        private bool _isDirty;
+
+        public SettingsNavButton(SettingsNavIcon icon)
+        {
+            _icon = icon;
+            FlatStyle = FlatStyle.Flat;
+            FlatAppearance.BorderSize = 0;
+            UseVisualStyleBackColor = false;
+            BackColor = UiTheme.Background;
+            ForeColor = UiTheme.Muted;
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.ResizeRedraw
+                | ControlStyles.UserPaint,
+                true);
+        }
+
+        [System.ComponentModel.Browsable(false)]
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected == value)
+                {
+                    return;
+                }
+
+                _isSelected = value;
+                Invalidate();
+            }
+        }
+
+        [System.ComponentModel.Browsable(false)]
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public bool IsDirty
+        {
+            get => _isDirty;
+            set
+            {
+                if (_isDirty == value)
+                {
+                    return;
+                }
+
+                _isDirty = value;
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            _hovered = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _hovered = false;
+            _pressed = false;
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs mevent)
+        {
+            base.OnMouseDown(mevent);
+            if (mevent.Button == MouseButtons.Left)
+            {
+                _pressed = true;
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs mevent)
+        {
+            base.OnMouseUp(mevent);
+            _pressed = false;
+            Invalidate();
+        }
+
+        protected override void OnGotFocus(EventArgs e)
+        {
+            base.OnGotFocus(e);
+            Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e)
+        {
+            base.OnLostFocus(e);
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs pevent)
+        {
+            var graphics = pevent.Graphics;
+            graphics.Clear(UiTheme.Background);
+            var scale = Math.Max(1f, DeviceDpi / 96f);
+            var bounds = new Rectangle(0, 0, Math.Max(1, Width - 1), Math.Max(1, Height - 1));
+            var oldSmoothingMode = graphics.SmoothingMode;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            var backgroundColor = _isSelected
+                ? UiTheme.AccentSoft
+                : _pressed
+                    ? UiTheme.Pressed
+                    : _hovered
+                        ? UiTheme.Hover
+                        : UiTheme.Background;
+            using (var path = CreateRoundedPath(bounds, Math.Max(6, (int)Math.Round(8 * scale))))
+            using (var background = new SolidBrush(backgroundColor))
+            {
+                graphics.FillPath(background, path);
+                if (_isSelected)
+                {
+                    using var border = new Pen(Color.FromArgb(90, UiTheme.Accent));
+                    graphics.DrawPath(border, path);
+                }
+            }
+
+            var iconSize = Math.Max(18, (int)Math.Round(20 * scale));
+            var iconBounds = new Rectangle(
+                (int)Math.Round(12 * scale),
+                (Height - iconSize) / 2,
+                iconSize,
+                iconSize);
+            var iconColor = _isSelected ? UiTheme.Accent : _hovered ? UiTheme.Text : UiTheme.Muted;
+            DrawIcon(graphics, _icon, iconBounds, iconColor, scale);
+            graphics.SmoothingMode = oldSmoothingMode;
+
+            var textLeft = iconBounds.Right + (int)Math.Round(12 * scale);
+            var dirtySpace = _isDirty ? (int)Math.Round(24 * scale) : (int)Math.Round(10 * scale);
+            var textBounds = new Rectangle(
+                textLeft,
+                0,
+                Math.Max(0, Width - textLeft - dirtySpace),
+                Height);
+            TextRenderer.DrawText(
+                graphics,
+                Text,
+                Font,
+                textBounds,
+                _isSelected || _hovered ? UiTheme.Text : UiTheme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+
+            if (_isDirty)
+            {
+                var dotSize = Math.Max(6, (int)Math.Round(7 * scale));
+                using var warning = new SolidBrush(UiTheme.Warning);
+                graphics.FillEllipse(
+                    warning,
+                    Width - (int)Math.Round(16 * scale) - dotSize,
+                    (Height - dotSize) / 2,
+                    dotSize,
+                    dotSize);
+            }
+
+            if (Focused && ShowFocusCues)
+            {
+                var focusBounds = Rectangle.Inflate(bounds, -(int)Math.Round(4 * scale), -(int)Math.Round(4 * scale));
+                ControlPaint.DrawFocusRectangle(graphics, focusBounds, UiTheme.Text, backgroundColor);
+            }
+        }
+
+        private static GraphicsPath CreateRoundedPath(Rectangle bounds, int radius)
+        {
+            var diameter = Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height));
+            var path = new GraphicsPath();
+            path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+            path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+            path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+            path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        private static void DrawIcon(Graphics graphics, SettingsNavIcon icon, Rectangle bounds, Color color, float scale)
+        {
+            var x = bounds.Left;
+            var y = bounds.Top;
+            var w = bounds.Width;
+            var h = bounds.Height;
+            using var pen = new Pen(color, Math.Max(1.4f, 1.55f * scale))
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round,
+                LineJoin = LineJoin.Round
+            };
+            using var brush = new SolidBrush(color);
+
+            switch (icon)
+            {
+                case SettingsNavIcon.General:
+                    graphics.DrawEllipse(pen, x + w * 0.22f, y + h * 0.22f, w * 0.56f, h * 0.56f);
+                    graphics.DrawEllipse(pen, x + w * 0.42f, y + h * 0.42f, w * 0.16f, h * 0.16f);
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var angle = i * Math.PI / 4;
+                        var cx = x + w / 2f;
+                        var cy = y + h / 2f;
+                        graphics.DrawLine(
+                            pen,
+                            cx + (float)Math.Cos(angle) * w * 0.32f,
+                            cy + (float)Math.Sin(angle) * h * 0.32f,
+                            cx + (float)Math.Cos(angle) * w * 0.43f,
+                            cy + (float)Math.Sin(angle) * h * 0.43f);
+                    }
+
+                    break;
+                case SettingsNavIcon.Config:
+                    DrawSlider(graphics, pen, brush, x, y + h * 0.28f, w, 0.34f);
+                    DrawSlider(graphics, pen, brush, x, y + h * 0.50f, w, 0.68f);
+                    DrawSlider(graphics, pen, brush, x, y + h * 0.72f, w, 0.46f);
+                    break;
+                case SettingsNavIcon.Macros:
+                    graphics.DrawLines(pen, [
+                        new PointF(x + w * 0.34f, y + h * 0.22f),
+                        new PointF(x + w * 0.12f, y + h * 0.50f),
+                        new PointF(x + w * 0.34f, y + h * 0.78f)]);
+                    graphics.DrawLines(pen, [
+                        new PointF(x + w * 0.66f, y + h * 0.22f),
+                        new PointF(x + w * 0.88f, y + h * 0.50f),
+                        new PointF(x + w * 0.66f, y + h * 0.78f)]);
+                    graphics.DrawLine(pen, x + w * 0.57f, y + h * 0.18f, x + w * 0.43f, y + h * 0.82f);
+                    break;
+                case SettingsNavIcon.Modules:
+                    for (var row = 0; row < 2; row++)
+                    {
+                        for (var column = 0; column < 2; column++)
+                        {
+                            graphics.DrawRectangle(
+                                pen,
+                                x + w * (0.12f + column * 0.46f),
+                                y + h * (0.12f + row * 0.46f),
+                                w * 0.30f,
+                                h * 0.30f);
+                        }
+                    }
+
+                    break;
+                case SettingsNavIcon.Status:
+                    graphics.DrawLines(pen, [
+                        new PointF(x + w * 0.08f, y + h * 0.55f),
+                        new PointF(x + w * 0.28f, y + h * 0.55f),
+                        new PointF(x + w * 0.40f, y + h * 0.24f),
+                        new PointF(x + w * 0.56f, y + h * 0.78f),
+                        new PointF(x + w * 0.69f, y + h * 0.45f),
+                        new PointF(x + w * 0.92f, y + h * 0.45f)]);
+                    break;
+                case SettingsNavIcon.Party:
+                    graphics.DrawEllipse(pen, x + w * 0.36f, y + h * 0.10f, w * 0.28f, h * 0.28f);
+                    graphics.DrawArc(pen, x + w * 0.20f, y + h * 0.40f, w * 0.60f, h * 0.50f, 190, 160);
+                    graphics.DrawEllipse(pen, x + w * 0.08f, y + h * 0.28f, w * 0.20f, h * 0.20f);
+                    graphics.DrawEllipse(pen, x + w * 0.72f, y + h * 0.28f, w * 0.20f, h * 0.20f);
+                    break;
+                case SettingsNavIcon.Logic:
+                    graphics.DrawLine(pen, x + w * 0.28f, y + h * 0.30f, x + w * 0.70f, y + h * 0.20f);
+                    graphics.DrawLine(pen, x + w * 0.28f, y + h * 0.36f, x + w * 0.70f, y + h * 0.72f);
+                    graphics.FillEllipse(brush, x + w * 0.14f, y + h * 0.24f, w * 0.22f, h * 0.22f);
+                    graphics.FillEllipse(brush, x + w * 0.64f, y + h * 0.10f, w * 0.22f, h * 0.22f);
+                    graphics.FillEllipse(brush, x + w * 0.64f, y + h * 0.64f, w * 0.22f, h * 0.22f);
+                    break;
+                case SettingsNavIcon.Logs:
+                    graphics.DrawRectangle(pen, x + w * 0.18f, y + h * 0.10f, w * 0.64f, h * 0.80f);
+                    graphics.DrawLine(pen, x + w * 0.32f, y + h * 0.34f, x + w * 0.68f, y + h * 0.34f);
+                    graphics.DrawLine(pen, x + w * 0.32f, y + h * 0.52f, x + w * 0.68f, y + h * 0.52f);
+                    graphics.DrawLine(pen, x + w * 0.32f, y + h * 0.70f, x + w * 0.58f, y + h * 0.70f);
+                    break;
+                case SettingsNavIcon.About:
+                    graphics.DrawEllipse(pen, x + w * 0.12f, y + h * 0.12f, w * 0.76f, h * 0.76f);
+                    graphics.FillEllipse(brush, x + w * 0.46f, y + h * 0.28f, w * 0.08f, h * 0.08f);
+                    graphics.DrawLine(pen, x + w * 0.50f, y + h * 0.47f, x + w * 0.50f, y + h * 0.70f);
+                    break;
+            }
+        }
+
+        private static void DrawSlider(Graphics graphics, Pen pen, Brush brush, float x, float y, float width, float knobPosition)
+        {
+            graphics.DrawLine(pen, x + width * 0.10f, y, x + width * 0.90f, y);
+            var knobSize = width * 0.14f;
+            graphics.FillEllipse(brush, x + width * knobPosition - knobSize / 2, y - knobSize / 2, knobSize, knobSize);
+        }
     }
 }

@@ -285,8 +285,8 @@ public sealed class ModuleEditorControl : UserControl
             RowCount = 4
         };
         editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-        // 匹配行: 上边距10 + 首行32 + 推荐天赋行40(含与上行间距) + 下边距10。
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 98));
+        // 匹配卡片略增高，给首行居中和推荐天赋行的上下间距留出空间。
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
 
@@ -608,21 +608,22 @@ public sealed class ModuleEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
-            ColumnCount = 8,
+            ColumnCount = 12,
             RowCount = 2,
-            Padding = new Padding(12, 10, 12, 10),
+            Padding = new Padding(12),
             Margin = new Padding(0)
         };
         foreach (var label in matchLabels)
         {
             row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, MeasureLabelColumnWidth(label, Font)));
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            // 下拉框由原来的 25% 缩短到 20%，余下 5% 作为与下一项标签之间的弹性间隔。
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 5));
         }
         // RowCount 会预置 Percent 样式, 必须 Clear 后再设 Absolute, 否则 Add 只追加到末尾不生效。
         row.RowStyles.Clear();
-        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        // 略高于首行, 给推荐天赋行留出与下拉框的间距。
-        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
 
         ResetClassOptions(_classBox);
         ResetSpecOptions(_specBox, null);
@@ -641,9 +642,9 @@ public sealed class ModuleEditorControl : UserControl
         };
 
         AddMatchField(row, "职业:", _classBox, 0);
-        AddMatchField(row, "专精:", _specBox, 2);
-        AddMatchField(row, "英雄天赋:", _heroTalentBox, 4);
-        AddMatchField(row, "队伍类型:", _partyTypeBox, 6);
+        AddMatchField(row, "专精:", _specBox, 3);
+        AddMatchField(row, "英雄天赋:", _heroTalentBox, 6);
+        AddMatchField(row, "队伍类型:", _partyTypeBox, 9);
 
         var recommendedTalentRow = new TableLayoutPanel
         {
@@ -651,8 +652,8 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 2,
             RowCount = 1,
-            // 与上方匹配下拉框留出间距。
-            Margin = new Padding(0, 8, 0, 0)
+            // 推荐天赋整行相对原位置下移 4px，并与上方匹配项保持清晰间距。
+            Margin = new Padding(0, 12, 0, 0)
         };
         recommendedTalentRow.RowStyles.Clear();
         recommendedTalentRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -662,15 +663,15 @@ public sealed class ModuleEditorControl : UserControl
         recommendedTalentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         var recommendedTalentLabel = CreateLabel("推荐天赋:");
         recommendedTalentLabel.AutoSize = false;
-        // 与输入框同上下边距, 保证文字与框水平中线对齐。
-        recommendedTalentLabel.Margin = new Padding(0, 2, 0, 2);
+        recommendedTalentLabel.Margin = Padding.Empty;
         recommendedTalentRow.Controls.Add(recommendedTalentLabel, 0, 0);
         UiTheme.StyleTextBox(_recommendedTalentBox);
-        _recommendedTalentBox.Dock = DockStyle.Fill;
-        _recommendedTalentBox.Margin = new Padding(0, 2, 0, 2);
+        _recommendedTalentBox.Dock = DockStyle.None;
+        _recommendedTalentBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _recommendedTalentBox.Margin = Padding.Empty;
         recommendedTalentRow.Controls.Add(_recommendedTalentBox, 1, 0);
         row.Controls.Add(recommendedTalentRow, 0, 1);
-        row.SetColumnSpan(recommendedTalentRow, 8);
+        row.SetColumnSpan(recommendedTalentRow, 12);
 
         return row;
     }
@@ -3339,9 +3340,14 @@ public sealed class ModuleEditorControl : UserControl
 
     private static void AddMatchField(TableLayoutPanel row, string label, ComboBox box, int column)
     {
-        row.Controls.Add(CreateLabel(label), column, 0);
+        var fieldLabel = CreateLabel(label);
+        fieldLabel.Margin = Padding.Empty;
+        row.Controls.Add(fieldLabel, column, 0);
         UiTheme.StyleComboBox(box);
-        box.Dock = DockStyle.Fill;
+        // 仅横向拉伸，让固定高度的 ComboBox 在行内垂直居中，与标签共用一条水平中心线。
+        box.Dock = DockStyle.None;
+        box.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        box.Margin = Padding.Empty;
         row.Controls.Add(box, column + 1, 0);
     }
 
