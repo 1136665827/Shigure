@@ -251,7 +251,7 @@ public sealed class MainForm : Form, IMessageFilter
     {
         SuspendLayout();
 
-        Text = GetWindowTitle();
+        Text = "Shigure";
 
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.None;
@@ -1665,12 +1665,6 @@ public sealed class MainForm : Form, IMessageFilter
             ForeColor = UiTheme.Muted,
             Margin = new Padding(0, 0, 0, 4)
         };
-    }
-
-    private static string GetWindowTitle()
-    {
-        var randomizedName = Environment.GetEnvironmentVariable(AppPaths.RandomizedDisplayNameEnvironmentKey);
-        return string.IsNullOrWhiteSpace(randomizedName) ? "Shigure" : randomizedName;
     }
 
     private void EnableDrag(Control control)

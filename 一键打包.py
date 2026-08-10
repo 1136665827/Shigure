@@ -8,6 +8,8 @@ from pathlib import Path
 
 
 OLD_NAME = "Shigure"
+ADDON_OLD_NAME = "Fuyutsui"
+OLD_NAMES = (OLD_NAME, ADDON_OLD_NAME)
 
 SKIP_DIRS = {
     ".git",
@@ -31,6 +33,7 @@ TEXT_EXTENSIONS = {
     ".editorconfig",
     ".gitignore",
     ".json",
+    ".lua",
     ".md",
     ".props",
     ".ps1",
@@ -39,6 +42,7 @@ TEXT_EXTENSIONS = {
     ".sln",
     ".slnx",
     ".targets",
+    ".toc",
     ".txt",
     ".xaml",
     ".xml",
@@ -47,6 +51,7 @@ TEXT_EXTENSIONS = {
 }
 
 NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+NAME_REPLACEMENT_PATTERN = re.compile("|".join(re.escape(name) for name in OLD_NAMES))
 
 
 def configure_console() -> None:
@@ -103,6 +108,10 @@ def read_text(path: Path) -> tuple[str, str] | None:
     return None
 
 
+def replace_names(value: str, new_name: str) -> str:
+    return NAME_REPLACEMENT_PATTERN.sub(new_name, value)
+
+
 def collect_replacements(root: Path, script_path: Path) -> dict[Path, tuple[str, str]]:
     backups: dict[Path, tuple[str, str]] = {}
 
@@ -112,7 +121,7 @@ def collect_replacements(root: Path, script_path: Path) -> dict[Path, tuple[str,
             continue
 
         text, encoding = result
-        if OLD_NAME in text:
+        if any(old_name in text for old_name in OLD_NAMES):
             backups[path] = (text, encoding)
 
     return backups
@@ -120,57 +129,91 @@ def collect_replacements(root: Path, script_path: Path) -> dict[Path, tuple[str,
 
 def apply_replacements(backups: dict[Path, tuple[str, str]], new_name: str) -> None:
     for path, (text, encoding) in backups.items():
-        path.write_text(text.replace(OLD_NAME, new_name), encoding=encoding, newline="")
+        path.write_text(replace_names(text, new_name), encoding=encoding, newline="")
+
+
+def map_path_through_renames(path: Path, completed_renames: list[tuple[Path, Path]]) -> Path:
+    current_path = path
+    for old_path, new_path in completed_renames:
+        try:
+            relative_path = current_path.relative_to(old_path)
+        except ValueError:
+            continue
+        current_path = new_path / relative_path
+    return current_path
 
 
 def restore_replacements(
     backups: dict[Path, tuple[str, str]],
-    restore_paths: dict[Path, Path] | None = None,
+    completed_renames: list[tuple[Path, Path]],
 ) -> None:
-    restore_paths = restore_paths or {}
     for path, (text, encoding) in backups.items():
-        restore_path = restore_paths.get(path, path)
-        if restore_path != path and not restore_path.exists():
-            continue
+        restore_path = map_path_through_renames(path, completed_renames)
         restore_path.write_text(text, encoding=encoding, newline="")
 
 
-def rename_required_file(root: Path, old_filename: str, new_filename: str) -> None:
-    old_path = root / old_filename
-    new_path = root / new_filename
+def collect_path_renames(
+    root: Path,
+    script_path: Path,
+    new_name: str,
+) -> list[tuple[Path, Path]]:
+    paths: list[Path] = []
 
-    if not old_path.exists():
-        raise FileNotFoundError(f"找不到需要重命名的文件: {old_path}")
-    if new_path.exists():
-        raise FileExistsError(f"目标文件已存在，已停止避免覆盖: {new_path}")
+    for dirpath, dirnames, filenames in os.walk(root):
+        current_dir = Path(dirpath)
+        dirnames[:] = [name for name in dirnames if name not in SKIP_DIRS]
 
-    old_path.rename(new_path)
+        for dirname in dirnames:
+            path = current_dir / dirname
+            if any(old_name in dirname for old_name in OLD_NAMES):
+                paths.append(path)
+
+        for filename in filenames:
+            path = current_dir / filename
+            if path == script_path:
+                continue
+            if any(old_name in filename for old_name in OLD_NAMES):
+                paths.append(path)
+
+    paths.sort(key=lambda path: len(path.relative_to(root).parts), reverse=True)
+    return [
+        (path, path.with_name(replace_names(path.name, new_name)))
+        for path in paths
+        if replace_names(path.name, new_name) != path.name
+    ]
 
 
-def rename_optional_file(root: Path, old_filename: str, new_filename: str) -> bool:
-    old_path = root / old_filename
-    new_path = root / new_filename
+def validate_path_renames(root: Path, rename_plan: list[tuple[Path, Path]]) -> None:
+    target_paths: dict[Path, Path] = {}
 
-    if not old_path.exists():
-        print(f"未找到可重命名的文件，已跳过: {old_path}")
-        return False
-    if new_path.exists():
-        raise FileExistsError(f"目标文件已存在，已停止避免覆盖: {new_path}")
+    for old_path, new_path in rename_plan:
+        previous_source = target_paths.get(new_path)
+        if previous_source is not None:
+            raise FileExistsError(
+                f"多个路径将被重命名为同一目标，已停止避免覆盖: "
+                f"{previous_source.relative_to(root)}、{old_path.relative_to(root)} -> "
+                f"{new_path.relative_to(root)}"
+            )
+        target_paths[new_path] = old_path
 
-    old_path.rename(new_path)
-    return True
+        if new_path.exists():
+            raise FileExistsError(f"目标路径已存在，已停止避免覆盖: {new_path}")
 
 
-def restore_renamed_file(root: Path, old_filename: str, new_filename: str) -> None:
-    old_path = root / old_filename
-    new_path = root / new_filename
+def apply_path_renames(
+    rename_plan: list[tuple[Path, Path]],
+    completed_renames: list[tuple[Path, Path]],
+) -> None:
+    for old_path, new_path in rename_plan:
+        old_path.rename(new_path)
+        completed_renames.append((old_path, new_path))
 
-    if not new_path.exists():
-        return
-    if old_path.exists():
-        old_path.unlink()
 
-    new_path.rename(old_path)
+def restore_path_renames(completed_renames: list[tuple[Path, Path]]) -> None:
+    for old_path, new_path in reversed(completed_renames):
+        if old_path.exists():
+            raise FileExistsError(f"恢复目标已存在，无法安全恢复: {old_path}")
+        new_path.rename(old_path)
 
 
 def publish(root: Path, new_name: str) -> None:
@@ -214,24 +257,34 @@ def main() -> int:
     should_rename = new_name != OLD_NAME
 
     if should_rename:
-        target_csproj = root / f"{new_name}.csproj"
-        target_slnx = root / f"{new_name}.slnx"
-        if target_csproj.exists() or target_slnx.exists():
-            print("目标项目文件已经存在，已停止避免覆盖。")
-            print(f"- {target_csproj}")
-            print(f"- {target_slnx}")
+        source_csproj = root / f"{OLD_NAME}.csproj"
+        if not source_csproj.exists():
+            print(f"找不到需要打包的项目文件: {source_csproj}")
             return 1
 
         backups = collect_replacements(root, script_path)
         preview_files = list(backups)
+        rename_plan = collect_path_renames(root, script_path, new_name)
+        try:
+            validate_path_renames(root, rename_plan)
+        except (FileExistsError, ValueError) as exc:
+            print(exc)
+            return 1
 
         print()
-        print(f"将把文本中的 {OLD_NAME} 区分大小写替换为 {new_name}。")
+        print(
+            f"将把文本和路径中的 {OLD_NAME}、{ADDON_OLD_NAME} "
+            f"区分大小写替换为 {new_name}。"
+        )
         print(f"预计临时修改 {len(preview_files)} 个文本文件，打包结束后会恢复。")
         for path in preview_files:
             print(f"- {path.relative_to(root)}")
+        print(f"预计临时重命名 {len(rename_plan)} 个文件或目录，打包结束后会恢复。")
+        for old_path, new_path in rename_plan:
+            print(f"- {old_path.relative_to(root)} -> {new_path.relative_to(root)}")
     else:
         backups = {}
+        rename_plan = []
         print()
         print(f"新名称和原名称相同，将直接使用 {OLD_NAME}.csproj 打包。")
 
@@ -240,22 +293,17 @@ def main() -> int:
         print("已取消。")
         return 0
 
-    csproj_renamed = False
-    slnx_renamed = False
+    completed_renames: list[tuple[Path, Path]] = []
     error: BaseException | None = None
 
     try:
         if should_rename:
             apply_replacements(backups, new_name)
-            rename_required_file(root, f"{OLD_NAME}.csproj", f"{new_name}.csproj")
-            csproj_renamed = True
-            slnx_renamed = rename_optional_file(root, f"{OLD_NAME}.slnx", f"{new_name}.slnx")
+            apply_path_renames(rename_plan, completed_renames)
 
             print()
             print(f"临时替换完成，已修改 {len(backups)} 个文本文件。")
-            print(f"已重命名: {OLD_NAME}.csproj -> {new_name}.csproj")
-            if slnx_renamed:
-                print(f"已重命名: {OLD_NAME}.slnx -> {new_name}.slnx")
+            print(f"已重命名 {len(completed_renames)} 个文件或目录。")
 
         publish(root, new_name)
     except BaseException as exc:
@@ -265,18 +313,10 @@ def main() -> int:
             try:
                 print()
                 print("发布流程已结束，开始恢复项目名称。")
-                restore_paths = {}
-                if csproj_renamed:
-                    restore_paths[root / f"{OLD_NAME}.csproj"] = root / f"{new_name}.csproj"
-                if slnx_renamed:
-                    restore_paths[root / f"{OLD_NAME}.slnx"] = root / f"{new_name}.slnx"
-                restore_replacements(backups, restore_paths)
-                if slnx_renamed:
-                    restore_renamed_file(root, f"{OLD_NAME}.slnx", f"{new_name}.slnx")
-                if csproj_renamed:
-                    restore_renamed_file(root, f"{OLD_NAME}.csproj", f"{new_name}.csproj")
+                restore_replacements(backups, completed_renames)
+                restore_path_renames(completed_renames)
                 print()
-                print(f"已恢复项目名称为 {OLD_NAME}。")
+                print(f"已恢复项目名称为 {OLD_NAME}，插件名称为 {ADDON_OLD_NAME}。")
             except BaseException as restore_exc:
                 print(f"恢复项目名称失败: {restore_exc}")
                 return 1

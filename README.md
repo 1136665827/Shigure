@@ -87,7 +87,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - `click`：每次按下只执行一轮逻辑。
 - `hold`：按住时运行，松开后停止。
 
-启动时，程序会在系统临时目录创建随机名称的运行副本，并通过原始输出目录读取 `Fuyutsui/`、`config/`、`keymap/`、`module/` 和 `wow_process.txt`。旧的临时副本会在下次启动时尝试清理。
+程序会直接从当前 EXE 所在目录运行，并从该目录读取 `Fuyutsui/`、`config/`、`keymap/`、`module/` 和 `wow_process.txt`。
 
 ## 构建
 
@@ -101,7 +101,7 @@ dotnet build .\Shigure.csproj
 
 ```text
 Shigure.csproj          项目文件与构建资源配置
-App\                    程序入口、启动参数和随机运行副本
+App\                    程序入口、启动参数和依赖组装
 UI\                     WinForms 主界面、配置/宏/模块编辑器和主题
 Runtime\                像素扫描、状态构建、运行循环和快照
 Modules\                模块模型、匹配、条件、公式和动态字段
