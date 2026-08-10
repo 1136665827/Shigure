@@ -11,14 +11,10 @@
             "id": "b6a2f54778143e8b",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "50-参考资料/00-参考资料-MOC.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "00-参考资料-MOC"
+              "title": "新标签页"
             }
           }
         ]
@@ -190,18 +186,26 @@
   },
   "active": "b6a2f54778143e8b",
   "lastOpenFiles": [
+    "40-跨项目/04-Shigure-兼容性变更检查清单.md",
+    "40-跨项目/03-Shigure-ClassMacros到keymap与按键契约.md",
+    "40-跨项目/02-Shigure-ClassBlocks到config同步契约.md",
+    "40-跨项目/01-Shigure-像素生产消费契约.md",
+    "40-跨项目/00-Shigure-跨项目契约-MOC.md",
+    "10-系统/00-Shigure-双项目系统全景.md",
+    "10-系统/00-Shigure-双项目系统全景.md",
+    "00-导航/01-Shigure-AI阅读顺序与术语.md",
+    "00-导航/00-Shigure-知识库首页.md",
+    "00-导航/00-Shigure-知识库首页.md",
+    "50-参考资料/00-参考资料-MOC.md",
     "20-Fuyutsui/09-Fuyutsui-动作条键位扫描.md",
-    "10-系统/00-Shingen-双项目系统全景.md",
     "50-参考资料/TEXTURE_LAYOUT_zh-CN.md",
     "50-参考资料/OPTIMIZATION_zh-CN.md",
     "50-参考资料/CLASSMACROS_AI_Reference_zh-CN.md",
     "50-参考资料/BLOCK_AI_Reference_zh-CN.md",
     "50-参考资料/AuraContainer_AI_Reference_zh-CN.md",
-    "50-参考资料/00-参考资料-MOC.md",
     "50-参考资料",
     "20-Fuyutsui/00-Fuyutsui-MOC.md",
-    "00-导航/01-Shingen-AI阅读顺序与术语.md",
-    "00-导航/00-Shingen-知识库首页.md",
+    "00-导航/01-Shigure-AI阅读顺序与术语.md",
     "AuraContainer_AI_Reference_zh-CN.md",
     "TEXTURE_LAYOUT_zh-CN.md",
     "OPTIMIZATION_zh-CN.md",

@@ -146,7 +146,7 @@ verified_at: 2026-08-09
 
 - 改 toc：检查所有前置表和方法是否在消费者之前存在，并更新本页及 [[20-Fuyutsui/00-Fuyutsui-MOC]]。
 - 改专精重建：同时验证主色条、CountBars、AuraContainer、安全宏和 Shigure 配置重载。
-- 改固定启动像素 1/2/3：这是跨项目破坏性变更，必须同步 [[40-跨项目/01-Shingen-像素生产消费契约]] 和 [[30-Shigure/03-Shigure-配置合并与GameState构建]]。
+- 改固定启动像素 1/2/3：这是跨项目破坏性变更，必须同步 [[40-跨项目/01-Shigure-像素生产消费契约]] 和 [[30-Shigure/03-Shigure-配置合并与GameState构建]]。
 - 改 SavedVariables：提供旧 `FuyutsuiADB` 迁移或兼容读取。
 
 ## 源码索引
@@ -160,4 +160,4 @@ verified_at: 2026-08-09
 
 ## 知识图谱
 
-上游是 [[10-系统/00-Shingen-双项目系统全景]]；本页向下连接 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]、[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 和 [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]。跨项目影响汇总在 [[40-跨项目/00-Shingen-跨项目契约-MOC]]。
+上游是 [[10-系统/00-Shigure-双项目系统全景]]；本页向下连接 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]、[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 和 [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]。跨项目影响汇总在 [[40-跨项目/00-Shigure-跨项目契约-MOC]]。

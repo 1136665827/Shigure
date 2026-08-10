@@ -15,7 +15,7 @@ authority: source-derived
 up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
   - "[[30-Shigure/02-Shigure-像素扫描与协议解码]]"
-  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
+  - "[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]"
 source_files:
   - Infrastructure/ConfigService.cs
   - Runtime/StateBuilder.cs
@@ -40,7 +40,7 @@ verified_at: 2026-08-09
 
 - 上级：[[30-Shigure/00-Shigure-MOC]]
 - 上游扫描：[[30-Shigure/02-Shigure-像素扫描与协议解码]]
-- 上游配置生成：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- 上游配置生成：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]
 - 下游规则：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
 
 ## 范围与非范围
@@ -140,6 +140,6 @@ README 中“缺失/非数字关系比较为 false”的概括不能直接套用
 
 ## 知识图谱链接
 
-- 上游布局：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- 上游布局：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]
 - 下游求值：[[30-Shigure/06-Shigure-规则条件与特殊动作]]、[[30-Shigure/07-Shigure-动态单位数量与公式]]
 - 编辑与同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]

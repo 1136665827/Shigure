@@ -14,7 +14,7 @@ status: current
 authority: source-derived
 up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[40-跨项目/01-Shingen-像素生产消费契约]]"
+  - "[[40-跨项目/01-Shigure-像素生产消费契约]]"
   - "[[30-Shigure/03-Shigure-配置合并与GameState构建]]"
 source_files:
   - Runtime/PixelScanner.cs
@@ -38,7 +38,7 @@ verified_at: 2026-08-10
 ## 图谱位置
 
 - 上级：[[30-Shigure/00-Shigure-MOC]]
-- 生产/消费权威契约：[[40-跨项目/01-Shingen-像素生产消费契约]]
+- 生产/消费权威契约：[[40-跨项目/01-Shigure-像素生产消费契约]]
 - 下游状态构建：[[30-Shigure/03-Shigure-配置合并与GameState构建]]
 - Fuyutsui 生产者入口：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]；吸收细节见 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
 
@@ -103,7 +103,7 @@ value = B
 
 ## 修改影响
 
-- 改步骤编码、锚点颜色、510 上限或吸收网格，必须同步 Fuyutsui 生产端和 [[40-跨项目/01-Shingen-像素生产消费契约]]。
+- 改步骤编码、锚点颜色、510 上限或吸收网格，必须同步 Fuyutsui 生产端和 [[40-跨项目/01-Shigure-像素生产消费契约]]。
 - 改截图方式会影响遮挡、权限和 DPI 行为；需重新验证窗口坐标和性能。
 - 新增业务字段通常不应改扫描器，而应改 Fuyutsui ClassBlocks、转换器和 config 映射。
 - 增加步骤容量前要同时检查 G/R 编码范围、插件纹理宽度、转换器以及 `MaxStep`。
@@ -122,6 +122,6 @@ value = B
 ## 知识图谱链接
 
 - 上游 Fuyutsui：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
-- 契约中心：[[40-跨项目/00-Shingen-跨项目契约-MOC]]
+- 契约中心：[[40-跨项目/00-Shigure-跨项目契约-MOC]]
 - 下游：[[30-Shigure/03-Shigure-配置合并与GameState构建]]、[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
 - 相关原始说明：`README.md`

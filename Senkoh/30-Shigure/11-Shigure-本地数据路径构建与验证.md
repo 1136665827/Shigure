@@ -48,7 +48,7 @@ verified_at: 2026-08-10
 - 上级：[[30-Shigure/00-Shigure-MOC]]
 - 启动/随机副本：[[30-Shigure/01-Shigure-启动随机副本与会话协调]]
 - 打包资料：`打包说明.md`
-- 系统边界：[[10-系统/00-Shingen-双项目系统全景]]
+- 系统边界：[[10-系统/00-Shigure-双项目系统全景]]
 
 ## 范围与非范围
 
@@ -163,5 +163,5 @@ verified_at: 2026-08-10
 
 - 启动路径：[[30-Shigure/01-Shigure-启动随机副本与会话协调]]
 - 数据同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
-- 跨项目契约：[[40-跨项目/00-Shingen-跨项目契约-MOC]]
+- 跨项目契约：[[40-跨项目/00-Shigure-跨项目契约-MOC]]
 - 原始项目资料：`README.md`、`CLAUDE.md`、`打包说明.md`

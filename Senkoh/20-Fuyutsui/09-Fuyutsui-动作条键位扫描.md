@@ -16,7 +16,7 @@ up:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
   - "[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]]"
-  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
+  - "[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]"
   - "[[30-Shigure/08-Shigure-Keymap解析与按键发送]]"
 source_files:
   - Fuyutsui/core/keybinds.lua
@@ -39,7 +39,7 @@ verified_at: 2026-08-09
 
 上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]] · [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]] · [[30-Shigure/08-Shigure-Keymap解析与按键发送]]
+相关：[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]] · [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]] · [[30-Shigure/08-Shigure-Keymap解析与按键发送]]
 
 ## AI 快速摘要
 
@@ -133,7 +133,7 @@ OnEnable / UPDATE_BINDINGS / SPELLS_CHANGED / ACTIONBAR_*GRID
 
 ## 修改影响
 
-- 修改 `modifiers`、`keys` 或三段展开顺序时，必须同步 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]] 与 Shigure 转换器。
+- 修改 `modifiers`、`keys` 或三段展开顺序时，必须同步 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]] 与 Shigure 转换器。
 - 修改 `ClassMacros` 后使用 Shigure 的配置/宏同步流程，见 [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]。
 - 修复动作条宏识别时应按 WoW 当前 API 先解析宏信息/宏体或宏所示技能，再调用 Spell API。
 - 若要让游戏内缓存成为外部契约，需新增明确序列化与版本字段；当前没有这条链路。
@@ -149,4 +149,4 @@ OnEnable / UPDATE_BINDINGS / SPELLS_CHANGED / ACTIONBAR_*GRID
 
 ## 知识图谱
 
-本页从 [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]] 的职业宏 schema 构造游戏内安全按钮，并通过 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]] 与 [[30-Shigure/08-Shigure-Keymap解析与按键发送]] 对齐；运行时动作条扫描则只形成 Fuyutsui 内部诊断缓存。
+本页从 [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]] 的职业宏 schema 构造游戏内安全按钮，并通过 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]] 与 [[30-Shigure/08-Shigure-Keymap解析与按键发送]] 对齐；运行时动作条扫描则只形成 Fuyutsui 内部诊断缓存。

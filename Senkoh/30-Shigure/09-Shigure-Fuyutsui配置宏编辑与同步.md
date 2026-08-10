@@ -14,8 +14,8 @@ status: current
 authority: source-derived
 up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]"
-  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
+  - "[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]"
+  - "[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]"
 source_files:
   - Infrastructure/FuyutsuiAddonSyncService.cs
   - Infrastructure/WowAddonLocator.cs
@@ -49,8 +49,8 @@ verified_at: 2026-08-10
 
 - 上级：[[30-Shigure/00-Shigure-MOC]]
 - Fuyutsui 状态生产者：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
-- ClassBlocks 契约：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-- ClassMacros 契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- ClassBlocks 契约：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]
+- ClassMacros 契约：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]
 
 ## 范围与非范围
 
@@ -173,6 +173,6 @@ verified_at: 2026-08-10
 ## 知识图谱链接
 
 - 生产者入口：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
-- 状态契约：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-- 按键契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 状态契约：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]
+- 按键契约：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]
 - 消费端：[[30-Shigure/03-Shigure-配置合并与GameState构建]]、[[30-Shigure/08-Shigure-Keymap解析与按键发送]]

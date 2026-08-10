@@ -15,7 +15,7 @@ status: current
 authority: source-derived
 up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
+  - "[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]"
   - "[[30-Shigure/06-Shigure-规则条件与特殊动作]]"
 source_files:
   - Input/KeymapService.cs
@@ -45,7 +45,7 @@ verified_at: 2026-08-10
 
 - 上级：[[30-Shigure/00-Shigure-MOC]]
 - 上游规则：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 生产契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 生产契约：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]
 - Fuyutsui 生产者入口：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]；宏与动作条细节见 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
 
 ## 范围与非范围
@@ -141,6 +141,6 @@ ModuleRule(Unit / Spell / MacroCondition)
 ## 知识图谱链接
 
 - 宏生产者：[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
-- 跨项目契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 跨项目契约：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]
 - 上游逻辑：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
 - 运行时调用：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]

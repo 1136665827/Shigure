@@ -1,5 +1,5 @@
 ---
-title: "Shingen ClassBlocks 到 config 同步契约"
+title: "Shigure ClassBlocks 到 config 同步契约"
 summary: "定义内置 Fuyutsui ClassBlocks、Shigure config 生成、GameState 消费及游戏副本部署的一致性要求。"
 aliases:
   - "ClassBlocks config 契约"
@@ -13,7 +13,7 @@ doc_type: "contract"
 status: "current"
 authority: "contract"
 up:
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]"
 related:
   - "[[50-参考资料/TEXTURE_LAYOUT_zh-CN|Fuyutsui 纹理排序说明]]"
   - "[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口|Fuyutsui 状态块与编码入口]]"
@@ -37,7 +37,7 @@ source_symbols:
 verified_at: "2026-08-10"
 ---
 
-# Shingen ClassBlocks 到 config 同步契约
+# Shigure ClassBlocks 到 config 同步契约
 
 ## AI 摘要
 
@@ -70,7 +70,7 @@ states → auras → spells → group
 - Shigure 配置编辑器保存 Lua 后的重生成与运行时重启链路。
 - 内置 Lua 到游戏 AddOn 副本的单向部署边界。
 
-像素 RGB 本身由 [[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]] 定义；宏配置由 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|ClassMacros 契约]] 定义。
+像素 RGB 本身由 [[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]] 定义；宏配置由 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|ClassMacros 契约]] 定义。
 
 ## 输入与输出
 
@@ -200,8 +200,8 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
+- 上级：[[40-跨项目/00-Shigure-跨项目契约-MOC|跨项目契约 MOC]]
 - 生产模型：[[50-参考资料/TEXTURE_LAYOUT_zh-CN|Fuyutsui 纹理排序说明]]、[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口|状态块与编码入口]]
 - 消费模型：[[30-Shigure/03-Shigure-配置合并与GameState构建|配置合并与 GameState]]
 - 编辑链路：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Fuyutsui 配置宏编辑与同步]]
-- 相邻契约：[[40-跨项目/01-Shingen-像素生产消费契约|像素生产消费契约]]
+- 相邻契约：[[40-跨项目/01-Shigure-像素生产消费契约|像素生产消费契约]]

@@ -153,4 +153,4 @@ MainCondition AND (没有 SubConditions OR 任一 SubCondition 为真)
 - 上游状态：[[30-Shigure/03-Shigure-配置合并与GameState构建]]
 - 动态求值：[[30-Shigure/07-Shigure-动态单位数量与公式]]
 - 运行节流：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
-- 按键契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 按键契约：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]

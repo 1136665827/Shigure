@@ -1,24 +1,24 @@
 ---
-title: "Shingen AI 阅读顺序与术语"
+title: "Shigure AI 阅读顺序与术语"
 summary: "为 AI 统一双项目中的状态、像素、配置、模块、宏、单位编号和文档状态术语，并给出按任务最短阅读顺序。"
 aliases:
-  - "Shingen 术语表"
+  - "Shigure 术语表"
   - "AI 阅读指南"
 tags:
-  - "project/shingen"
+  - "project/shigure"
   - "doc/guide"
   - "area/navigation"
-project: "Shingen"
+project: "Shigure"
 doc_type: "guide"
 status: "current"
 authority: "source-derived"
 up:
-  - "[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
+  - "[[00-导航/00-Shigure-知识库首页|Shigure 知识库首页]]"
 related:
-  - "[[10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
+  - "[[10-系统/00-Shigure-双项目系统全景|Shigure 双项目系统全景]]"
   - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
   - "[[30-Shigure/00-Shigure-MOC|Shigure MOC]]"
-  - "[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]"
+  - "[[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性变更检查清单]]"
 source_files:
   - "Fuyutsui/main.lua"
   - "Fuyutsui/core/block.lua"
@@ -33,7 +33,7 @@ source_symbols:
 verified_at: "2026-08-09"
 ---
 
-# Shingen AI 阅读顺序与术语
+# Shigure AI 阅读顺序与术语
 
 ## AI 摘要
 
@@ -90,12 +90,12 @@ verified_at: "2026-08-09"
 
 | 输入关键词或现象 | 输出层 | 阅读顺序 |
 |---|---|---|
-| `510`、RGB、错位、CountBars、治疗吸收 | 像素传输 | [[40-跨项目/01-Shingen-像素生产消费契约|像素契约]] → 生产端/消费端功能页 |
-| `states/auras/spells/group`、职业 Lua、step | 配置生成 | [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 同步契约]] → [[50-参考资料/TEXTURE_LAYOUT_zh-CN|索引布局]] |
+| `510`、RGB、错位、CountBars、治疗吸收 | 像素传输 | [[40-跨项目/01-Shigure-像素生产消费契约|像素契约]] → 生产端/消费端功能页 |
+| `states/auras/spells/group`、职业 Lua、step | 配置生成 | [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 同步契约]] → [[50-参考资料/TEXTURE_LAYOUT_zh-CN|索引布局]] |
 | 条件不命中、动态单位、公式 | 规则决策 | [[30-Shigure/06-Shigure-规则条件与特殊动作|规则条件]] → [[30-Shigure/07-Shigure-动态单位数量与公式|动态字段]] |
-| 技能有映射但不发键、单位编号不对 | 热键执行 | [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏到热键契约]] → [[30-Shigure/08-Shigure-Keymap解析与按键发送|Keymap 与发送]] |
+| 技能有映射但不发键、单位编号不对 | 热键执行 | [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|宏到热键契约]] → [[30-Shigure/08-Shigure-Keymap解析与按键发送|Keymap 与发送]] |
 | 切专精后字段错、编辑器保存后不同步 | 生成/重载 | ClassBlocks 或 ClassMacros 契约 → [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Lua 编辑与同步]] |
-| 文档行号找不到、描述与源码冲突 | 文档时效 | [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查]] → 当前源码符号搜索 |
+| 文档行号找不到、描述与源码冲突 | 文档时效 | [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性检查]] → 当前源码符号搜索 |
 
 ## 阅读链路
 
@@ -136,7 +136,7 @@ AI 在修改前应执行以下逻辑：
 - 本页的术语表和任务路由。
 - 拥有该概念的项目功能页。
 - 涉及输入输出时的跨项目契约。
-- [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查清单]]中的验证项。
+- [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性检查清单]]中的验证项。
 
 不要为同义词创建另一篇笔记；把常用叫法加入 `aliases`，并把唯一权威定义留在本页或对应契约中。
 
@@ -174,7 +174,7 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
-- 系统：[[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]
+- 上级：[[00-导航/00-Shigure-知识库首页|Shigure 知识库首页]]
+- 系统：[[10-系统/00-Shigure-双项目系统全景|双项目系统全景]]
 - 项目入口：[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]、[[30-Shigure/00-Shigure-MOC|Shigure MOC]]
-- 变更验收：[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]
+- 变更验收：[[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性变更检查清单]]

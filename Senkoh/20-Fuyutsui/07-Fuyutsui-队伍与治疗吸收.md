@@ -16,7 +16,7 @@ up:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
   - "[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]"
-  - "[[40-跨项目/01-Shingen-像素生产消费契约]]"
+  - "[[40-跨项目/01-Shigure-像素生产消费契约]]"
   - "[[30-Shigure/03-Shigure-配置合并与GameState构建]]"
 source_files:
   - Fuyutsui/core/group.lua
@@ -37,7 +37,7 @@ verified_at: 2026-08-09
 
 上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] · [[40-跨项目/01-Shingen-像素生产消费契约]] · [[30-Shigure/03-Shigure-配置合并与GameState构建]]
+相关：[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] · [[40-跨项目/01-Shigure-像素生产消费契约]] · [[30-Shigure/03-Shigure-配置合并与GameState构建]]
 
 ## AI 快速摘要
 
@@ -45,7 +45,7 @@ verified_at: 2026-08-09
 
 ## 范围与非范围
 
-本页负责队伍成员模型、地址公式、分帧状态和吸收网格。队伍 AuraContainer 的过滤、持续时间和驱散类型绘制见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]；Shigure 的屏幕扫描几何见 [[40-跨项目/01-Shingen-像素生产消费契约]]。
+本页负责队伍成员模型、地址公式、分帧状态和吸收网格。队伍 AuraContainer 的过滤、持续时间和驱散类型绘制见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]；Shigure 的屏幕扫描几何见 [[40-跨项目/01-Shigure-像素生产消费契约]]。
 
 ## 输入与输出
 
@@ -160,4 +160,4 @@ GROUP_ROSTER_UPDATE / 专精重建
 
 ## 知识图谱
 
-本页从 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 接收 roster 与分帧更新，通过 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 输出成员块，并与 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 共同填充每名成员；跨进程几何由 [[40-跨项目/01-Shingen-像素生产消费契约]] 约束。
+本页从 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 接收 roster 与分帧更新，通过 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 输出成员块，并与 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 共同填充每名成员；跨进程几何由 [[40-跨项目/01-Shigure-像素生产消费契约]] 约束。

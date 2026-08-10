@@ -13,10 +13,10 @@ doc_type: moc
 status: current
 authority: source-derived
 up:
-  - "[[00-导航/00-Shingen-知识库首页]]"
-  - "[[10-系统/00-Shingen-双项目系统全景]]"
+  - "[[00-导航/00-Shigure-知识库首页]]"
+  - "[[10-系统/00-Shigure-双项目系统全景]]"
 related:
-  - "[[40-跨项目/00-Shingen-跨项目契约-MOC]]"
+  - "[[40-跨项目/00-Shigure-跨项目契约-MOC]]"
   - "[[30-Shigure/02-Shigure-像素扫描与协议解码]]"
 source_files:
   - Fuyutsui/Fuyutsui.toc
@@ -35,9 +35,9 @@ verified_at: 2026-08-10
 
 # Fuyutsui 功能知识地图
 
-上级：[[00-导航/00-Shingen-知识库首页]] · [[10-系统/00-Shingen-双项目系统全景]]
+上级：[[00-导航/00-Shigure-知识库首页]] · [[10-系统/00-Shigure-双项目系统全景]]
 
-相关：[[40-跨项目/00-Shingen-跨项目契约-MOC]] · [[30-Shigure/02-Shigure-像素扫描与协议解码]]
+相关：[[40-跨项目/00-Shigure-跨项目契约-MOC]] · [[30-Shigure/02-Shigure-像素扫描与协议解码]]
 
 > [!summary] AI 快速摘要
 > Fuyutsui 在 WoW 内采集状态，并通过屏幕像素把数据交给 Shigure。当前源码有三类输出：510 格顶部主色条、500 单元横向计数/层数条、最多 30 个单位的治疗吸收网格。顶部主色条索引必须按两段解码：`1..255 => R=0,G=index`，`256..510 => R=1,G=index-255`；三个通道在屏幕上均是除以 255 后的颜色值。
@@ -89,14 +89,14 @@ verified_at: 2026-08-10
 
 ## 跨项目契约与消费者
 
-- 总契约导航：[[40-跨项目/00-Shingen-跨项目契约-MOC]]
-- 屏幕生产/消费：[[40-跨项目/01-Shingen-像素生产消费契约]]
+- 总契约导航：[[40-跨项目/00-Shigure-跨项目契约-MOC]]
+- 屏幕生产/消费：[[40-跨项目/01-Shigure-像素生产消费契约]]
   - 生产者：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
   - 消费者：[[30-Shigure/02-Shigure-像素扫描与协议解码]]、[[30-Shigure/03-Shigure-配置合并与GameState构建]]
-- `ClassBlocks → config`：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+- `ClassBlocks → config`：[[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]
   - 生产定义：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
   - 编辑/同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
-- `ClassMacros → keymap → Windows 输入`：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- `ClassMacros → keymap → Windows 输入`：[[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]
   - 插件侧：[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
   - 消费侧：[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
 
@@ -107,7 +107,7 @@ verified_at: 2026-08-10
 ## 修改前检查
 
 1. 改加载文件：先看 [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]]。
-2. 改索引、状态、光环或法术：同时看 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 与 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+2. 改索引、状态、光环或法术：同时看 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 与 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]。
 3. 改横向条或治疗吸收：同步验证 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
-4. 改宏键池或宏顺序：同步验证 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]。
+4. 改宏键池或宏顺序：同步验证 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]。
 5. 普通 shell 无法验证 WoW API、secret value、SecureActionButton 或 AuraContainer；最终必须在游戏内验证。
