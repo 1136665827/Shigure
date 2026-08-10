@@ -4,6 +4,19 @@ using System.Reflection;
 
 namespace Shigure;
 
+internal enum SettingsPage
+{
+    General,
+    Config,
+    Macros,
+    Modules,
+    Status,
+    Party,
+    Logic,
+    Logs,
+    About
+}
+
 public sealed class StatusForm : Form
 {
     private const string AboutWatermarkResourcePath = "Assets.arasaka-icon-transparent.png";
@@ -11,9 +24,14 @@ public sealed class StatusForm : Form
     private const int AboutWatermarkTopMargin = 16;
     private const float AboutWatermarkOpacity = 0.08F;
 
-    private readonly List<(Button Button, Control View)> _navItems = new();
+    private readonly List<(Button Button, Control View, SettingsPage Page)> _navItems = new();
+    private readonly Dictionary<ListView, Label> _listCounts = new();
+    private readonly HashSet<SettingsPage> _dirtyPages = new();
+    private readonly ToolTip _toolTip = new();
     private RenderSnapshot? _lastSnapshot;
     private bool _hasKnownBounds;
+    private bool _autoScrollLog = true;
+    private SettingsPage _selectedPage = SettingsPage.General;
 
     private ListView _stateList = null!;
     private ListView _auraList = null!;
@@ -29,6 +47,8 @@ public sealed class StatusForm : Form
     private Panel _moduleHost = null!;
     private Panel _aboutHost = null!;
 
+    internal string SelectedPageKey => _selectedPage.ToString();
+
     public StatusForm()
     {
         InitializeComponent();
@@ -38,6 +58,23 @@ public sealed class StatusForm : Form
     {
         base.OnHandleCreated(e);
         UiTheme.ApplyDarkTitleBar(this);
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        if (_hasKnownBounds)
+        {
+            return;
+        }
+
+        var workingArea = Screen.FromControl(this).WorkingArea;
+        var targetWidth = Math.Min(1280, Math.Max(MinimumSize.Width, workingArea.Width - 80));
+        var targetHeight = Math.Min(800, Math.Max(MinimumSize.Height, workingArea.Height - 80));
+        Size = new Size(targetWidth, targetHeight);
+        Location = new Point(
+            workingArea.Left + Math.Max(0, (workingArea.Width - Width) / 2),
+            workingArea.Top + Math.Max(0, (workingArea.Height - Height) / 2));
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -58,23 +95,26 @@ public sealed class StatusForm : Form
 
         Text = "设置";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(1800, 1200);
-        Size = new Size(920, 640);
+        MinimumSize = new Size(1040, 640);
+        Size = new Size(1280, 800);
         BackColor = UiTheme.Background;
         ForeColor = UiTheme.Text;
         ShowInTaskbar = false;
         TopMost = false;
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        AutoScaleMode = AutoScaleMode.Dpi;
 
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Background,
-            Padding = new Padding(18),
-            RowCount = 2,
-            ColumnCount = 1
+            Padding = new Padding(0),
+            RowCount = 1,
+            ColumnCount = 2,
+            Margin = new Padding(0)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 176));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         Controls.Add(root);
 
@@ -84,13 +124,29 @@ public sealed class StatusForm : Form
         _moduleHost = CreatePageHost();
         _aboutHost = CreatePageHost();
 
-        _stateList = UiTheme.CreateListView(Font, ("#", 48), ("名称", 150), ("值", 130));
-        _auraList = UiTheme.CreateListView(Font, ("#", 48), ("光环", 180), ("值", 130));
-        _dynamicUnitList = UiTheme.CreateListView(Font, ("类型", 120), ("名称", 120), ("值", 160));
-        _spellList = UiTheme.CreateListView(Font, ("#", 48), ("技能", 150), ("状态", 110));
+        _stateList = UiTheme.CreateListView(Font,
+            new UiTheme.ListColumn("#", 48, 48, FixedWidth: true),
+            new UiTheme.ListColumn("名称", 110, 260),
+            new UiTheme.ListColumn("值", 100, 900, FillRemaining: true));
+        _auraList = UiTheme.CreateListView(Font,
+            new UiTheme.ListColumn("#", 48, 48, FixedWidth: true),
+            new UiTheme.ListColumn("光环", 120, 300),
+            new UiTheme.ListColumn("值", 96, 900, FillRemaining: true));
+        _dynamicUnitList = UiTheme.CreateListView(Font,
+            new UiTheme.ListColumn("类型", 72, 160),
+            new UiTheme.ListColumn("名称", 92, 280),
+            new UiTheme.ListColumn("值", 96, 900, FillRemaining: true));
+        _spellList = UiTheme.CreateListView(Font,
+            new UiTheme.ListColumn("#", 48, 48, FixedWidth: true),
+            new UiTheme.ListColumn("技能", 120, 300),
+            new UiTheme.ListColumn("状态", 100, 900, FillRemaining: true));
 
-        _partyList = UiTheme.CreateListView(Font, ("单位", 110), ("摘要", 700));
-        _unitInfoList = UiTheme.CreateListView(Font, ("名称", 200), ("值", 480));
+        _partyList = UiTheme.CreateListView(Font,
+            new UiTheme.ListColumn("单位", 120, 180, FixedWidth: true),
+            new UiTheme.ListColumn("摘要", 320, 1600, FillRemaining: true));
+        _unitInfoList = UiTheme.CreateListView(Font,
+            new UiTheme.ListColumn("名称", 180, 320),
+            new UiTheme.ListColumn("值", 320, 1400, FillRemaining: true));
         _logTextBox = new TextBox
         {
             Dock = DockStyle.Fill,
@@ -100,42 +156,117 @@ public sealed class StatusForm : Form
             BackColor = UiTheme.Surface,
             ForeColor = UiTheme.Text,
             BorderStyle = BorderStyle.None,
-            Font = new Font(Font.FontFamily, 10F, FontStyle.Regular, GraphicsUnit.Point)
+            Font = new Font("Cascadia Mono", 9.5F, FontStyle.Regular, GraphicsUnit.Point)
         };
 
-        var nav = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            BackColor = UiTheme.Background,
-            Margin = new Padding(0, 0, 0, 12)
-        };
+        var navShell = BuildNavigationShell(out var nav);
 
         _contentHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(16),
+            Padding = new Padding(20),
             Margin = new Padding(0)
         };
 
-        AddNavItem(nav, "通用", _settingsHost);
-        AddNavItem(nav, "配置", _configHost);
-        AddNavItem(nav, "宏", _macrosHost);
-        AddNavItem(nav, "模块", _moduleHost);
-        AddNavItem(nav, "状态", BuildStatusPage());
-        AddNavItem(nav, "队伍", BuildSection("队伍", _partyList, "当前队伍单位与扫描到的字段摘要"));
-        AddNavItem(nav, "逻辑", BuildSection("逻辑", _unitInfoList, "运行时推荐目标与调试值"));
-        AddNavItem(nav, "日志", BuildSection("日志", _logTextBox, "运行、模块匹配与施放记录"));
-        AddNavItem(nav, "关于", _aboutHost);
+        AddNavGroup(nav, "常用");
+        AddNavItem(nav, SettingsPage.General, "通用", CreatePageShell("通用", "运行控制、配置同步与模块选择", _settingsHost));
+        AddNavGroup(nav, "编辑");
+        AddNavItem(nav, SettingsPage.Config, "配置", CreatePageShell("配置", "编辑职业、专精和扫描字段", _configHost));
+        AddNavItem(nav, SettingsPage.Macros, "宏", CreatePageShell("宏", "维护职业动态宏、静态宏与特殊宏", _macrosHost));
+        AddNavItem(nav, SettingsPage.Modules, "模块", CreatePageShell("模块", "创建、匹配并维护运行模块", _moduleHost));
+        AddNavGroup(nav, "监控");
+        AddNavItem(nav, SettingsPage.Status, "状态", CreatePageShell("状态", string.Empty, BuildStatusPage()));
+        AddNavItem(nav, SettingsPage.Party, "队伍", CreatePageShell("队伍", "当前队伍单位与扫描字段摘要", BuildSection("队伍成员", _partyList, "实时队伍数据")));
+        AddNavItem(nav, SettingsPage.Logic, "逻辑", CreatePageShell("逻辑", "运行时推荐目标与调试值", BuildSection("逻辑信息", _unitInfoList, "当前模块的决策输出")));
+        AddNavItem(nav, SettingsPage.Logs, "日志", CreatePageShell("日志", "运行、模块匹配与施放记录", BuildLogPage()));
+        AddNavGroup(nav, "系统");
+        AddNavItem(nav, SettingsPage.About, "关于", CreatePageShell("关于", "应用信息与状态字段参考", _aboutHost));
         _aboutHost.Controls.Add(BuildAboutPanel());
 
-        root.Controls.Add(nav, 0, 0);
-        root.Controls.Add(_contentHost, 0, 1);
+        root.Controls.Add(navShell, 0, 0);
+        root.Controls.Add(_contentHost, 1, 0);
 
+        InitializeEmptyLists();
         ResumeLayout(false);
-        SelectView(0);
+        SelectView(SettingsPage.General);
+    }
+
+    private void InitializeEmptyLists()
+    {
+        ReplaceItems(_stateList, [new ListViewItem(["-", "状态", "等待游戏状态"])]);
+        ReplaceItems(_auraList, [new ListViewItem(["-", "光环", "无数据"])]);
+        ReplaceItems(_spellList, [new ListViewItem(["-", "技能", "无数据"])]);
+        ReplaceItems(_dynamicUnitList, [new ListViewItem(["-", "动态单位", "等待游戏状态"])]);
+        ReplaceItems(_partyList, [new ListViewItem(["队伍", "无队伍数据"])]);
+        ReplaceItems(_unitInfoList, [new ListViewItem(["逻辑信息", "无推荐目标"])]);
+    }
+
+    private Control BuildNavigationShell(out FlowLayoutPanel nav)
+    {
+        var shell = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Background,
+            ColumnCount = 1,
+            RowCount = 3,
+            Padding = new Padding(14, 18, 14, 14),
+            Margin = new Padding(0)
+        };
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+
+        var brand = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Background,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(4, 0, 0, 0)
+        };
+        brand.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        brand.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        brand.Controls.Add(new Label
+        {
+            Text = "SHIGURE",
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 13F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        }, 0, 0);
+        brand.Controls.Add(new Label
+        {
+            Text = "CONTROL CENTER",
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Accent,
+            Font = new Font("Segoe UI", 7.5F, FontStyle.Bold),
+            TextAlign = ContentAlignment.TopLeft,
+            Margin = new Padding(0)
+        }, 0, 1);
+        shell.Controls.Add(brand, 0, 0);
+
+        nav = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = UiTheme.Background,
+            Margin = new Padding(0)
+        };
+        shell.Controls.Add(nav, 0, 1);
+        shell.Controls.Add(new Label
+        {
+            Text = $"v{AppInfo.Version}",
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Muted,
+            TextAlign = ContentAlignment.BottomLeft,
+            Padding = new Padding(4, 0, 0, 0),
+            Margin = new Padding(0)
+        }, 0, 2);
+        return shell;
     }
 
     private static Panel CreatePageHost()
@@ -148,6 +279,60 @@ public sealed class StatusForm : Form
         };
     }
 
+    private Control CreatePageShell(string title, string subtitle, Control content)
+    {
+        var hasSubtitle = !string.IsNullOrWhiteSpace(subtitle);
+        var shell = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Surface,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        // 预留标题实际高度与 header 的 14px 下边距，避免高 DPI 下标题被裁切。
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, hasSubtitle ? 84 : 60));
+        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var header = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Surface,
+            ColumnCount = 1,
+            RowCount = hasSubtitle ? 2 : 1,
+            Margin = new Padding(0, 0, 0, 14)
+        };
+        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        header.Controls.Add(new Label
+        {
+            Text = title,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 16F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        }, 0, 0);
+        if (hasSubtitle)
+        {
+            header.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+            header.Controls.Add(new Label
+            {
+                Text = subtitle,
+                Dock = DockStyle.Fill,
+                ForeColor = UiTheme.Muted,
+                Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0)
+            }, 0, 1);
+        }
+        shell.Controls.Add(header, 0, 0);
+
+        content.Dock = DockStyle.Fill;
+        content.Margin = new Padding(0);
+        shell.Controls.Add(content, 0, 1);
+        return shell;
+    }
+
     private Control BuildStatusPage()
     {
         var statusSplit = new TableLayoutPanel
@@ -158,35 +343,52 @@ public sealed class StatusForm : Form
             RowCount = 1,
             Margin = new Padding(0)
         };
-        statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+        for (var i = 0; i < 4; i++)
+        {
+            statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+        }
         statusSplit.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        statusSplit.Controls.Add(BuildSection("状态", _stateList, "基础字段与当前模块", isLast: false), 0, 0);
-        statusSplit.Controls.Add(BuildSection("光环", _auraList, "光环数值状态", isLast: false), 1, 0);
-        statusSplit.Controls.Add(BuildSection("技能", _spellList, "冷却与可用状态", isLast: false), 2, 0);
-        statusSplit.Controls.Add(BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值"), 3, 0);
+        var state = BuildSection("状态", _stateList, "基础字段与当前模块");
+        state.Margin = new Padding(0, 0, 6, 0);
+        var aura = BuildSection("光环", _auraList, "光环数值状态");
+        aura.Margin = new Padding(6, 0, 6, 0);
+        var spell = BuildSection("技能", _spellList, "冷却与可用状态");
+        spell.Margin = new Padding(6, 0, 6, 0);
+        var units = BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值");
+        units.Margin = new Padding(6, 0, 0, 0);
+        statusSplit.Controls.Add(state, 0, 0);
+        statusSplit.Controls.Add(aura, 1, 0);
+        statusSplit.Controls.Add(spell, 2, 0);
+        statusSplit.Controls.Add(units, 3, 0);
         return statusSplit;
     }
 
-    private Control BuildSection(string title, Control content, string subtitle, bool isLast = true)
+    private TableLayoutPanel BuildSection(string title, Control content, string subtitle)
     {
-        var section = new TableLayoutPanel
+        var section = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 3,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 0, isLast ? 0 : 12, 0)
+            Padding = new Padding(16),
+            Margin = new Padding(0)
         };
-        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         section.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
         section.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        section.Controls.Add(new Label
+        var heading = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0)
+        };
+        heading.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        heading.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 52));
+        heading.Controls.Add(new Label
         {
             Text = title,
             Dock = DockStyle.Fill,
@@ -196,6 +398,21 @@ public sealed class StatusForm : Form
             AutoEllipsis = true,
             Margin = new Padding(0)
         }, 0, 0);
+        if (content is ListView listView)
+        {
+            var countLabel = new Label
+            {
+                Text = "0 项",
+                Dock = DockStyle.Fill,
+                ForeColor = UiTheme.Accent,
+                BackColor = UiTheme.AccentSoft,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Margin = new Padding(4, 2, 0, 2)
+            };
+            _listCounts[listView] = countLabel;
+            heading.Controls.Add(countLabel, 1, 0);
+        }
+        section.Controls.Add(heading, 0, 0);
         section.Controls.Add(new Label
         {
             Text = subtitle,
@@ -210,6 +427,57 @@ public sealed class StatusForm : Form
         content.Margin = new Padding(0, 12, 0, 0);
         section.Controls.Add(content, 0, 2);
         return section;
+    }
+
+    private Control BuildLogPage()
+    {
+        var card = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(16),
+            Margin = new Padding(0)
+        };
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var toolbar = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        var copyButton = UiTheme.CreateButton("复制全部", UiTheme.ButtonKind.Secondary);
+        copyButton.Margin = new Padding(0, 0, 8, 6);
+        copyButton.Click += (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(_logTextBox.Text))
+            {
+                Clipboard.SetText(_logTextBox.Text);
+            }
+        };
+        var clearButton = UiTheme.CreateButton("清空显示", UiTheme.ButtonKind.Danger);
+        clearButton.Margin = new Padding(0, 0, 16, 6);
+        clearButton.Click += (_, _) => _logTextBox.Clear();
+        var autoScroll = new CheckBox
+        {
+            Text = "自动滚动",
+            Checked = true,
+            AutoSize = true,
+            ForeColor = UiTheme.Text,
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(0, 8, 0, 0)
+        };
+        autoScroll.CheckedChanged += (_, _) => _autoScrollLog = autoScroll.Checked;
+        toolbar.Controls.Add(copyButton);
+        toolbar.Controls.Add(clearButton);
+        toolbar.Controls.Add(autoScroll);
+        card.Controls.Add(toolbar, 0, 0);
+        card.Controls.Add(_logTextBox, 0, 1);
+        return card;
     }
 
     public void AttachSettingsPanel(Control panel)
@@ -254,16 +522,20 @@ public sealed class StatusForm : Form
             return;
         }
 
-        var restoredBounds = new Rectangle(
-            bounds.X,
-            bounds.Y,
-            Math.Max(MinimumSize.Width, bounds.Width),
-            Math.Max(MinimumSize.Height, bounds.Height));
-
-        if (!UiCacheStore.IsBoundsVisible(restoredBounds))
+        var requestedBounds = new Rectangle(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        if (!UiCacheStore.IsBoundsVisible(requestedBounds))
         {
             return;
         }
+
+        var workingArea = Screen.FromRectangle(requestedBounds).WorkingArea;
+        var width = Math.Min(Math.Max(MinimumSize.Width, bounds.Width), workingArea.Width);
+        var height = Math.Min(Math.Max(MinimumSize.Height, bounds.Height), workingArea.Height);
+        var restoredBounds = new Rectangle(
+            Math.Clamp(bounds.X, workingArea.Left, workingArea.Right - width),
+            Math.Clamp(bounds.Y, workingArea.Top, workingArea.Bottom - height),
+            width,
+            height);
 
         StartPosition = FormStartPosition.Manual;
         Bounds = restoredBounds;
@@ -272,45 +544,104 @@ public sealed class StatusForm : Form
 
     internal bool HasKnownBounds => _hasKnownBounds || Visible;
 
-    private void AddNavItem(FlowLayoutPanel nav, string text, Control view)
+    internal void ApplyCachedPage(string? pageKey)
+    {
+        if (Enum.TryParse<SettingsPage>(pageKey, ignoreCase: true, out var page))
+        {
+            SelectView(page);
+        }
+    }
+
+    internal void SetPageDirty(SettingsPage page, bool dirty)
+    {
+        if (dirty)
+        {
+            _dirtyPages.Add(page);
+        }
+        else
+        {
+            _dirtyPages.Remove(page);
+        }
+
+        _navItems.FirstOrDefault(item => item.Page == page).Button?.Invalidate();
+    }
+
+    private void AddNavGroup(FlowLayoutPanel nav, string text)
+    {
+        nav.Controls.Add(new Label
+        {
+            Text = text,
+            AutoSize = false,
+            Size = new Size(126, 26),
+            ForeColor = UiTheme.Muted,
+            Font = new Font(Font.FontFamily, 8F, FontStyle.Bold),
+            TextAlign = ContentAlignment.BottomLeft,
+            Padding = new Padding(8, 0, 0, 3),
+            Margin = new Padding(0, nav.Controls.Count == 0 ? 0 : 8, 0, 2)
+        });
+    }
+
+    private void AddNavItem(FlowLayoutPanel nav, SettingsPage page, string text, Control view)
     {
         view.Dock = DockStyle.Fill;
+        view.Visible = false;
         _contentHost.Controls.Add(view);
 
         var button = new Button
         {
             Text = text,
             AutoSize = false,
-            Size = new Size(96, 38),
-            TextAlign = ContentAlignment.MiddleCenter,
+            Size = new Size(126, 38),
+            TextAlign = ContentAlignment.MiddleLeft,
             FlatStyle = FlatStyle.Flat,
             BackColor = UiTheme.Background,
             ForeColor = UiTheme.Muted,
-            Margin = new Padding(0, 0, 9, 0),
-            Padding = new Padding(0),
+            Margin = new Padding(0, 0, 0, 3),
+            Padding = new Padding(16, 0, 0, 0),
             Cursor = Cursors.Hand,
-            TabStop = false
+            TabStop = true
         };
-        button.FlatAppearance.BorderSize = 1;
-        button.FlatAppearance.BorderColor = UiTheme.Border;
+        button.FlatAppearance.BorderSize = 0;
         button.FlatAppearance.MouseOverBackColor = UiTheme.Hover;
         button.FlatAppearance.MouseDownBackColor = UiTheme.Pressed;
+        button.Paint += (_, e) =>
+        {
+            if (_selectedPage == page)
+            {
+                using var accent = new SolidBrush(UiTheme.Accent);
+                e.Graphics.FillRectangle(accent, 0, 7, UiTheme.Scale(button, 3), button.Height - 14);
+            }
 
-        var index = _navItems.Count;
-        button.Click += (_, _) => SelectView(index);
-        _navItems.Add((button, view));
+            if (!_dirtyPages.Contains(page))
+            {
+                return;
+            }
+
+            using var warning = new SolidBrush(UiTheme.Warning);
+            var dotSize = UiTheme.Scale(button, 7);
+            e.Graphics.FillEllipse(
+                warning,
+                button.ClientSize.Width - UiTheme.Scale(button, 18),
+                (button.ClientSize.Height - dotSize) / 2,
+                dotSize,
+                dotSize);
+        };
+
+        button.Click += (_, _) => SelectView(page);
+        _navItems.Add((button, view, page));
         nav.Controls.Add(button);
     }
 
-    private void SelectView(int index)
+    private void SelectView(SettingsPage page)
     {
-        for (var i = 0; i < _navItems.Count; i++)
+        _selectedPage = page;
+        foreach (var (button, view, itemPage) in _navItems)
         {
-            var (button, view) = _navItems[i];
-            var selected = i == index;
-            button.BackColor = selected ? UiTheme.Field : UiTheme.Background;
+            var selected = itemPage == page;
+            button.BackColor = selected ? UiTheme.AccentSoft : UiTheme.Background;
             button.ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
-            button.FlatAppearance.BorderColor = selected ? UiTheme.Accent : UiTheme.Border;
+            button.Invalidate();
+            view.Visible = selected;
             if (selected)
             {
                 view.BringToFront();
@@ -385,12 +716,13 @@ public sealed class StatusForm : Form
             AutoSize = true,
             Dock = DockStyle.Top,
             BackColor = Color.Transparent,
-            ColumnCount = 2,
+            ColumnCount = 3,
             RowCount = 0,
             Padding = new Padding(0)
         };
         details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
         details.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 72));
 
         AddAboutRow(details, "产品", "Shigure");
         AddAboutRow(details, "公司", company);
@@ -398,8 +730,10 @@ public sealed class StatusForm : Form
         AddAboutRow(details, "类型", "冲锋枪");
         AddAboutRow(details, "介绍", "它一分钟打出去的子弹比荒坂偷的税还要多。");
         AddAboutRow(details, "用途", "有时人们只想把子弹全打出去，在硝烟过后品味眼前的一片狼藉。");
-        AddAboutRow(details, "模块目录", FormatAboutPath(ModuleStore.ResolveModuleDirectory(AppPaths.BaseDirectory)));
-        AddAboutRow(details, "配置目录", FormatAboutPath(ConfigService.ResolveConfigPath(AppPaths.BaseDirectory)));
+        var modulePath = ModuleStore.ResolveModuleDirectory(AppPaths.BaseDirectory);
+        var configPath = ConfigService.ResolveConfigPath(AppPaths.BaseDirectory);
+        AddAboutRow(details, "模块目录", FormatAboutPath(modulePath), modulePath);
+        AddAboutRow(details, "配置目录", FormatAboutPath(configPath), configPath);
 
         panel.Controls.Add(details, 0, 1);
 
@@ -526,7 +860,7 @@ public sealed class StatusForm : Form
         }
     }
 
-    private static void AddAboutRow(TableLayoutPanel panel, string name, string value)
+    private void AddAboutRow(TableLayoutPanel panel, string name, string value, string? copyValue = null)
     {
         var row = panel.RowCount++;
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -541,14 +875,30 @@ public sealed class StatusForm : Form
             TextAlign = ContentAlignment.MiddleLeft,
             Margin = new Padding(0, 0, 18, 14)
         }, 0, row);
-        panel.Controls.Add(new Label
+        var valueLabel = new Label
         {
             Text = value,
-            AutoSize = true,
-            MaximumSize = new Size(580, 0),
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            AutoEllipsis = true,
             ForeColor = UiTheme.Text,
-            Margin = new Padding(0, 0, 0, 14)
-        }, 1, row);
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 0, 12, 14)
+        };
+        _toolTip.SetToolTip(valueLabel, copyValue ?? value);
+        panel.Controls.Add(valueLabel, 1, row);
+
+        if (!string.IsNullOrWhiteSpace(copyValue))
+        {
+            var copyButton = UiTheme.CreateButton("复制", UiTheme.ButtonKind.Secondary);
+            copyButton.AutoSize = false;
+            copyButton.Dock = DockStyle.Top;
+            copyButton.Height = 28;
+            copyButton.Margin = new Padding(0, 0, 0, 10);
+            copyButton.Padding = new Padding(4, 0, 4, 0);
+            copyButton.Click += (_, _) => Clipboard.SetText(copyValue);
+            panel.Controls.Add(copyButton, 2, row);
+        }
     }
 
     private sealed class WatermarkPanel : Panel
@@ -665,7 +1015,6 @@ public sealed class StatusForm : Form
 
     public void ShowSettings(RenderSnapshot? snapshot)
     {
-        SelectView(0);
         ShowOrActivate(snapshot);
     }
 
@@ -711,6 +1060,10 @@ public sealed class StatusForm : Form
         if (_logTextBox.TextLength > 24000)
         {
             _logTextBox.Text = _logTextBox.Text[^18000..];
+        }
+
+        if (_autoScrollLog)
+        {
             _logTextBox.SelectionStart = _logTextBox.TextLength;
             _logTextBox.ScrollToCaret();
         }
@@ -871,7 +1224,7 @@ public sealed class StatusForm : Form
         ReplaceItems(_unitInfoList, items);
     }
 
-    private static void ReplaceItems(ListView listView, IReadOnlyList<ListViewItem> items)
+    private void ReplaceItems(ListView listView, IReadOnlyList<ListViewItem> items)
     {
         foreach (var item in items)
         {
@@ -885,12 +1238,14 @@ public sealed class StatusForm : Form
 
         if (HasSameItems(listView, items))
         {
+            UpdateListPresentation(listView, items);
             return;
         }
 
         if (CanUpdateInPlace(listView, items))
         {
             UpdateItemsInPlace(listView, items);
+            UpdateListPresentation(listView, items);
             return;
         }
 
@@ -898,6 +1253,20 @@ public sealed class StatusForm : Form
         listView.Items.Clear();
         listView.Items.AddRange(items.ToArray());
         listView.EndUpdate();
+        UpdateListPresentation(listView, items);
+    }
+
+    private void UpdateListPresentation(ListView listView, IReadOnlyList<ListViewItem> items)
+    {
+        var isPlaceholder = items.Count == 1
+            && items[0].SubItems.Count > 0
+            && items[0].SubItems[0].Text is "-" or "队伍" or "逻辑信息";
+        if (_listCounts.TryGetValue(listView, out var countLabel))
+        {
+            countLabel.Text = $"{(isPlaceholder ? 0 : items.Count)} 项";
+        }
+
+        UiTheme.FitListViewColumns(listView);
     }
 
     private static bool HasSameItems(ListView listView, IReadOnlyList<ListViewItem> items)

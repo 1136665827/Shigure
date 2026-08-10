@@ -34,6 +34,7 @@ public sealed class ModuleEditorControl : UserControl
     private readonly Label _versionLabel = new();
     private readonly Label _unitsEmptyHint = new();
     private readonly Label _editorEmptyHint = new();
+    private readonly ToolTip _pathToolTip = new();
     private Button _saveButton = null!;
     private Button _deleteButton = null!;
     private Button _addButton = null!;
@@ -584,6 +585,7 @@ public sealed class ModuleEditorControl : UserControl
         _pathLabel.ForeColor = UiTheme.Muted;
         _pathLabel.TextAlign = ContentAlignment.MiddleLeft;
         _pathLabel.AutoEllipsis = true;
+        _pathLabel.TextChanged += (_, _) => _pathToolTip.SetToolTip(_pathLabel, _pathLabel.Text);
         row.Controls.Add(_pathLabel, 0, 1);
         row.SetColumnSpan(_pathLabel, 3);
 
@@ -1670,7 +1672,8 @@ public sealed class ModuleEditorControl : UserControl
             {
                 if (widths.TryGetValue(name, out var width) && width > 0)
                 {
-                    _rulesGrid.Columns[name]!.Width = width;
+                    var column = _rulesGrid.Columns[name]!;
+                    column.Width = Math.Max(column.MinimumWidth, width);
                 }
             }
         }
@@ -2645,15 +2648,15 @@ public sealed class ModuleEditorControl : UserControl
             Padding = new Padding(0, 8, 0, 8)
         };
 
-        _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
+        _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
         _saveButton.Margin = new Padding(8, 0, 0, 0);
         _saveButton.Click += async (_, _) => await RunModuleCommandAsync(SaveSelectedModuleAsync);
 
-        _deleteButton = UiTheme.CreateButton("删除", UiTheme.Field, UiTheme.Danger);
+        _deleteButton = UiTheme.CreateButton("删除", UiTheme.ButtonKind.Danger);
         _deleteButton.Margin = new Padding(8, 0, 0, 0);
         _deleteButton.Click += async (_, _) => await RunModuleCommandAsync(DeleteSelectedModuleAsync);
 
-        _addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
+        _addButton = UiTheme.CreateButton("新建", UiTheme.ButtonKind.Secondary);
         _addButton.Margin = new Padding(8, 0, 0, 0);
         _addButton.Click += async (_, _) => await RunModuleCommandAsync(AddModuleAsync);
 

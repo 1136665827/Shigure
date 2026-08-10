@@ -15,6 +15,7 @@ public sealed class ClassMacrosEditorControl : UserControl
     private readonly ListBox _classList = new();
     private readonly Label _pathLabel = new();
     private readonly Label _statusLabel = new();
+    private readonly ToolTip _toolTip = new();
     private readonly Label _offsetLabel = new();
     private readonly Button _reloadButton;
     private readonly Button _saveButton;
@@ -33,14 +34,16 @@ public sealed class ClassMacrosEditorControl : UserControl
     private bool _updatingDerivedColumns;
     private bool _dirty;
 
+    internal event Action<bool>? DirtyStateChanged;
+
     public ClassMacrosEditorControl(
         Func<string?> resolveClassMacrosPath,
         Func<string, Task<string?>> updateConfigAsync)
     {
         _resolveClassMacrosPath = resolveClassMacrosPath;
         _updateConfigAsync = updateConfigAsync;
-        _reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
-        _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
+        _reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
+        _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
         InitializeComponent();
         ReloadFromAddon();
     }
@@ -95,7 +98,8 @@ public sealed class ClassMacrosEditorControl : UserControl
         _classList.Dock = DockStyle.Fill;
         UiTheme.StyleClassIconListBox(
             _classList,
-            item => (item as ClassListItem)?.ClassId);
+            item => (item as ClassListItem)?.ClassId,
+            iconSize: 40);
         _classList.SelectedIndexChanged += (_, _) =>
         {
             if (!_suppressUi)
@@ -147,11 +151,15 @@ public sealed class ClassMacrosEditorControl : UserControl
         header.Controls.Add(CreateFieldCaption("路径"), 0, 0);
         ConfigureInfoLabel(_pathLabel, UiTheme.Text);
         _pathLabel.Text = "未加载";
+        _pathLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
+        _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
         header.Controls.Add(_pathLabel, 1, 0);
 
         header.Controls.Add(CreateFieldCaption("状态"), 0, 1);
         ConfigureInfoLabel(_statusLabel, UiTheme.Muted);
         _statusLabel.Text = "点击刷新以加载项目 Fuyutsui\\core\\classmacros.lua";
+        _statusLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
+        _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
         header.Controls.Add(_statusLabel, 1, 1);
         root.Controls.Add(header, 0, 0);
 
@@ -395,7 +403,8 @@ public sealed class ClassMacrosEditorControl : UserControl
                 && _dynamicSpecList.Items[index] is DynamicSpecOption { ClassId: { } classId } option
                     ? (classId, option.SpecIndex)
                     : (null, null),
-            showClassIconWithSpec: false);
+            showClassIconWithSpec: false,
+            logicalIconSize: 40);
         _dynamicSpecList.SelectedIndexChanged += (_, _) =>
         {
             if (!_suppressUi)
@@ -632,7 +641,7 @@ public sealed class ClassMacrosEditorControl : UserControl
         _currentClassFile = null;
         _currentClassId = null;
         _currentDynamicSpecIndex = null;
-        _dirty = false;
+        SetDirty(false);
 
         _suppressUi = true;
         try
@@ -736,7 +745,7 @@ public sealed class ClassMacrosEditorControl : UserControl
                 }
             }
 
-            _dirty = false;
+            SetDirty(false);
         }
         else if (switching)
         {
@@ -985,7 +994,7 @@ public sealed class ClassMacrosEditorControl : UserControl
             CommitCurrentFromUi();
             ClassMacrosStore.Save(_document);
             localSaved = true;
-            _dirty = false;
+            SetDirty(false);
             _statusLabel.Text = "本地 Lua 已保存，正在更新配置并同步游戏…";
             var syncIssue = await _updateConfigAsync(_document.FilePath);
             if (IsDisposed)
@@ -1031,11 +1040,24 @@ public sealed class ClassMacrosEditorControl : UserControl
             return;
         }
 
-        _dirty = true;
+        SetDirty(true);
         if (_statusLabel.Text != "已修改（未保存）")
         {
             _statusLabel.Text = "已修改（未保存）";
         }
+    }
+
+    private void SetDirty(bool dirty)
+    {
+        if (_dirty == dirty)
+        {
+            _saveButton.Enabled = dirty;
+            return;
+        }
+
+        _dirty = dirty;
+        _saveButton.Enabled = dirty;
+        DirtyStateChanged?.Invoke(dirty);
     }
 
     private bool ConfirmDiscard()
