@@ -288,6 +288,7 @@ Fuyutsui.ClassMacros = {
             "[@focus]窒息",
             "[@target]心灵冰冻",
             "[@focus]心灵冰冻",
+            "死神印记",
             "致盲冰雨",
             "血魔之握",
             "憎恶附肢",
