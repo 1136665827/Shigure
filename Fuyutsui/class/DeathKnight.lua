@@ -53,6 +53,8 @@ Fuyutsui.ClassBlocks = {
                 { name = "符文刃舞", spellId = 81256, },
                 { name = "吸血鬼之血", spellId = 55233, },
                 { name = "冰封之韧", spellId = 48792, },
+                { name = "枯萎凋零", spellId = 188290, },
+                { name = "破灭", spellId = 441416, },
             },
         },
         spells = {
