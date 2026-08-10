@@ -37,15 +37,15 @@ Shigure 是一个 Windows WinForms 桌面程序。它从目标窗口读取 Fuyut
 - 扫描 510 格顶部状态行、左侧计数条和队伍治疗吸收数据。
 - 按职业、专精、队伍类型和英雄天赋自动匹配模块，也可手动锁定符合条件的模块。
 - 使用可视化编辑器维护规则、主/子条件、动态单位、数量字段、条件动态数值和公式动态数值。
-- 从已运行的游戏进程定位 `Interface\AddOns\Fuyutsui`，同步或直接编辑职业配置与宏。
+- 以内置 `Fuyutsui/` 为权威源编辑职业配置与宏，并按 SHA-256 将插件部署到已运行游戏的 `Interface\AddOns\Fuyutsui`。
 - 支持 `switch`、`click`、`hold` 三种触发模式，以及除 `ALT` 外的键盘按键、`XBUTTON1`、`XBUTTON2`。
 
 ## 界面
 
 - 置顶浮动条：显示程序名、当前职业图标颜色和逻辑状态，提供 `开启/关闭`、`设置`、`✕` 按钮。窗口可拖动和缩放，显示后自动启动运行循环。
-- `通用`：设置触发键和发送模式；更新 Fuyutsui 配置；按实时环境筛选、自动选择或手动指定模块。
-- `配置`：直接编辑 Fuyutsui `class/*.lua` 中的 `ClassBlocks`，包括状态、光环、法术和队伍字段。旧版稀疏索引格式只读，需先迁移到 `states/auras/spells/group` 格式。
-- `宏`：编辑 `core/classmacros.lua` 中各职业的动态宏、静态宏和特殊宏。动态宏每项占用 30 个团队点名槽位。
+- `通用`：设置触发键和发送模式；从项目 Fuyutsui 更新配置并同步游戏插件；按实时环境筛选、自动选择或手动指定模块。
+- `配置`：直接编辑项目 `Fuyutsui/class/*.lua` 中的 `ClassBlocks`，包括状态、光环、法术和队伍字段。旧版稀疏索引格式只读，需先迁移到 `states/auras/spells/group` 格式。
+- `宏`：编辑项目 `Fuyutsui/core/classmacros.lua` 中各职业的动态宏、静态宏和特殊宏。动态宏每项占用 30 个团队点名槽位。
 - `模块`：新建、编辑、删除本地模块，维护作者、推荐天赋、匹配条件、动态字段和有序规则。规则支持拖拽、上移、下移、复制与插入。
 - `状态`：分栏显示基础状态、`auras`、`spells` 和模块计算出的动态单位/数值。
 - `队伍`：显示 `group` 中当前队伍成员及扫描字段摘要。
@@ -59,8 +59,7 @@ Shigure 是一个 Windows WinForms 桌面程序。它从目标窗口读取 Fuyut
 
 - Windows
 - .NET 10 SDK
-- 已安装并启用 [Fuyutsui](https://github.com/waynebian01/Fuyutsui)
-- 使用“更新配置”“配置”或“宏”页时，需要先打开目标游戏窗口，以便 Shigure 定位插件目录
+- 使用运行和插件部署功能时需要打开目标游戏窗口；Fuyutsui 无需手动安装，Shigure 会在启动或“更新配置”时部署项目内版本
 
 ## 运行
 
@@ -109,6 +108,7 @@ Modules\                模块模型、匹配、条件、公式和动态字段
 Input\                  keymap 读取、按键发送和 Win32 API
 Infrastructure\         配置服务、Lua 读写、Fuyutsui 转换和路径定位
 Assets\                 应用图标、品牌资源、职业图和专精图
+Fuyutsui\               权威插件源码、配置/宏编辑源及游戏部署源
 config\                 由 Fuyutsui 职业配置生成的扫描映射
 keymap\                 由 Fuyutsui 职业宏生成的按键映射
 module\                 本地模块（运行后或在 UI 中保存时创建）
@@ -117,12 +117,14 @@ Tools\                  辅助脚本
 
 ## Fuyutsui 配置同步
 
-`通用` 页的“更新配置”会从目标窗口对应的游戏目录读取：
+项目目录中的 `Fuyutsui/` 是唯一权威源。`通用` 页的“更新配置”会读取：
 
-- `Interface\AddOns\Fuyutsui\class\*.lua` → `config/*.json`
-- `Interface\AddOns\Fuyutsui\core\classmacros.lua` → `keymap/*.json`
+- `Fuyutsui\class\*.lua` → `config/*.json`
+- `Fuyutsui\core\classmacros.lua` → `keymap/*.json`
 
-同步完成后会刷新模块编辑器的字段/keymap 目录并重启运行循环。`配置` 页和 `宏` 页保存时会先写回相应 Lua 文件，再自动执行同一同步流程。写回前请自行备份需要保留的 Fuyutsui 配置。
+转换完成后会刷新模块编辑器的字段/keymap 目录并重启运行循环，同时递归同步整个插件到当前游戏的 `Interface\AddOns\Fuyutsui`。启动 Shigure 时也会执行同一全量同步：缺失文件会创建，SHA-256 不同的文件会覆盖，相同文件会跳过，游戏目录中的额外文件会保留。
+
+`配置` 页和 `宏` 页保存时先写入项目内 Lua、重新生成 config/keymap，再只把当前修改的 Lua 文件部署到游戏目录。找不到游戏或目标文件不可写时，本地保存不会回滚；界面和日志会提示游戏同步未完成，可在游戏启动后再次点击“更新配置”。
 
 ### `config` 结构
 

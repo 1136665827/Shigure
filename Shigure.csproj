@@ -25,6 +25,7 @@
     <None Include="keymap\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="module\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="wow_process.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fuyutsui\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

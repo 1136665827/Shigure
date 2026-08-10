@@ -10,7 +10,7 @@ namespace Shigure;
 public sealed class ClassMacrosEditorControl : UserControl
 {
     private readonly Func<string?> _resolveClassMacrosPath;
-    private readonly Func<Task> _updateConfigAsync;
+    private readonly Func<string, Task<string?>> _updateConfigAsync;
 
     private readonly ListBox _classList = new();
     private readonly Label _pathLabel = new();
@@ -33,7 +33,9 @@ public sealed class ClassMacrosEditorControl : UserControl
     private bool _updatingDerivedColumns;
     private bool _dirty;
 
-    public ClassMacrosEditorControl(Func<string?> resolveClassMacrosPath, Func<Task> updateConfigAsync)
+    public ClassMacrosEditorControl(
+        Func<string?> resolveClassMacrosPath,
+        Func<string, Task<string?>> updateConfigAsync)
     {
         _resolveClassMacrosPath = resolveClassMacrosPath;
         _updateConfigAsync = updateConfigAsync;
@@ -149,7 +151,7 @@ public sealed class ClassMacrosEditorControl : UserControl
 
         header.Controls.Add(CreateFieldCaption("状态"), 0, 1);
         ConfigureInfoLabel(_statusLabel, UiTheme.Muted);
-        _statusLabel.Text = "点击刷新以从游戏窗口定位 core\\classmacros.lua";
+        _statusLabel.Text = "点击刷新以加载项目 Fuyutsui\\core\\classmacros.lua";
         header.Controls.Add(_statusLabel, 1, 1);
         root.Controls.Add(header, 0, 0);
 
@@ -642,7 +644,7 @@ public sealed class ClassMacrosEditorControl : UserControl
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
                 _pathLabel.Text = "未找到 core\\classmacros.lua";
-                _statusLabel.Text = "请先打开游戏窗口，或确认已安装 Fuyutsui 插件后点击刷新。";
+                _statusLabel.Text = "请确认程序目录中包含 Fuyutsui\\core\\classmacros.lua 后点击刷新。";
                 UpdateOffsetHint();
                 return;
             }
@@ -977,15 +979,29 @@ public sealed class ClassMacrosEditorControl : UserControl
             return;
         }
 
+        var localSaved = false;
         try
         {
             CommitCurrentFromUi();
             ClassMacrosStore.Save(_document);
+            localSaved = true;
             _dirty = false;
-            _statusLabel.Text = "已写入 Lua，正在更新配置…";
-            await _updateConfigAsync();
+            _statusLabel.Text = "本地 Lua 已保存，正在更新配置并同步游戏…";
+            var syncIssue = await _updateConfigAsync(_document.FilePath);
             if (IsDisposed)
             {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(syncIssue))
+            {
+                _statusLabel.Text = "本地已保存并更新配置，但游戏同步失败";
+                MessageBox.Show(
+                    $"本地 Lua 已保存，config/keymap 已更新，但游戏插件同步未完成：\n{syncIssue}",
+                    "游戏同步失败",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                UpdateOffsetHint();
                 return;
             }
 
@@ -996,8 +1012,14 @@ public sealed class ClassMacrosEditorControl : UserControl
         {
             if (!IsDisposed)
             {
-                MessageBox.Show(ex.Message, "保存失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                _statusLabel.Text = $"保存失败: {ex.Message}";
+                var title = localSaved ? "保存后的更新失败" : "保存失败";
+                var message = localSaved
+                    ? $"本地 Lua 已保存，但后续更新失败：\n{ex.Message}"
+                    : ex.Message;
+                MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _statusLabel.Text = localSaved
+                    ? $"本地已保存，后续更新失败: {ex.Message}"
+                    : $"保存失败: {ex.Message}";
             }
         }
     }

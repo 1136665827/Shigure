@@ -52,6 +52,7 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly ModuleStore _moduleStore;
     private readonly ITriggerKeyState _triggerKeyState;
     private readonly WowProcessLocator _processLocator;
+    private readonly FuyutsuiAddonSyncService _addonSyncService;
     private readonly RuntimeSessionCoordinator _runtimeSession;
     private readonly ModuleEditorControl _moduleEditor;
     private readonly ClassConfigEditorControl _classConfigEditor;
@@ -72,6 +73,11 @@ public sealed class MainForm : Form, IMessageFilter
     private bool _shutdownStarted;
     private bool _shutdownCompleted;
 
+    private sealed record ProjectConfigUpdateResult(
+        FuyutsuiConfigConverter.UpdateResult Config,
+        FuyutsuiKeymapConverter.UpdateResult? Keymap,
+        FuyutsuiAddonSyncResult AddonSync);
+
     internal MainForm(
         AppOptions initialOptions,
         string baseDirectory,
@@ -85,6 +91,8 @@ public sealed class MainForm : Form, IMessageFilter
         _moduleStore = moduleStore;
         _triggerKeyState = triggerKeyState;
         _processLocator = processLocator;
+        var localAddonRoot = Path.Combine(_baseDirectory, "Fuyutsui");
+        _addonSyncService = new FuyutsuiAddonSyncService(localAddonRoot, _processLocator);
         _runtimeSession = runtimeSession;
         _uiCache = UiCacheStore.Load();
         _statusForm = new StatusForm();
@@ -106,12 +114,12 @@ public sealed class MainForm : Form, IMessageFilter
         _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditorAsync, _baseDirectory);
         _statusForm.AttachModuleEditor(_moduleEditor);
         _classConfigEditor = new ClassConfigEditorControl(
-            () => WowAddonLocator.FindClassDirectory(_processLocator),
-            UpdateConfigFromAddonAsync);
+            () => Path.Combine(_addonSyncService.SourceRoot, "class"),
+            UpdateConfigAfterSaveAsync);
         _statusForm.AttachConfigEditor(_classConfigEditor);
         _classMacrosEditor = new ClassMacrosEditorControl(
-            () => WowAddonLocator.FindClassMacrosPath(_processLocator),
-            UpdateConfigFromAddonAsync);
+            () => Path.Combine(_addonSyncService.SourceRoot, "core", "classmacros.lua"),
+            UpdateConfigAfterSaveAsync);
         _statusForm.AttachMacrosEditor(_classMacrosEditor);
         _statusForm.FormClosing += (_, _) =>
         {
@@ -140,6 +148,7 @@ public sealed class MainForm : Form, IMessageFilter
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        await SynchronizeAddonAtStartupAsync();
         await StartRuntimeAsync();
     }
 
@@ -526,7 +535,7 @@ public sealed class MainForm : Form, IMessageFilter
         configPanel.Controls.Add(configTitle, 0, 0);
         configPanel.SetColumnSpan(configTitle, 2);
 
-        _configSourceLabel = CreateInfoLabel("Fuyutsui: 点击「更新配置」时同步 class 与 classmacros → keymap");
+        _configSourceLabel = CreateInfoLabel("Fuyutsui: 项目目录为配置源；更新配置时生成 config/keymap 并同步到游戏");
         _configSourceLabel.Margin = new Padding(0, 4, 0, 10);
         configPanel.Controls.Add(_configSourceLabel, 0, 1);
         configPanel.SetColumnSpan(_configSourceLabel, 2);
@@ -538,7 +547,7 @@ public sealed class MainForm : Form, IMessageFilter
         updateConfigButton.TextAlign = ContentAlignment.MiddleCenter;
         updateConfigButton.Anchor = AnchorStyles.Top | AnchorStyles.Left;
         updateConfigButton.Margin = new Padding(0);
-        updateConfigButton.Click += async (_, _) => await UpdateConfigFromAddonAsync();
+        updateConfigButton.Click += async (_, _) => await UpdateConfigFromProjectAsync();
         configPanel.Controls.Add(updateConfigButton, 0, 2);
         configPanel.SetColumnSpan(updateConfigButton, 2);
 
@@ -612,21 +621,66 @@ public sealed class MainForm : Form, IMessageFilter
         return panel;
     }
 
-    private Task UpdateConfigFromAddonAsync()
+    private async Task SynchronizeAddonAtStartupAsync()
+    {
+        try
+        {
+            var result = await Task.Run(_addonSyncService.SynchronizeAll);
+            LogAddonSyncResult("启动插件同步", result);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"启动插件同步失败，程序将继续运行: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateConfigFromProjectAsync()
+    {
+        try
+        {
+            var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath: null);
+            if (!_shutdownStarted)
+            {
+                ShowProjectConfigUpdateResult(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_shutdownStarted)
+            {
+                return;
+            }
+
+            AppendLog($"更新配置失败: {ex.Message}");
+            MessageBox.Show(ex.Message, "更新配置失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async Task<string?> UpdateConfigAfterSaveAsync(string savedAddonFilePath)
+    {
+        var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath);
+        return DescribeAddonSyncIssue(result.AddonSync);
+    }
+
+    private Task<ProjectConfigUpdateResult> QueueProjectConfigUpdateAsync(string? savedAddonFilePath)
     {
         lock (_configUpdateSync)
         {
             if (_shutdownStarted)
             {
-                return Task.CompletedTask;
+                return Task.FromException<ProjectConfigUpdateResult>(
+                    new OperationCanceledException("程序正在关闭。"));
             }
 
-            _configUpdateTail = RunQueuedConfigUpdateAsync(_configUpdateTail);
-            return _configUpdateTail;
+            var updateTask = RunQueuedConfigUpdateAsync(_configUpdateTail, savedAddonFilePath);
+            _configUpdateTail = updateTask;
+            return updateTask;
         }
     }
 
-    private async Task RunQueuedConfigUpdateAsync(Task previousUpdate)
+    private async Task<ProjectConfigUpdateResult> RunQueuedConfigUpdateAsync(
+        Task previousUpdate,
+        string? savedAddonFilePath)
     {
         await Task.Yield();
         try
@@ -638,10 +692,12 @@ public sealed class MainForm : Form, IMessageFilter
             // 前一个调用方会收到自己的异常；队列仍继续处理后续更新。
         }
 
-        if (!_shutdownStarted)
+        if (_shutdownStarted)
         {
-            await UpdateConfigFromAddonCoreAsync();
+            throw new OperationCanceledException("程序正在关闭。");
         }
+
+        return await UpdateConfigFromProjectCoreAsync(savedAddonFilePath);
     }
 
     private Task GetPendingConfigUpdateTask()
@@ -668,35 +724,27 @@ public sealed class MainForm : Form, IMessageFilter
         }
     }
 
-    private async Task UpdateConfigFromAddonCoreAsync()
+    private async Task<ProjectConfigUpdateResult> UpdateConfigFromProjectCoreAsync(string? savedAddonFilePath)
     {
         if (_shutdownStarted)
         {
-            return;
+            throw new OperationCanceledException("程序正在关闭。");
         }
 
-        var processNames = _processLocator.DescribeConfiguredProcesses();
-        var classDirectory = WowAddonLocator.FindClassDirectory(_processLocator);
-        var classMacrosPath = WowAddonLocator.FindClassMacrosPath(_processLocator);
-        if (string.IsNullOrWhiteSpace(classDirectory))
+        var classDirectory = Path.Combine(_addonSyncService.SourceRoot, "class");
+        var classMacrosPath = Path.Combine(_addonSyncService.SourceRoot, "core", "classmacros.lua");
+        if (!Directory.Exists(classDirectory))
         {
-            _configSourceLabel.Text = $"Fuyutsui class: 未找到（目标进程: {processNames}）";
-            MessageBox.Show(
-                $"未找到目标进程（{processNames}）对应的 Interface\\AddOns\\Fuyutsui\\class 目录。\n请确认游戏已启动且已安装 Fuyutsui。",
-                "更新配置",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning);
-            return;
+            throw new DirectoryNotFoundException($"找不到项目 Fuyutsui class 目录: {classDirectory}");
         }
 
-        _configSourceLabel.Text = string.IsNullOrWhiteSpace(classMacrosPath)
-            ? $"Fuyutsui class: {classDirectory}"
-            : $"Fuyutsui: {classDirectory} + classmacros.lua";
+        _configSourceLabel.Text = File.Exists(classMacrosPath)
+            ? $"项目 Fuyutsui: {classDirectory} + classmacros.lua"
+            : $"项目 Fuyutsui class: {classDirectory}";
         var configDirectory = ConfigService.ResolveConfigPath(_baseDirectory);
         if (!Directory.Exists(configDirectory))
         {
-            MessageBox.Show($"配置目录不存在: {configDirectory}", "更新配置", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
+            throw new DirectoryNotFoundException($"配置目录不存在: {configDirectory}");
         }
 
         var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
@@ -708,21 +756,24 @@ public sealed class MainForm : Form, IMessageFilter
             {
                 var configResult = FuyutsuiConfigConverter.UpdateFromClassDirectory(classDirectory, configDirectory);
                 FuyutsuiKeymapConverter.UpdateResult? keymapResult = null;
-                if (!string.IsNullOrWhiteSpace(classMacrosPath))
+                if (File.Exists(classMacrosPath))
                 {
                     keymapResult = FuyutsuiKeymapConverter.UpdateFromClassMacros(classMacrosPath, keymapDirectory);
                 }
 
-                return (Config: configResult, Keymap: keymapResult);
+                var addonSync = string.IsNullOrWhiteSpace(savedAddonFilePath)
+                    ? _addonSyncService.SynchronizeAll()
+                    : _addonSyncService.SynchronizeFile(savedAddonFilePath);
+                return new ProjectConfigUpdateResult(configResult, keymapResult, addonSync);
             });
 
             if (_shutdownStarted)
             {
-                return;
+                throw new OperationCanceledException("程序正在关闭。");
             }
 
             _moduleEditor.ReloadCatalogs();
-            AppendLog($"已从 Fuyutsui 更新配置: {result.Config.UpdatedFiles.Count} 个文件 ← {result.Config.ClassDirectory}");
+            AppendLog($"已从项目 Fuyutsui 更新配置: {result.Config.UpdatedFiles.Count} 个文件 ← {result.Config.ClassDirectory}");
             foreach (var warning in result.Config.Warnings.Take(20))
             {
                 AppendLog($"配置警告: {warning}");
@@ -738,8 +789,12 @@ public sealed class MainForm : Form, IMessageFilter
             }
             else
             {
-                AppendLog("未找到 core\\classmacros.lua，已跳过 keymap 更新");
+                AppendLog("项目 Fuyutsui 中未找到 core\\classmacros.lua，已跳过 keymap 更新");
             }
+
+            LogAddonSyncResult(
+                string.IsNullOrWhiteSpace(savedAddonFilePath) ? "游戏插件全量同步" : "游戏插件文件同步",
+                result.AddonSync);
 
             if (_runtimeSession.HasSession)
             {
@@ -749,36 +804,75 @@ public sealed class MainForm : Form, IMessageFilter
 
             if (_shutdownStarted)
             {
-                return;
+                throw new OperationCanceledException("程序正在关闭。");
             }
 
-            var warningCount = result.Config.Warnings.Count + (result.Keymap?.Warnings.Count ?? 0);
-            var warningText = warningCount == 0
-                ? string.Empty
-                : $"\n警告 {warningCount} 条（详见日志）。";
-            var keymapText = result.Keymap is { } km
-                ? $"\nkeymap: {km.UpdatedFiles.Count} 个文件\n{km.ClassMacrosPath}"
-                : "\nkeymap: 未更新（缺少 classmacros.lua）";
-            MessageBox.Show(
-                $"已更新 {result.Config.UpdatedFiles.Count} 个职业配置。\n来源:\n{result.Config.ClassDirectory}{keymapText}{warningText}",
-                "更新配置",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-        }
-        catch (Exception ex)
-        {
-            if (_shutdownStarted)
-            {
-                return;
-            }
-
-            AppendLog($"更新配置失败: {ex.Message}");
-            MessageBox.Show(ex.Message, "更新配置失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return result;
         }
         finally
         {
             UseWaitCursor = false;
         }
+    }
+
+    private void ShowProjectConfigUpdateResult(ProjectConfigUpdateResult result)
+    {
+        var warningCount = result.Config.Warnings.Count + (result.Keymap?.Warnings.Count ?? 0);
+        var warningText = warningCount == 0
+            ? string.Empty
+            : $"\n转换警告 {warningCount} 条（详见日志）。";
+        var keymapText = result.Keymap is { } keymap
+            ? $"\nkeymap: {keymap.UpdatedFiles.Count} 个文件"
+            : "\nkeymap: 未更新（缺少 classmacros.lua）";
+        var syncIssue = DescribeAddonSyncIssue(result.AddonSync);
+        var syncText = syncIssue is null
+            ? $"\n游戏插件: 已复制 {result.AddonSync.CopiedFiles.Count}，哈希相同 {result.AddonSync.SkippedFiles.Count}\n{result.AddonSync.TargetRoot}"
+            : $"\n游戏插件: {syncIssue}";
+
+        MessageBox.Show(
+            $"已从项目 Fuyutsui 更新 {result.Config.UpdatedFiles.Count} 个职业配置。{keymapText}{syncText}{warningText}",
+            "更新配置",
+            MessageBoxButtons.OK,
+            syncIssue is null && warningCount == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+    }
+
+    private void LogAddonSyncResult(string operation, FuyutsuiAddonSyncResult result)
+    {
+        if (!result.TargetFound)
+        {
+            AppendLog($"{operation}: {result.SkippedReason}");
+            return;
+        }
+
+        AppendLog(
+            $"{operation}: 已复制 {result.CopiedFiles.Count}，哈希相同 {result.SkippedFiles.Count} → {result.TargetRoot}");
+        foreach (var failure in result.Failures.Take(20))
+        {
+            AppendLog($"插件同步失败: {failure.RelativePath}: {failure.Message}");
+        }
+
+        if (result.Failures.Count > 20)
+        {
+            AppendLog($"插件同步另有 {result.Failures.Count - 20} 个失败文件未展开。");
+        }
+    }
+
+    private static string? DescribeAddonSyncIssue(FuyutsuiAddonSyncResult result)
+    {
+        if (!result.TargetFound)
+        {
+            return result.SkippedReason;
+        }
+
+        if (result.Failures.Count == 0)
+        {
+            return null;
+        }
+
+        var first = result.Failures[0];
+        return result.Failures.Count == 1
+            ? $"{first.RelativePath}: {first.Message}"
+            : $"{result.Failures.Count} 个文件同步失败；首个失败为 {first.RelativePath}: {first.Message}";
     }
 
     private void ApplyInitialOptions()
