@@ -60,6 +60,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 51052, name = "反魔法领域" },
             { spellId = 221562, name = "窒息" },
             { spellId = 207167, name = "致盲冰雨" },
+            { spellId = 47528, name = "心灵冰冻" },
             { spellId = 46585, name = "亡者复生" },
             { spellId = 55233, name = "吸血鬼之血" },
             { spellId = 48792, name = "冰封之韧" },
