@@ -18,6 +18,7 @@ SKIP_DIRS = {
     ".agents",
     ".claude",
     "__pycache__",
+    "Senkoh",
     "artifacts",
     "bin",
     "cache",
