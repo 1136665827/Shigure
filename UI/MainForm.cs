@@ -7,6 +7,7 @@ public sealed class MainForm : Form, IMessageFilter
     private const int ResizeGripSize = 8;
     private const int RoundedCornerResizeDebounceMs = 80;
     private const string HeaderIconResourcePath = "Assets.arasaka-icon-transparent.png";
+    private const string ModuleWebsiteUrl = "https://www.shigure.club";
     private static readonly Color DefaultHeaderIconColor = Color.White;
     private static readonly IReadOnlyDictionary<int, Color> ClassIconColors = new Dictionary<int, Color>
     {
@@ -469,8 +470,12 @@ public sealed class MainForm : Form, IMessageFilter
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 246));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250));
+        const int settingsCardHeight = 232;
+        const int settingsCardGap = 14;
+        const int settingsActionButtonHeight = 36;
+        // 第一行包含 14px 下间距；第二行无需间距，因此卡片的实际高度均为 232px。
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight));
 
         Label CreateTitle(string text) => new()
         {
@@ -511,8 +516,8 @@ public sealed class MainForm : Form, IMessageFilter
         inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
         inputCard.Controls.Add(CreateTitle("输入与运行"), 0, 0);
         inputCard.SetColumnSpan(inputCard.GetControlFromPosition(0, 0)!, 2);
         inputCard.Controls.Add(CreateDescription("设置触发方式；修改后运行循环会自动重启"), 0, 1);
@@ -520,10 +525,10 @@ public sealed class MainForm : Form, IMessageFilter
 
         _toggleKeyButton = UiTheme.CreateButton("XBUTTON2", UiTheme.ButtonKind.Secondary);
         _toggleKeyButton.AutoSize = false;
-        _toggleKeyButton.Size = new Size(190, 38);
+        _toggleKeyButton.Size = new Size(190, settingsActionButtonHeight);
         _toggleKeyButton.TextAlign = ContentAlignment.MiddleCenter;
         _toggleKeyButton.Anchor = AnchorStyles.Left;
-        _toggleKeyButton.Margin = new Padding(0, 8, 0, 8);
+        _toggleKeyButton.Margin = new Padding(0);
         _toggleKeyButton.Click += (_, _) => BeginCaptureToggleKey();
         _settingsToolTip.SetToolTip(_toggleKeyButton, "点击后按下新的键盘键或鼠标侧键");
         inputCard.Controls.Add(CreateSettingLabel("触发键"), 0, 2);
@@ -535,7 +540,7 @@ public sealed class MainForm : Form, IMessageFilter
         _modeComboBox.SelectedIndex = 0;
         _modeComboBox.Width = 190;
         _modeComboBox.Anchor = AnchorStyles.Left;
-        _modeComboBox.Margin = new Padding(0, 8, 0, 8);
+        _modeComboBox.Margin = new Padding(0);
         _settingsToolTip.SetToolTip(_modeComboBox, "开关：按一次切换；单击：每次触发发送一次；按住：持续按下时运行");
         inputCard.Controls.Add(CreateSettingLabel("发送模式"), 0, 3);
         inputCard.Controls.Add(_modeComboBox, 1, 3);
@@ -551,7 +556,7 @@ public sealed class MainForm : Form, IMessageFilter
         configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         configCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         configCard.Controls.Add(CreateTitle("配置同步"), 0, 0);
         configCard.Controls.Add(CreateDescription("从项目 Fuyutsui 生成 config/keymap，并同步到游戏"), 0, 1);
         _configSourceLabel = CreateInfoLabel("项目目录是唯一配置源；尚未执行手动更新");
@@ -564,8 +569,8 @@ public sealed class MainForm : Form, IMessageFilter
         configCard.Controls.Add(_configSourceLabel, 0, 2);
         _updateConfigButton = UiTheme.CreateButton("更新配置", UiTheme.ButtonKind.Secondary);
         _updateConfigButton.AutoSize = false;
-        _updateConfigButton.Size = new Size(122, 38);
-        _updateConfigButton.Anchor = AnchorStyles.Left;
+        _updateConfigButton.Size = new Size(122, settingsActionButtonHeight);
+        _updateConfigButton.Dock = DockStyle.Left;
         _updateConfigButton.Margin = new Padding(0);
         _updateConfigButton.Click += async (_, _) => await UpdateConfigFromProjectWithFeedbackAsync();
         configCard.Controls.Add(_updateConfigButton, 0, 3);
@@ -576,13 +581,13 @@ public sealed class MainForm : Form, IMessageFilter
             ColumnCount = 2,
             RowCount = 4,
             Padding = new Padding(18),
-            Margin = new Padding(0)
+            Margin = new Padding(0, 0, 7, 0)
         };
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
         moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         moduleCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         moduleCard.Controls.Add(CreateTitle("模块选择"), 0, 0);
         moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 0)!, 2);
@@ -591,13 +596,13 @@ public sealed class MainForm : Form, IMessageFilter
         _moduleComboBox = new ComboBox();
         UiTheme.StyleComboBox(_moduleComboBox);
         _moduleComboBox.Dock = DockStyle.Fill;
-        _moduleComboBox.Margin = new Padding(0, 8, 14, 8);
+        _moduleComboBox.Margin = new Padding(0, 0, 14, 0);
         _settingsToolTip.SetToolTip(_moduleComboBox, "列表会根据当前游戏状态筛选可用模块");
         moduleCard.Controls.Add(_moduleComboBox, 0, 2);
         var refreshModulesButton = UiTheme.CreateButton("刷新模块", UiTheme.ButtonKind.Secondary);
         refreshModulesButton.AutoSize = false;
         refreshModulesButton.Dock = DockStyle.Fill;
-        refreshModulesButton.Margin = new Padding(0, 8, 0, 8);
+        refreshModulesButton.Margin = new Padding(0);
         refreshModulesButton.Click += (_, _) => RefreshModuleSelector(_lastSnapshot, reloadModules: true);
         moduleCard.Controls.Add(refreshModulesButton, 1, 2);
         var moduleInfoText = new FlowLayoutPanel
@@ -616,13 +621,72 @@ public sealed class MainForm : Form, IMessageFilter
         moduleCard.Controls.Add(moduleInfoText, 0, 3);
         moduleCard.SetColumnSpan(moduleInfoText, 2);
 
+        var getModulesCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(7, 0, 0, 0)
+        };
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        getModulesCard.Controls.Add(CreateTitle("获取模块"), 0, 0);
+        getModulesCard.Controls.Add(CreateDescription("访问 Shigure 官网，浏览并获取可用模块"), 0, 1);
+
+        var moduleWebsiteLabel = CreateInfoLabel(ModuleWebsiteUrl);
+        moduleWebsiteLabel.Dock = DockStyle.Fill;
+        moduleWebsiteLabel.AutoSize = false;
+        moduleWebsiteLabel.AutoEllipsis = true;
+        moduleWebsiteLabel.TextAlign = ContentAlignment.TopLeft;
+        moduleWebsiteLabel.ForeColor = UiTheme.Accent;
+        moduleWebsiteLabel.Cursor = Cursors.Hand;
+        moduleWebsiteLabel.Margin = new Padding(0, 10, 0, 8);
+        moduleWebsiteLabel.Click += (_, _) => OpenModuleWebsite();
+        _settingsToolTip.SetToolTip(moduleWebsiteLabel, $"在默认浏览器中打开 {ModuleWebsiteUrl}");
+        getModulesCard.Controls.Add(moduleWebsiteLabel, 0, 2);
+
+        var moduleWebsiteButtonColor = Color.FromArgb(252, 238, 10);
+        var openModuleWebsiteButton = UiTheme.CreateButton("打开模块网站", moduleWebsiteButtonColor, Color.Black);
+        openModuleWebsiteButton.AutoSize = false;
+        openModuleWebsiteButton.Size = new Size(160, settingsActionButtonHeight);
+        openModuleWebsiteButton.Dock = DockStyle.Left;
+        openModuleWebsiteButton.Margin = new Padding(0);
+        openModuleWebsiteButton.FlatAppearance.BorderColor = moduleWebsiteButtonColor;
+        openModuleWebsiteButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
+        openModuleWebsiteButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
+        openModuleWebsiteButton.Click += (_, _) => OpenModuleWebsite();
+        getModulesCard.Controls.Add(openModuleWebsiteButton, 0, 3);
+
         panel.Controls.Add(inputCard, 0, 0);
         panel.Controls.Add(configCard, 1, 0);
         panel.Controls.Add(moduleCard, 0, 1);
-        panel.SetColumnSpan(moduleCard, 2);
+        panel.Controls.Add(getModulesCard, 1, 1);
         scrollHost.Controls.Add(panel);
         scrollHost.Resize += (_, _) => panel.Width = Math.Max(0, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
         return scrollHost;
+    }
+
+    private void OpenModuleWebsite()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ModuleWebsiteUrl)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"无法打开模块网站：{ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private async Task UpdateConfigFromProjectWithFeedbackAsync()
