@@ -70,11 +70,11 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 
 ## Fuyutsui 插件集成（配置/宏页面）
 
-设置窗口的「配置」和「宏」两个页签编辑的是游戏内 Fuyutsui 插件的 Lua 文件，**不是** Shigure 本地的 config/keymap/module。整个子系统通过游戏进程窗口定位插件目录，读写 Lua 表字面量，保存后触发 Shigure 侧的 config/keymap 更新。
+设置窗口的「配置」和「宏」两个页签编辑的是程序基准目录内 `Fuyutsui/` 的 Lua 文件，**不直接读取游戏插件目录**。项目插件是唯一权威源：保存后重新生成 Shigure 的 config/keymap，并把当前 Lua 部署到游戏；启动和「更新配置」会全量校验并部署整个插件。
 
-### 定位
+### 定位与部署
 
-[Infrastructure/WowProcessLocator.cs](Infrastructure/WowProcessLocator.cs) 读取 `wow_process.txt`，按 Windows Z 顺序选择最靠前的候选进程可见顶层窗口；[Infrastructure/WowAddonLocator.cs](Infrastructure/WowAddonLocator.cs) 再由该进程路径向上查找 `Interface\AddOns\Fuyutsui`。提供三个入口：`FindAddonRoot`、`FindClassDirectory`（`class/` 子目录）、`FindClassMacrosPath`（`core/classmacros.lua`）。
+[Infrastructure/WowProcessLocator.cs](Infrastructure/WowProcessLocator.cs) 读取 `wow_process.txt`，按 Windows Z 顺序选择最靠前的候选进程可见顶层窗口；[Infrastructure/WowAddonLocator.cs](Infrastructure/WowAddonLocator.cs) 由进程路径定位预期的 `Interface\AddOns`，即使 Fuyutsui 尚未安装也能返回部署位置。[Infrastructure/FuyutsuiAddonSyncService.cs](Infrastructure/FuyutsuiAddonSyncService.cs) 递归使用 SHA-256 比较项目文件与游戏文件，只复制缺失或不同的文件并保留游戏额外文件；也支持保存后的单文件同步。找不到游戏或启动同步失败不阻止程序运行。
 
 ### Lua 解析
 
@@ -102,8 +102,8 @@ config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .c
 
 - [UI/ClassConfigEditorControl.cs](UI/ClassConfigEditorControl.cs)：左侧职业列表 + 右侧按专精切换的四页编辑器（状态/光环/法术/队伍），状态字段用 `ClassStateCatalog` 驱动的 `ComboBoxColumn`。
 - [UI/ClassMacrosEditorControl.cs](UI/ClassMacrosEditorControl.cs)：左侧职业列表 + 右侧三页编辑器（动态宏/静态宏/特殊宏），偏移提示显示槽位编号计算。
-- 两个编辑器均接受 `Func<string?>` 定位器 + `Func<Task>` 保存回调，由 `MainForm` 在构造时注入。保存流程：编辑器调 `Store.Save()` → 回调 `MainForm.UpdateConfigFromAddonAsync()` → 重新生成 config/keymap → 重启运行时。
-- `UpdateConfigFromAddonAsync` 的多个入口通过任务尾队列串行执行；运行时重启会等待该队列稳定，主窗口关闭也会等待正在写盘的转换完成。新增同步入口必须继续走这条队列。
+- 两个编辑器均接受 `Func<string?>` 项目路径解析器 + `Func<string, Task<string?>>` 保存回调，由 `MainForm` 在构造时注入。保存流程：编辑器调 `Store.Save()` → 传入已保存文件路径 → 重新生成 config/keymap → 单文件部署游戏 → 重启运行时；部署失败返回说明，但不回滚本地文件。
+- 配置更新的多个入口通过任务尾队列串行执行；运行时重启会等待该队列稳定，主窗口关闭也会等待正在写盘的转换和部署完成。新增同步入口必须继续走这条队列。
 
 ## UI 约定
 
