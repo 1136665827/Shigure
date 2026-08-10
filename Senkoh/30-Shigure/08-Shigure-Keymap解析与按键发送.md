@@ -13,18 +13,19 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
-  - "[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]"
+  - "[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]"
+  - "[[30-Shigure/06-Shigure-规则条件与特殊动作]]"
 source_files:
-  - Shigure/Input/KeymapService.cs
-  - Shigure/Input/KeymapCatalog.cs
-  - Shigure/Input/KeySender.cs
-  - Shigure/Input/WindowsVirtualKeyMap.cs
-  - Shigure/Input/WindowsTriggerKeyState.cs
-  - Shigure/Modules/ReservedUnit.cs
-  - Shigure/Input/NativeMethods.cs
+  - Input/KeymapService.cs
+  - Input/KeymapCatalog.cs
+  - Input/KeySender.cs
+  - Input/WindowsVirtualKeyMap.cs
+  - Input/WindowsTriggerKeyState.cs
+  - Modules/ReservedUnit.cs
+  - Input/NativeMethods.cs
+  - Infrastructure/WowProcessLocator.cs
 source_symbols:
   - KeymapService.GetHotkey
   - KeymapCatalog.Load
@@ -32,24 +33,24 @@ source_symbols:
   - WindowsVirtualKeyMap.Resolve
   - WindowsTriggerKeyState.IsPressed
   - MacroConditionText.NormalizeLegacyUnit
-verified_at: 2026-08-09
+verified_at: 2026-08-10
 ---
 
 # Shigure Keymap 解析与按键发送
 
 > [!abstract] AI 快速摘要
-> `KeymapService` 把 `(unit, spell, macroCondition)` 映射为 Hotkey；职业或专精变化时重新加载对应 JSON。如果文件含专精对象，运行时只采用当前专精映射，不与顶层项合并。`KeySender` 再把 Hotkey 解析为 Windows 虚拟键，按修饰键 down、主键 down/up、修饰键逆序 up 的顺序，用 `PostMessage` 投递给标题完全匹配的窗口。
+> `KeymapService` 把 `(unit, spell, macroCondition)` 映射为 Hotkey；职业或专精变化时重新加载对应 JSON。`KeySender` 通过共享 `WowProcessLocator` 重新取得最靠前候选可见窗口，并与本轮扫描句柄核对，再按修饰键 down、主键 down/up、修饰键逆序 up 的顺序投递 `PostMessage`。
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 上游规则：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 生产契约：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
-- Fuyutsui 生产者入口：[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]；宏与动作条细节见 [[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 上游规则：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 生产契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- Fuyutsui 生产者入口：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]；宏与动作条细节见 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
 
 ## 范围与非范围
 
-本页覆盖运行时 Keymap 选择和 Windows 输出。Lua 宏如何转换为 273 个键位项见 [[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]；触发模式状态机见运行循环页。
+本页覆盖运行时 Keymap 选择和 Windows 输出。Lua 宏如何转换为 273 个键位项见 [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]；触发模式状态机见运行循环页。
 
 ## 从规则到按键
 
@@ -59,7 +60,7 @@ ModuleRule(Unit / Spell / MacroCondition)
   -> 规则直接 Hotkey（若非空，优先）
   -> KeymapService.GetHotkey(unit, spell, macroCondition)
   -> LogicDecision.Hotkey
-  -> KeySender（构造时持有 windowTitle）.Send(hotkey)
+  -> KeySender（持有共享 WowProcessLocator）.Send(hotkey, scannedWindow)
   -> WM_KEYDOWN / WM_KEYUP
 ```
 
@@ -83,7 +84,7 @@ ModuleRule(Unit / Spell / MacroCondition)
 - 非空条件先规范化再精确匹配。
 - 一键辅助强制 unit 0，并可回退到 `nochanneling`。
 
-单位映射当前是 v3：0 无固定单位，1..30 组员，31 player，32 target，33 focus，34 cursor/ground，35 mouseover。旧 36/37 已迁移为 unit 0 加 `channeling`/`nochanneling`，见 [[docs/30-Shigure/05-Shigure-模块存储匹配与版本迁移]]。
+单位映射当前是 v3：0 无固定单位，1..30 组员，31 player，32 target，33 focus，34 cursor/ground，35 mouseover。旧 36/37 已迁移为 unit 0 加 `channeling`/`nochanneling`，见 [[30-Shigure/05-Shigure-模块存储匹配与版本迁移]]。
 
 ## 虚拟键解析
 
@@ -94,13 +95,13 @@ ModuleRule(Unit / Spell / MacroCondition)
 
 ## Windows 消息输出边界
 
-1. 每次发送都用 `FindWindow` 重新按标题完全匹配目标。
-2. 依次投递修饰键按下、主键按下、主键抬起、修饰键逆序抬起。
-3. 使用 `WM_KEYDOWN` / `WM_KEYUP`，不会主动激活或切到前台。
-4. 目前只有数字小键盘除号设置 extended-key 标志。
-5. 发送失败会报告 Win32 错误；错误 5 通常指向完整性级别/UIPI 权限差异。
+1. 每次发送都通过 `WowProcessLocator` 重新选择 `wow_process.txt` 候选进程中最靠前的可见窗口。
+2. 运行时传入本轮扫描得到的窗口句柄；若发送时目标已切换，放弃发送并等待重新扫描。
+3. 依次投递修饰键按下、主键按下、主键抬起、修饰键逆序抬起。
+4. 使用 `WM_KEYDOWN` / `WM_KEYUP`，不会主动激活或切到前台。
+5. 目前只有数字小键盘除号设置 extended-key 标志；发送错误 5 通常指向完整性级别/UIPI 权限差异。
 
-目标身份只由标题确定，没有 PID/进程路径绑定。同标题窗口可能收到消息；目标程序是否处理后台 `PostMessage` 也取决于其消息循环和权限。
+目标先按配置进程名限定 PID，再按 Z 顺序选择窗口；它不验证签名或固定某个进程实例。多个候选实例之间切换会触发句柄防陈旧检查；目标程序是否处理后台 `PostMessage` 仍取决于其消息循环和权限。
 
 ## 触发键与输出键的区别
 
@@ -113,7 +114,8 @@ ModuleRule(Unit / Spell / MacroCondition)
 | 规则匹配但显示无键 | unit、spell、null/空/非空 macroCondition 是否完全一致 |
 | 顶层通用键在某专精失效 | 运行时选专精 map 后不合并顶层；重新用转换器生成完整专精 map |
 | UI 能看到某键但运行时不用 | `KeymapCatalog` 汇总范围大于当前 `KeymapService` 范围 |
-| 发送到错误窗口 | 存在同标题窗口；当前没有进程身份校验 |
+| 发送到错误窗口 | `wow_process.txt` 配置过宽，或多个候选实例的 Z 顺序不符合预期 |
+| 提示目标窗口已切换 | 扫描与发送之间前台候选发生变化；等待下一轮重新扫描 |
 | Win32 error 5 | Shigure 与目标进程完整性级别不同 |
 | ALT 不能作为触发 | UI 明确拒绝；ALT 仍可作为输出修饰键 |
 | 某些特殊键无响应 | 虚拟键或 extended bit/lParam 不满足目标程序预期 |
@@ -122,22 +124,23 @@ ModuleRule(Unit / Spell / MacroCondition)
 
 - 改单位编号、宏条件或 Keymap 主键结构必须同步转换器、模块迁移、Fuyutsui 宏和跨项目契约。
 - 改“专精覆盖而不合并”的策略会改变生成文件要求，应兼容旧 Keymap 或统一重生成。
-- 增加目标进程身份检查会改善同标题风险，但需协调扫描器和目录定位器采用同一身份模型。
+- 改目标身份模型时必须让扫描器、发送器和游戏插件目录定位继续共用同一个 `WowProcessLocator`。
 - 新增输出方式时通过 `IKeyOutput` 接入，避免把 Win32 细节扩散到运行循环。
 
 ## 源码索引
 
-- `Shigure/Input/KeymapService.cs:26-107`：职业/专精缓存、专精 map 和精确/旧式查找。
-- `Shigure/Input/KeymapCatalog.cs:125-145`：路径解析、扩展名改写和默认回退。
-- `Shigure/Modules/ReservedUnit.cs:10-97`：v3 单位和通道宏条件。
-- `Shigure/Input/WindowsVirtualKeyMap.cs:5-86`：命名键和单字符解析。
-- `Shigure/Input/WindowsTriggerKeyState.cs:3-8`：全局物理键轮询。
-- `Shigure/Input/KeySender.cs:25-142`：标题定位、chord、消息顺序和 extended bit。
-- `Shigure/UI/MainForm.cs:781-905`、`1556-1559`：ALT 触发键拒绝与回退。
+- `Input/KeymapService.cs:26-107`：职业/专精缓存、专精 map 和精确/旧式查找。
+- `Input/KeymapCatalog.cs:125-145`：路径解析、扩展名改写和默认回退。
+- `Modules/ReservedUnit.cs:10-97`：v3 单位和通道宏条件。
+- `Input/WindowsVirtualKeyMap.cs:5-86`：命名键和单字符解析。
+- `Input/WindowsTriggerKeyState.cs:3-8`：全局物理键轮询。
+- `Input/KeySender.cs:25-142`：目标重查/句柄核对、chord、消息顺序和 extended bit。
+- `Infrastructure/WowProcessLocator.cs`：进程配置、候选 PID 和 Z 顺序窗口选择。
+- `UI/MainForm.cs:781-905`、`1556-1559`：ALT 触发键拒绝与回退。
 
 ## 知识图谱链接
 
-- 宏生产者：[[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
-- 跨项目契约：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
-- 上游逻辑：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 运行时调用：[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]
+- 宏生产者：[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
+- 跨项目契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 上游逻辑：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 运行时调用：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]

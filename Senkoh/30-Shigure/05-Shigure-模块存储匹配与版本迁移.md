@@ -12,14 +12,14 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]"
-  - "[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]"
+  - "[[30-Shigure/06-Shigure-规则条件与特殊动作]]"
+  - "[[30-Shigure/08-Shigure-Keymap解析与按键发送]]"
 source_files:
-  - Shigure/Modules/ModuleStore.cs
-  - Shigure/Modules/ReservedUnit.cs
-  - Shigure/UI/ModuleEditorControl.cs
+  - Modules/ModuleStore.cs
+  - Modules/ReservedUnit.cs
+  - UI/ModuleEditorControl.cs
 source_symbols:
   - ModuleDefinition
   - ModuleMatch
@@ -37,13 +37,13 @@ verified_at: 2026-08-09
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 下游规则执行：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 单位/宏协议：[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 下游规则执行：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 单位/宏协议：[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
 
 ## 范围与非范围
 
-本页覆盖模块 schema、磁盘生命周期、匹配和迁移。条件解析、动态单位算法和按键输出分别在后续页面；UI 控件本身见 [[docs/30-Shigure/10-Shigure-UI功能地图与数据所有权]]。
+本页覆盖模块 schema、磁盘生命周期、匹配和迁移。条件解析、动态单位算法和按键输出分别在后续页面；UI 控件本身见 [[30-Shigure/10-Shigure-UI功能地图与数据所有权]]。
 
 ## 模块核心结构
 
@@ -129,18 +129,18 @@ README 曾写映射版本 2，已于 2026-08-09 修正；旧副本可能仍含�
 
 ## 源码索引
 
-- `Shigure/Modules/ModuleStore.cs:9-29`：版本常量与模块定义。
-- `Shigure/Modules/ModuleStore.cs:74-187`：匹配字段、队伍规范化和 specificity。
-- `Shigure/Modules/ModuleStore.cs:189-261`：规则和数值调整 schema。
-- `Shigure/Modules/ModuleStore.cs:281-365`：递归加载、规范化、克隆和选择。
-- `Shigure/Modules/ModuleStore.cs:368-443`：保存、重命名与删除。
-- `Shigure/Modules/ModuleStore.cs:503-650`：安全文件名、路径边界与版本迁移。
-- `Shigure/Modules/ReservedUnit.cs:10-97`：v3 编号、宏条件与旧编号迁移。
-- `Shigure/UI/ModuleEditorControl.cs:2909-2935`：编辑器保存的版本元数据。
+- `Modules/ModuleStore.cs:9-29`：版本常量与模块定义。
+- `Modules/ModuleStore.cs:74-187`：匹配字段、队伍规范化和 specificity。
+- `Modules/ModuleStore.cs:189-261`：规则和数值调整 schema。
+- `Modules/ModuleStore.cs:281-365`：递归加载、规范化、克隆和选择。
+- `Modules/ModuleStore.cs:368-443`：保存、重命名与删除。
+- `Modules/ModuleStore.cs:503-650`：安全文件名、路径边界与版本迁移。
+- `Modules/ReservedUnit.cs:10-97`：v3 编号、宏条件与旧编号迁移。
+- `UI/ModuleEditorControl.cs:2909-2935`：编辑器保存的版本元数据。
 
 ## 知识图谱链接
 
-- 规则消费者：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 动态数据：[[docs/30-Shigure/07-Shigure-动态单位数量与公式]]
-- Keymap 契约：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
-- 相关 UI：[[docs/30-Shigure/10-Shigure-UI功能地图与数据所有权]]
+- 规则消费者：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 动态数据：[[30-Shigure/07-Shigure-动态单位数量与公式]]
+- Keymap 契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 相关 UI：[[30-Shigure/10-Shigure-UI功能地图与数据所有权]]

@@ -13,11 +13,11 @@ doc_type: moc
 status: current
 authority: source-derived
 up:
-  - "[[docs/00-导航/00-Shingen-知识库首页]]"
-  - "[[docs/10-系统/00-Shingen-双项目系统全景]]"
+  - "[[00-导航/00-Shingen-知识库首页]]"
+  - "[[10-系统/00-Shingen-双项目系统全景]]"
 related:
-  - "[[docs/40-跨项目/00-Shingen-跨项目契约-MOC]]"
-  - "[[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]"
+  - "[[40-跨项目/00-Shingen-跨项目契约-MOC]]"
+  - "[[30-Shigure/02-Shigure-像素扫描与协议解码]]"
 source_files:
   - Fuyutsui/Fuyutsui.toc
   - Fuyutsui/main.lua
@@ -30,17 +30,19 @@ source_symbols:
   - Fuyutsui:OnEnable
   - Fuyutsui:LoadPlayerBlocks
   - Fuyutsui:CreateTexture
-verified_at: 2026-08-09
+verified_at: 2026-08-10
 ---
 
 # Fuyutsui 功能知识地图
 
-上级：[[docs/00-导航/00-Shingen-知识库首页]] · [[docs/10-系统/00-Shingen-双项目系统全景]]
+上级：[[00-导航/00-Shingen-知识库首页]] · [[10-系统/00-Shingen-双项目系统全景]]
 
-相关：[[docs/40-跨项目/00-Shingen-跨项目契约-MOC]] · [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]
+相关：[[40-跨项目/00-Shingen-跨项目契约-MOC]] · [[30-Shigure/02-Shigure-像素扫描与协议解码]]
 
 > [!summary] AI 快速摘要
 > Fuyutsui 在 WoW 内采集状态，并通过屏幕像素把数据交给 Shigure。当前源码有三类输出：510 格顶部主色条、500 单元横向计数/层数条、最多 30 个单位的治疗吸收网格。顶部主色条索引必须按两段解码：`1..255 => R=0,G=index`，`256..510 => R=1,G=index-255`；三个通道在屏幕上均是除以 255 后的颜色值。
+
+本仓库根目录的 `Fuyutsui/` 是插件权威源，并随 Shigure 构建/发布；游戏 `Interface/AddOns/Fuyutsui` 是由 Shigure 单向部署的运行副本。配置或宏修改应落在内置源，再生成 config/keymap 并部署，不应从游戏副本反向维护。
 
 ## 权威边界
 
@@ -63,40 +65,40 @@ verified_at: 2026-08-09
 
 | 功能 | 当前权威页 | 主要入口 | 下游 |
 | --- | --- | --- | --- |
-| 加载、初始化、专精重建 | [[docs/20-Fuyutsui/01-Fuyutsui-加载与生命周期]] | `OnInitialize`、`OnEnable`、`UpdatePlayerSpecInfo` | 所有运行时模块 |
-| 事件和分频刷新 | [[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] | 事件框架、`OnUpdate` | 玩家、目标、法术、队伍 |
-| 状态名、索引分配、RGB 写入 | [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] | `LoadPlayerBlocks`、`UpdateStateBlock`、`CreateTexture` | [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]] |
-| 玩家、资源、有效性 | [[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]] | `GetCharacterSpecInfo`、`UpdatePlayer*` | 顶部主色条 |
-| 目标、焦点、铭牌敌人数 | [[docs/20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] | `UpdateUnit*`、`UpdateEnemyCount` | 顶部主色条 |
-| 法术、充能、物品冷却 | [[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] | `UpdateSpellKnown`、`UpdateSpellCooldown` | 主色条与 CountBars |
-| 队伍、职责、治疗吸收 | [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] | `UpdateGroup`、`UpdateGroupInRangeAndHealth` | 主色条与吸收网格 |
-| 玩家/目标/队伍光环 | [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] | `RefreshUnitAuraContainers`、`RefreshGroupAuraContainers` | 主色条与 CountBars |
-| 动作条扫描、安全宏边界 | [[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] | `ReadKeybindings`、`CreateMacro` | 插件缓存与 Windows 按键契约 |
-| 命令、快捷按钮、SavedVariables | [[docs/20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]] | `SlashCommand`、`SwitchCharFlag` | 配置像素与 UI |
+| 加载、初始化、专精重建 | [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]] | `OnInitialize`、`OnEnable`、`UpdatePlayerSpecInfo` | 所有运行时模块 |
+| 事件和分频刷新 | [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] | 事件框架、`OnUpdate` | 玩家、目标、法术、队伍 |
+| 状态名、索引分配、RGB 写入 | [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] | `LoadPlayerBlocks`、`UpdateStateBlock`、`CreateTexture` | [[30-Shigure/02-Shigure-像素扫描与协议解码]] |
+| 玩家、资源、有效性 | [[20-Fuyutsui/04-Fuyutsui-玩家状态]] | `GetCharacterSpecInfo`、`UpdatePlayer*` | 顶部主色条 |
+| 目标、焦点、铭牌敌人数 | [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] | `UpdateUnit*`、`UpdateEnemyCount` | 顶部主色条 |
+| 法术、充能、物品冷却 | [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] | `UpdateSpellKnown`、`UpdateSpellCooldown` | 主色条与 CountBars |
+| 队伍、职责、治疗吸收 | [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]] | `UpdateGroup`、`UpdateGroupInRangeAndHealth` | 主色条与吸收网格 |
+| 玩家/目标/队伍光环 | [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] | `RefreshUnitAuraContainers`、`RefreshGroupAuraContainers` | 主色条与 CountBars |
+| 动作条扫描、安全宏边界 | [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] | `ReadKeybindings`、`CreateMacro` | 插件缓存与 Windows 按键契约 |
+| 命令、快捷按钮、SavedVariables | [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]] | `SlashCommand`、`SwitchCharFlag` | 配置像素与 UI |
 
 ## 既有专项页
 
 这些页面继续作为专题资料纳入关系网，但阅读时须套用上面的权威边界：
 
-- [[docs/BLOCK_AI_Reference_zh-CN]]：`core/block.lua` 专项说明；与 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 交叉核对。
-- [[docs/TEXTURE_LAYOUT_zh-CN]]：几何与布局专题；当前 510 格两段编码描述可用。
-- [[docs/AuraContainer_AI_Reference_zh-CN]]：Blizzard AuraContainer API 背景，不等同于本项目当前接线事实。
-- [[docs/CLASSMACROS_AI_Reference_zh-CN]]：宏数据专题；当前创建顺序以 `dynamicSpells → staticSpells → specialSpells` 为准。
-- [[docs/OPTIMIZATION_zh-CN]]：历史审计与建议清单，不是当前实现规格。
-- [[AGENTS]]：根级开发协作约定；其中 `auracontainer.lua` 与两段 RGB 索引说明已于 2026-08-09 按当前源码校正。
+- [[50-参考资料/BLOCK_AI_Reference_zh-CN]]：`core/block.lua` 专项说明；与 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 交叉核对。
+- [[50-参考资料/TEXTURE_LAYOUT_zh-CN]]：几何与布局专题；当前 510 格两段编码描述可用。
+- [[50-参考资料/AuraContainer_AI_Reference_zh-CN]]：Blizzard AuraContainer API 背景，不等同于本项目当前接线事实。
+- [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN]]：宏数据专题；当前创建顺序以 `dynamicSpells → staticSpells → specialSpells` 为准。
+- [[50-参考资料/OPTIMIZATION_zh-CN]]：历史审计与建议清单，不是当前实现规格。
+- `CLAUDE.md`：当前仓库的开发与内置插件集成约定；加载事实仍以 `Fuyutsui.toc` 和当前 Lua 为准。
 
 ## 跨项目契约与消费者
 
-- 总契约导航：[[docs/40-跨项目/00-Shingen-跨项目契约-MOC]]
-- 屏幕生产/消费：[[docs/40-跨项目/01-Shingen-像素生产消费契约]]
-  - 生产者：[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
-  - 消费者：[[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]、[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
-- `ClassBlocks → config`：[[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
-  - 生产定义：[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
-  - 编辑/同步：[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
-- `ClassMacros → keymap → Windows 输入`：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
-  - 插件侧：[[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
-  - 消费侧：[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]
+- 总契约导航：[[40-跨项目/00-Shingen-跨项目契约-MOC]]
+- 屏幕生产/消费：[[40-跨项目/01-Shingen-像素生产消费契约]]
+  - 生产者：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
+  - 消费者：[[30-Shigure/02-Shigure-像素扫描与协议解码]]、[[30-Shigure/03-Shigure-配置合并与GameState构建]]
+- `ClassBlocks → config`：[[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]
+  - 生产定义：[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]
+  - 编辑/同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
+- `ClassMacros → keymap → Windows 输入`：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+  - 插件侧：[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
+  - 消费侧：[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
 
 ## 最短执行链
 
@@ -104,8 +106,8 @@ verified_at: 2026-08-09
 
 ## 修改前检查
 
-1. 改加载文件：先看 [[docs/20-Fuyutsui/01-Fuyutsui-加载与生命周期]]。
-2. 改索引、状态、光环或法术：同时看 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 与 [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
-3. 改横向条或治疗吸收：同步验证 [[docs/30-Shigure/02-Shigure-像素扫描与协议解码]]。
-4. 改宏键池或宏顺序：同步验证 [[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]。
+1. 改加载文件：先看 [[20-Fuyutsui/01-Fuyutsui-加载与生命周期]]。
+2. 改索引、状态、光环或法术：同时看 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 与 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+3. 改横向条或治疗吸收：同步验证 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
+4. 改宏键池或宏顺序：同步验证 [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]。
 5. 普通 shell 无法验证 WoW API、secret value、SecureActionButton 或 AuraContainer；最终必须在游戏内验证。

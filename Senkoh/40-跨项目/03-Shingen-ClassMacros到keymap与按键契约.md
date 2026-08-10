@@ -13,22 +13,23 @@ doc_type: "contract"
 status: "current"
 authority: "contract"
 up:
-  - "[[docs/40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
+  - "[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]"
 related:
-  - "[[docs/CLASSMACROS_AI_Reference_zh-CN|Fuyutsui ClassMacros 规则参考]]"
-  - "[[Fuyutsui/Keymap|Fuyutsui 键位编码]]"
-  - "[[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描|Fuyutsui 动作条键位扫描]]"
-  - "[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]]"
-  - "[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Shigure Fuyutsui 编辑与同步]]"
+  - "[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|Fuyutsui ClassMacros 规则参考]]"
+  - "[[20-Fuyutsui/09-Fuyutsui-动作条键位扫描|Fuyutsui 动作条键位扫描]]"
+  - "[[30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]]"
+  - "[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Shigure Fuyutsui 编辑与同步]]"
 source_files:
   - "Fuyutsui/core/classmacros.lua"
   - "Fuyutsui/core/macro.lua"
   - "Fuyutsui/main.lua"
-  - "Shigure/Infrastructure/ClassMacrosStore.cs"
-  - "Shigure/Infrastructure/FuyutsuiKeymapConverter.cs"
-  - "Shigure/Input/KeymapService.cs"
-  - "Shigure/Input/KeySender.cs"
-  - "Shigure/Modules/ReservedUnit.cs"
+  - "Infrastructure/ClassMacrosStore.cs"
+  - "Infrastructure/FuyutsuiKeymapConverter.cs"
+  - "Input/KeymapService.cs"
+  - "Input/KeySender.cs"
+  - "Modules/ReservedUnit.cs"
+  - "Infrastructure/FuyutsuiAddonSyncService.cs"
+  - "Infrastructure/WowProcessLocator.cs"
 source_symbols:
   - "Fuyutsui:CreateMacro"
   - "ClassMacrosStore.Save"
@@ -36,7 +37,7 @@ source_symbols:
   - "KeymapService.GetHotkey"
   - "KeySender.Send"
   - "MacroConditionText.NormalizeLegacyUnit"
-verified_at: "2026-08-09"
+verified_at: "2026-08-10"
 ---
 
 # Shingen ClassMacros 到 keymap 与按键契约
@@ -44,6 +45,8 @@ verified_at: "2026-08-09"
 ## AI 摘要
 
 同一份 `Fuyutsui.ClassMacros[classFile]` 有两个消费者：Fuyutsui 把宏按固定顺序展开为 SecureActionButton 并绑定预设热键；Shigure 按同一顺序生成 keymap，让 module 能把“技能 + 单位 + 宏条件”反解为那个热键。如果槽位顺序、动态宏占位、单位编号或宏文本解析有任何漂移，Shigure 会发送一个合法但属于其他宏的按键。
+
+这份宏数据的权威位置是项目内置 `Fuyutsui/core/classmacros.lua`。宏编辑器保存后从这里重生成 keymap，并把该 Lua 单文件部署到游戏；游戏副本不是反向编辑源。
 
 当前宏顺序是：
 
@@ -66,7 +69,7 @@ dynamicSpells（每项展开 30 个团队槽）
 - module 单位、宏条件、特殊动作到 hotkey 的衔接。
 - Shigure Windows 按键发送到 WoW 覆盖绑定的最后一跳。
 
-本契约不定义动作选择条件；见 [[docs/30-Shigure/06-Shigure-规则条件与特殊动作|Shigure 规则条件与特殊动作]]。动作条原生技能扫描是另一条 Fuyutsui 本地功能，见 [[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描|动作条键位扫描]]。
+本契约不定义动作选择条件；见 [[30-Shigure/06-Shigure-规则条件与特殊动作|Shigure 规则条件与特殊动作]]。动作条原生技能扫描是另一条 Fuyutsui 本地功能，见 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描|动作条键位扫描]]。
 
 ## 输入与输出
 
@@ -94,6 +97,7 @@ Shigure 输出：
 - 按职业/专精可选择的 keymap 条目。
 - 由 `KeymapService.GetHotkey(unit, spell, macroCondition)` 返回的 hotkey。
 - `KeySender` 面向目标窗口的发送结果。
+- 内置 `classmacros.lua` 部署到游戏 AddOn 后由 WoW 实际加载的宏按钮与绑定。
 
 keymap 是生成物；宏 Lua 与两端一致的展开算法才是来源。
 
@@ -131,6 +135,7 @@ keymap 是生成物；宏 Lua 与两端一致的展开算法才是来源。
 4. `KeymapService` 根据当前职业/专精选择数据，并以 unit、spell、condition 查找 hotkey。
 5. module 可直接提供 hotkey，或提供技能/动态单位后通过 keymap 解析；特殊动作可能先从 `GameState` 解析实际技能。
 6. `ShigureRuntime` 应用规则延迟和逻辑延迟后调用 `KeySender`；目标窗口收到的键应命中 Fuyutsui 覆盖绑定或游戏动作条。
+7. `KeySender` 与扫描器共用 `WowProcessLocator`，并核对本轮扫描句柄；目标窗口切换时不向陈旧窗口发送。
 
 ## 关键不变量
 
@@ -142,6 +147,7 @@ keymap 是生成物；宏 Lua 与两端一致的展开算法才是来源。
 - module 单位迁移必须在规则解析前完成，当前保存版本为 3。
 - 宏槽总数不能超过 key pool；溢出不得静默复用已有按键。
 - 生成 keymap 后必须让运行时和编辑器目录重新加载。
+- 生成 keymap 的内置宏源与游戏加载的部署副本必须一致；保存后的单文件部署失败必须显式提示。
 - 安全按钮的创建、清理和覆盖绑定修改必须遵守 WoW 战斗锁定。
 
 ## 失败模式
@@ -156,7 +162,8 @@ keymap 是生成物；宏 Lua 与两端一致的展开算法才是来源。
 | 超过键池容量 | 尾部宏无法创建或转换，无可靠热键 |
 | 战斗中重建安全按钮 | WoW 拒绝操作或产生受保护动作错误 |
 | 只更新 Lua 未重生成 keymap | 游戏内宏已变，Shigure 仍发送旧槽位 |
-| 目标窗口标题或按键解析失败 | 决策正确但 KeySender 返回失败 |
+| 目标进程未配置、窗口切换或按键解析失败 | 决策正确但 KeySender 返回失败 |
+| keymap 已更新但宏 Lua 未部署/重载 | Shigure 发送新槽位，游戏仍执行旧宏 |
 
 ## 修改影响
 
@@ -166,7 +173,7 @@ keymap 是生成物；宏 Lua 与两端一致的展开算法才是来源。
 - `ClassMacrosStore`、`FuyutsuiKeymapConverter`、`KeymapService` 和 `KeymapCatalog`。
 - module schema、`CurrentUnitMappingVersion` 和迁移函数。
 - 宏编辑器的槽位提示、空槽保存与保存后同步。
-- [[docs/CLASSMACROS_AI_Reference_zh-CN|ClassMacros 规则参考]]、[[Fuyutsui/Keymap|键位编码]]和本契约。
+- [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|ClassMacros 规则参考]]、`Fuyutsui/core/keybinds.lua`（当前键池编码）和本契约。
 
 验证不能只比较生成 JSON 的条目数；应抽查 dynamic 首尾、static 首项、special 首项以及不同专精边界处的实际 hotkey。
 
@@ -177,12 +184,13 @@ keymap 是生成物；宏 Lua 与两端一致的展开算法才是来源。
 | 职业宏与命名宏体 | `Fuyutsui/core/classmacros.lua` |
 | 槽位展开、安全按钮、覆盖绑定 | `Fuyutsui/core/macro.lua` |
 | 当前职业/专精解析 | `Fuyutsui/main.lua:LoadPlayerMacros` |
-| Lua 宏 round-trip | `Shigure/Infrastructure/ClassMacrosStore.cs` |
-| Lua 到 keymap | `Shigure/Infrastructure/FuyutsuiKeymapConverter.cs` |
-| keymap 选择和查找 | `Shigure/Input/KeymapService.cs`、`KeymapCatalog.cs` |
-| 单位和旧条件迁移 | `Shigure/Modules/ReservedUnit.cs`、`ModuleStore.cs` |
-| 规则到决策 | `Shigure/Modules/ModuleStore.cs`、`LogicRegistry.cs` |
-| Windows 按键输出 | `Shigure/Input/KeySender.cs`、`NativeMethods.cs` |
+| Lua 宏 round-trip | `Infrastructure/ClassMacrosStore.cs` |
+| Lua 到 keymap | `Infrastructure/FuyutsuiKeymapConverter.cs` |
+| keymap 选择和查找 | `Input/KeymapService.cs`、`KeymapCatalog.cs` |
+| 单位和旧条件迁移 | `Modules/ReservedUnit.cs`、`ModuleStore.cs` |
+| 规则到决策 | `Modules/ModuleStore.cs`、`LogicRegistry.cs` |
+| Windows 按键输出 | `Input/KeySender.cs`、`NativeMethods.cs` |
+| 游戏宏副本部署 | `Infrastructure/FuyutsuiAddonSyncService.cs`、`WowProcessLocator.cs` |
 
 ## 知识图谱
 
@@ -207,8 +215,8 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[docs/40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
-- 生产端规则：[[docs/CLASSMACROS_AI_Reference_zh-CN|Fuyutsui ClassMacros 规则参考]]
-- 消费与执行：[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]]
-- 编辑同步：[[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Fuyutsui 配置宏编辑与同步]]
-- 验收：[[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]
+- 上级：[[40-跨项目/00-Shingen-跨项目契约-MOC|跨项目契约 MOC]]
+- 生产端规则：[[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|Fuyutsui ClassMacros 规则参考]]
+- 消费与执行：[[30-Shigure/08-Shigure-Keymap解析与按键发送|Shigure Keymap 与按键发送]]
+- 编辑同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Fuyutsui 配置宏编辑与同步]]
+- 验收：[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]

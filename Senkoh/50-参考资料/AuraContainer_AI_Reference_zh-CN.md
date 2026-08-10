@@ -19,9 +19,10 @@ doc_type: "external-reference"
 status: "version-pinned"
 authority: "external-reference"
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[50-参考资料/00-参考资料-MOC|参考资料 MOC]]"
 related:
-  - "[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成|Fuyutsui 光环容器本地集成]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成|Fuyutsui 光环容器本地集成]]"
 source_files: []
 source_symbols:
   - "CustomAuraContainerTemplate"

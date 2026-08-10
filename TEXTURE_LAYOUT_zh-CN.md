@@ -2,6 +2,8 @@
 
 本文描述 Fuyutsui 如何把 `ClassBlocks` 映射到屏幕上的色块 / 横向条，以及外部读取时应按什么顺序理解这些纹理。
 
+本仓库中的 `Fuyutsui/` 是插件权威源；应修改这里的 Lua，再由 Shigure 生成 `config/keymap` 并部署到游戏目录。`Interface\AddOns\Fuyutsui` 是运行副本，不应作为长期编辑源。
+
 - 实现入口：`main.lua` 的 `Fuyutsui:LoadPlayerBlocks(specIndex)`
 - 主色块写入：`Fuyutsui:CreateTexture(index, b)`（`core/block.lua`）
 - 像素编码与容器细节：见 `BLOCK_AI_Reference_zh-CN.md`

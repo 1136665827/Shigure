@@ -2,7 +2,7 @@
 
 Shigure 是荒坂公司（Arasaka Corporation）开发的冲锋枪。有时人们只想把子弹全打出去，在硝烟过后品味眼前的一片狼藉。
 
-### 它需要配合冬月电子（Fuyutsuki Electronics）的 [Fuyutsui](https://github.com/waynebian01/Fuyutsui) 使用。
+### 仓库已内置冬月电子（Fuyutsuki Electronics）的 [Fuyutsui](https://github.com/waynebian01/Fuyutsui) 插件源码，无需另行下载或手动安装。
 
 # 免责声明 (Disclaimer)
 
@@ -87,7 +87,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - `click`：每次按下只执行一轮逻辑。
 - `hold`：按住时运行，松开后停止。
 
-启动时，程序会在系统临时目录创建随机名称的运行副本，并通过原始输出目录读取 `config/`、`keymap/` 和 `module/`。旧的临时副本会在下次启动时尝试清理。
+启动时，程序会在系统临时目录创建随机名称的运行副本，并通过原始输出目录读取 `Fuyutsui/`、`config/`、`keymap/`、`module/` 和 `wow_process.txt`。旧的临时副本会在下次启动时尝试清理。
 
 ## 构建
 
@@ -95,7 +95,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 dotnet build .\Shigure.csproj
 ```
 
-应用图标为 `Assets\arasaka-icon.ico`。项目会把 `config/*.json`、`keymap/*.json` 和本地 `module/**/*.json` 复制到输出目录；图标、职业图和专精图作为嵌入资源打包。
+应用图标为 `Assets\arasaka-icon.ico`。项目会把 `Fuyutsui/**`、`config/*.json`、`keymap/*.json`、本地 `module/**/*.json` 和 `wow_process.txt` 复制到输出/发布目录；图标、职业图和专精图作为嵌入资源打包。
 
 ## 项目结构
 
@@ -145,7 +145,7 @@ Tools\                  辅助脚本
 
 ### `keymap` 与单位编号
 
-每条 keymap 记录包含 `unit`、`技能`、`热键`。模块和 keymap 共用以下单位编号：
+每条 keymap 记录包含 `unit`、`技能`、`热键` 和可选的 `宏条件`。模块和 keymap 共用以下单位编号：
 
 - `0`：无目标。
 - `1`～`30`：队伍/团队槽位。
@@ -155,7 +155,7 @@ Tools\                  辅助脚本
 - `34`：地面。
 - `35`：鼠标指向。
 
-当前映射版本为 `UnitMappingVersion = 2`。旧模块会在加载时迁移此前 `31` 与 `34` 的旧含义。
+当前映射版本为 `UnitMappingVersion = 3`。版本 1 模块会迁移旧的 `31/34` 含义；版本 2 模块中的 `36/37` 会迁移为 unit 0，并分别补成 `channeling` / `nochanneling` 宏条件。
 
 ## 模块系统
 
@@ -179,7 +179,7 @@ Tools\                  辅助脚本
   "Author": "模块作者",
   "RecommendedTalent": "推荐天赋代码或说明",
   "Version": "1.2.1",
-  "UnitMappingVersion": 2,
+  "UnitMappingVersion": 3,
   "Enabled": true,
   "Match": {
     "ClassId": 5,

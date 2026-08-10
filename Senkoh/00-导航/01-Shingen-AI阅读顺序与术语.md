@@ -13,18 +13,18 @@ doc_type: "guide"
 status: "current"
 authority: "source-derived"
 up:
-  - "[[docs/00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
+  - "[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]"
 related:
-  - "[[docs/10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
-  - "[[docs/30-Shigure/00-Shigure-MOC|Shigure MOC]]"
-  - "[[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]"
+  - "[[10-系统/00-Shingen-双项目系统全景|Shingen 双项目系统全景]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[30-Shigure/00-Shigure-MOC|Shigure MOC]]"
+  - "[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]"
 source_files:
   - "Fuyutsui/main.lua"
   - "Fuyutsui/core/block.lua"
-  - "Shigure/Runtime/GameState.cs"
-  - "Shigure/Modules/ModuleStore.cs"
-  - "Shigure/Modules/ReservedUnit.cs"
+  - "Runtime/GameState.cs"
+  - "Modules/ModuleStore.cs"
+  - "Modules/ReservedUnit.cs"
 source_symbols:
   - "EncodeBlockChannels"
   - "StateBuilder.Build"
@@ -90,12 +90,12 @@ verified_at: "2026-08-09"
 
 | 输入关键词或现象 | 输出层 | 阅读顺序 |
 |---|---|---|
-| `510`、RGB、错位、CountBars、治疗吸收 | 像素传输 | [[docs/40-跨项目/01-Shingen-像素生产消费契约|像素契约]] → 生产端/消费端功能页 |
-| `states/auras/spells/group`、职业 Lua、step | 配置生成 | [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 同步契约]] → [[docs/TEXTURE_LAYOUT_zh-CN|索引布局]] |
-| 条件不命中、动态单位、公式 | 规则决策 | [[docs/30-Shigure/06-Shigure-规则条件与特殊动作|规则条件]] → [[docs/30-Shigure/07-Shigure-动态单位数量与公式|动态字段]] |
-| 技能有映射但不发键、单位编号不对 | 热键执行 | [[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏到热键契约]] → [[docs/30-Shigure/08-Shigure-Keymap解析与按键发送|Keymap 与发送]] |
-| 切专精后字段错、编辑器保存后不同步 | 生成/重载 | ClassBlocks 或 ClassMacros 契约 → [[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Lua 编辑与同步]] |
-| 文档行号找不到、描述与源码冲突 | 文档时效 | [[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查]] → 当前源码符号搜索 |
+| `510`、RGB、错位、CountBars、治疗吸收 | 像素传输 | [[40-跨项目/01-Shingen-像素生产消费契约|像素契约]] → 生产端/消费端功能页 |
+| `states/auras/spells/group`、职业 Lua、step | 配置生成 | [[40-跨项目/02-Shingen-ClassBlocks到config同步契约|ClassBlocks 同步契约]] → [[50-参考资料/TEXTURE_LAYOUT_zh-CN|索引布局]] |
+| 条件不命中、动态单位、公式 | 规则决策 | [[30-Shigure/06-Shigure-规则条件与特殊动作|规则条件]] → [[30-Shigure/07-Shigure-动态单位数量与公式|动态字段]] |
+| 技能有映射但不发键、单位编号不对 | 热键执行 | [[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约|宏到热键契约]] → [[30-Shigure/08-Shigure-Keymap解析与按键发送|Keymap 与发送]] |
+| 切专精后字段错、编辑器保存后不同步 | 生成/重载 | ClassBlocks 或 ClassMacros 契约 → [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步|Lua 编辑与同步]] |
+| 文档行号找不到、描述与源码冲突 | 文档时效 | [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查]] → 当前源码符号搜索 |
 
 ## 阅读链路
 
@@ -136,7 +136,7 @@ AI 在修改前应执行以下逻辑：
 - 本页的术语表和任务路由。
 - 拥有该概念的项目功能页。
 - 涉及输入输出时的跨项目契约。
-- [[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查清单]]中的验证项。
+- [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性检查清单]]中的验证项。
 
 不要为同义词创建另一篇笔记；把常用叫法加入 `aliases`，并把唯一权威定义留在本页或对应契约中。
 
@@ -146,11 +146,11 @@ AI 在修改前应执行以下逻辑：
 |---|---|
 | `ClassBlocks → blocks` | `Fuyutsui/main.lua` 的 `LoadPlayerBlocks` |
 | RGB 与条布局 | `Fuyutsui/core/block.lua` |
-| 原始像素采集 | `Shigure/Runtime/PixelScanner.cs` |
-| `config → GameState` | `Shigure/Runtime/StateBuilder.cs`、`GameState.cs` |
-| 模块版本与迁移 | `Shigure/Modules/ModuleStore.cs` |
-| 保留单位与旧条件迁移 | `Shigure/Modules/ReservedUnit.cs` |
-| keymap 解析 | `Shigure/Input/KeymapService.cs`、`KeymapCatalog.cs` |
+| 原始像素采集 | `Runtime/PixelScanner.cs` |
+| `config → GameState` | `Runtime/StateBuilder.cs`、`GameState.cs` |
+| 模块版本与迁移 | `Modules/ModuleStore.cs` |
+| 保留单位与旧条件迁移 | `Modules/ReservedUnit.cs` |
+| keymap 解析 | `Input/KeymapService.cs`、`KeymapCatalog.cs` |
 
 ## 知识图谱
 
@@ -174,7 +174,7 @@ flowchart LR
 
 ## 关系
 
-- 上级：[[docs/00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
-- 系统：[[docs/10-系统/00-Shingen-双项目系统全景|双项目系统全景]]
-- 项目入口：[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]、[[docs/30-Shigure/00-Shigure-MOC|Shigure MOC]]
-- 变更验收：[[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]
+- 上级：[[00-导航/00-Shingen-知识库首页|Shingen 知识库首页]]
+- 系统：[[10-系统/00-Shingen-双项目系统全景|双项目系统全景]]
+- 项目入口：[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]、[[30-Shigure/00-Shigure-MOC|Shigure MOC]]
+- 变更验收：[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]

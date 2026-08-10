@@ -13,11 +13,11 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]"
-  - "[[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]"
-  - "[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]"
+  - "[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]"
+  - "[[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]]"
+  - "[[30-Shigure/03-Shigure-配置合并与GameState构建]]"
 source_files:
   - Fuyutsui/core/player.lua
   - Fuyutsui/core/stateblocks.lua
@@ -35,9 +35,9 @@ verified_at: 2026-08-09
 
 # Fuyutsui 玩家状态
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] · [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] · [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
+相关：[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] · [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] · [[30-Shigure/03-Shigure-配置合并与GameState构建]]
 
 ## AI 快速摘要
 
@@ -45,7 +45,7 @@ verified_at: 2026-08-09
 
 ## 范围与非范围
 
-本页覆盖玩家自身状态及共享运行时字段，不覆盖目标/焦点、队伍成员、法术冷却和光环容器内部实现；分别见 [[docs/20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]、[[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
+本页覆盖玩家自身状态及共享运行时字段，不覆盖目标/焦点、队伍成员、法术冷却和光环容器内部实现；分别见 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]、[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]、[[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]、[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
 
 职业文件只声明所需状态名。本页描述共同 schema，不逐职业列技能。
 
@@ -61,7 +61,7 @@ verified_at: 2026-08-09
 | 队伍、地下城、遭遇 API | 队伍类型/人数、地图、难度、遭遇 | 枚举或编号 `/255` |
 | 配置和物品状态 | 开关、药水数量、插入法术 | 对应状态 getter |
 
-输出位置由 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 决定，Shigure 再依据生成配置把 `B` 写入 `GameState`。
+输出位置由 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 决定，Shigure 再依据生成配置把 `B` 写入 `GameState`。
 
 ## 执行链路
 
@@ -135,7 +135,7 @@ PLAYER_ENTERING_WORLD / 专精变化
 ## 修改影响
 
 - 新增通用状态：同时修改 `stateBlockGetters`、事件/轮询更新器和所需职业 `ClassBlocks`，再重新生成 Shigure 配置。
-- 更改 `/255`、曲线或布尔语义：同步 [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]] 的解码/业务判断。
+- 更改 `/255`、曲线或布尔语义：同步 [[30-Shigure/03-Shigure-配置合并与GameState构建]] 的解码/业务判断。
 - 更改专精重建顺序：检查光环、队伍、宏和定时器是否仍持有旧对象。
 - 修复姿态/坐骑逻辑时，应选定“保存原始 ID”或“比较归一化值”一种一致表示，并审计所有 getter。
 
@@ -150,4 +150,4 @@ PLAYER_ENTERING_WORLD / 专精变化
 
 ## 知识图谱
 
-本页接收 [[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 的更新时机，经 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 写成像素，并由 [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]] 还原为运行时状态；宏索引来源另见 [[docs/20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]。
+本页接收 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 的更新时机，经 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 写成像素，并由 [[30-Shigure/03-Shigure-配置合并与GameState构建]] 还原为运行时状态；宏索引来源另见 [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]。

@@ -13,11 +13,11 @@ doc_type: feature
 status: current
 authority: source-derived
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
-  - "[[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]"
-  - "[[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]"
-  - "[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]"
+  - "[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]]"
+  - "[[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]"
+  - "[[30-Shigure/03-Shigure-配置合并与GameState构建]]"
 source_files:
   - Fuyutsui/core/target.lua
   - Fuyutsui/core/stateblocks.lua
@@ -35,9 +35,9 @@ verified_at: 2026-08-09
 
 # Fuyutsui 目标焦点与敌人数
 
-上级：[[docs/20-Fuyutsui/00-Fuyutsui-MOC]]
+上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] · [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] · [[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
+相关：[[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] · [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] · [[30-Shigure/03-Shigure-配置合并与GameState构建]]
 
 ## AI 快速摘要
 
@@ -45,7 +45,7 @@ verified_at: 2026-08-09
 
 ## 范围与非范围
 
-本页覆盖单位快照与姓名板聚合，不覆盖目标/焦点光环的筛选与持续时间，后者见 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。队伍距离和治疗范围见 [[docs/20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
+本页覆盖单位快照与姓名板聚合，不覆盖目标/焦点光环的筛选与持续时间，后者见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。队伍距离和治疗范围见 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
 
 ## 输入与输出
 
@@ -112,7 +112,7 @@ NAME_PLATE_UNIT_REMOVED
 - 对敌人，`maxRange <= state.specRange` 才标记专精射程内；对友方，阈值固定为 40。
 - 距离状态 getter 输出缓存的最大距离并归一化；无法估计时应视为未知，不应自行解释为 0 米。
 - 生命值使用 `UnitHealthPercent(..., curve100)`。
-- 施法进度与可打断状态共享 [[docs/20-Fuyutsui/04-Fuyutsui-玩家状态]] 描述的 Duration/Curve 机制。
+- 施法进度与可打断状态共享 [[20-Fuyutsui/04-Fuyutsui-玩家状态]] 描述的 Duration/Curve 机制。
 
 ## 敌人数口径
 
@@ -145,9 +145,9 @@ NAME_PLATE_UNIT_REMOVED
 ## 修改影响
 
 - 增加 boss 单位支持需同时新增缓存、状态声明、事件入口和 C# 配置字段。
-- 更改类型枚举或驱散曲线时同步 [[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 与 Shigure 的业务判断。
+- 更改类型枚举或驱散曲线时同步 [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 与 Shigure 的业务判断。
 - 更改敌人数口径时记录地图、战斗和范围边界；它会直接改变 AoE/目标选择策略。
-- 更改目标/焦点字段名或顺序需重新生成配置，遵循 [[docs/40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
+- 更改目标/焦点字段名或顺序需重新生成配置，遵循 [[40-跨项目/02-Shingen-ClassBlocks到config同步契约]]。
 
 ## 源码索引
 
@@ -160,4 +160,4 @@ NAME_PLATE_UNIT_REMOVED
 
 ## 知识图谱
 
-本页由 [[docs/20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 驱动，通过 [[docs/20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 输出单位像素；类型曲线依赖 [[docs/20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 的驱散能力，目标/焦点光环由 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 补充。
+本页由 [[20-Fuyutsui/02-Fuyutsui-事件与刷新调度]] 驱动，通过 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 输出单位像素；类型曲线依赖 [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] 的驱散能力，目标/焦点光环由 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 补充。

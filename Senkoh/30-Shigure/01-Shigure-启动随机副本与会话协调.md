@@ -12,24 +12,25 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]"
-  - "[[docs/30-Shigure/11-Shigure-本地数据路径构建与验证]]"
+  - "[[30-Shigure/04-Shigure-运行循环触发模式与快照]]"
+  - "[[30-Shigure/11-Shigure-本地数据路径构建与验证]]"
 source_files:
-  - Shigure/App/Program.cs
-  - Shigure/App/AppOptions.cs
-  - Shigure/App/RandomizedExecutableLauncher.cs
-  - Shigure/App/RuntimeSessionCoordinator.cs
-  - Shigure/App/ShigureRuntimeFactory.cs
-  - Shigure/Infrastructure/AppPaths.cs
+  - App/Program.cs
+  - App/AppOptions.cs
+  - App/RandomizedExecutableLauncher.cs
+  - App/RuntimeSessionCoordinator.cs
+  - App/ShigureRuntimeFactory.cs
+  - Infrastructure/AppPaths.cs
+  - Infrastructure/WowProcessLocator.cs
 source_symbols:
   - Program.Main
-  - AppOptions.Parse
+  - AppOptions.FromArgs
   - RandomizedExecutableLauncher.TryRelaunch
   - RuntimeSessionCoordinator.RestartAsync
   - ShigureRuntimeFactory.Create
-verified_at: 2026-08-09
+verified_at: 2026-08-10
 ---
 
 # Shigure 启动、随机副本与会话协调
@@ -39,9 +40,9 @@ verified_at: 2026-08-09
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 相关运行循环：[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]
-- 相关路径规则：[[docs/30-Shigure/11-Shigure-本地数据路径构建与验证]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 相关运行循环：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
+- 相关路径规则：[[30-Shigure/11-Shigure-本地数据路径构建与验证]]
 
 ## 范围与非范围
 
@@ -51,12 +52,13 @@ verified_at: 2026-08-09
 
 | 输入 | 处理 | 输出 |
 |---|---|---|
-| 命令行参数 | `AppOptions.Parse` | 窗口标题、触发键、模式、模块、逻辑/渲染间隔 |
+| 命令行参数 | `AppOptions.FromArgs` | 触发键、模式、模块、逻辑/渲染间隔 |
+| `wow_process.txt` | `WowProcessLocator` | 每次查询时的目标进程名和最靠前候选可见窗口 |
 | 当前可执行文件和环境变量 | `TryRelaunch` / `AppPaths` | 随机名称子进程，以及稳定的业务数据根目录 |
 | UI 的启动/重启/停止请求 | `RuntimeSessionCoordinator` | 唯一活动会话、快照事件、失败/停止事件 |
 | 共享 `ModuleStore` 和触发键读取器 | `ShigureRuntimeFactory` | 每个会话一套配置、Keymap、扫描、状态、逻辑和输出对象 |
 
-支持的选项以源码为准：`--window`、`--toggle`、`--mode`、`--module`、`--logic-ms`、`--render-ms`。模式不识别时回退到 `Switch`；逻辑间隔最低 50 ms，渲染间隔最低 100 ms。README 参数表遗漏了 `--module`。
+支持的选项以源码为准：`--toggle`、`--mode`、`--module`、`--logic-ms`、`--render-ms`。`--window` 已移除；目标进程改由 `wow_process.txt` 配置。模式不识别时回退到 `Switch`；逻辑间隔最低 50 ms，渲染间隔最低 100 ms。
 
 ## 执行链路
 
@@ -64,7 +66,7 @@ verified_at: 2026-08-09
 2. 父进程计算基于源 EXE 完整路径 SHA-256 前 16 位的临时根目录，清理其中旧内容，创建随机目录和随机 EXE 名。
 3. 它只复制应用目录顶层的 EXE、DLL、PDB、`.deps.json`、`.runtimeconfig.json`，给新 EXE 追加随机标记，然后转发原参数启动。
 4. 子进程通过 `SHIGURE_RANDOMIZED_PROCESS=1` 避免再次重启，并通过原始目录环境变量让 `AppPaths.BaseDirectory` 指回正式数据目录。
-5. `Program.Main` 手工构造共享存储、触发键读取器、运行时工厂、协调器和 `MainForm`。项目没有 DI 容器。
+5. `Program.Main` 手工构造共享存储、触发键读取器、`WowProcessLocator`、运行时工厂、协调器和 `MainForm`。项目没有 DI 容器。
 6. UI 请求运行时，协调器递增 request version，在 `SemaphoreSlim` 下停止旧会话，然后 `Task.Run` 新会话。
 7. 新请求比旧请求晚到时，以 request version 实现“最新请求获胜”；旧事件还会被 UI 的 session ID 过滤。
 8. 停止时取消令牌、等待任务结束、退订事件并释放运行时；窗口关闭还会等待待处理配置同步。
@@ -76,7 +78,7 @@ verified_at: 2026-08-09
 - 清理范围是按源 EXE 路径哈希隔离的专属临时根目录；清理会递归删除其所有子项并吞掉 IO/权限异常。
 - 每次会话构造新的 `ConfigService`、`KeymapService`、`PixelScanner`、`StateBuilder`、`KeySender` 和 `LogicRegistry`；`ModuleStore` 与触发键读取器跨会话共享。
 - 会话状态有两种概念：`HasSession` 可在任务已结束但尚未清理时仍为真，`IsRunning` 才表示任务正在运行。
-- 协调器序列化生命周期操作；运行时内部的数据所有权见 [[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]。
+- 协调器序列化生命周期操作；运行时内部的数据所有权见 [[30-Shigure/04-Shigure-运行循环触发模式与快照]]。
 
 ## 失败模式与排障
 
@@ -90,25 +92,26 @@ verified_at: 2026-08-09
 
 ## 修改影响
 
-- 改随机目录或复制清单，会影响打包、单文件发布、依赖加载和安全清理边界，必须同步 [[docs/30-Shigure/11-Shigure-本地数据路径构建与验证]]。
+- 改随机目录或复制清单，会影响打包、单文件发布、依赖加载和安全清理边界，必须同步 [[30-Shigure/11-Shigure-本地数据路径构建与验证]]。
 - 新增运行时依赖，应先在 `RuntimeDependencies` 定义窄接口，再由 `ShigureRuntimeFactory` 组装；不要让 UI 直接构造后台细节。
 - 改协调器时必须保留三层防陈旧机制：生命周期互斥、request version 最新获胜、UI session ID 过滤。
-- 改关闭顺序要同时检查配置同步队列，见 [[docs/30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]。
+- 改关闭顺序要同时检查配置同步队列，见 [[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]。
 
 ## 源码索引
 
-- `Shigure/App/Program.cs:5-43`：Windows/STA 入口和完整对象图。
-- `Shigure/App/AppOptions.cs:3-72`：模式、默认值、参数解析和间隔下限。
-- `Shigure/App/RandomizedExecutableLauncher.cs:8-67`：父/子进程判定和重启。
-- `Shigure/App/RandomizedExecutableLauncher.cs:69-173`：旧临时内容清理、随机路径与复制清单。
-- `Shigure/App/RandomizedExecutableLauncher.cs:245-253`：追加随机标记。
-- `Shigure/Infrastructure/AppPaths.cs:5-25`：原始业务根目录恢复。
-- `Shigure/App/ShigureRuntimeFactory.cs:27-40`：每会话依赖装配。
-- `Shigure/App/RuntimeSessionCoordinator.cs:106-238`：串行重启、取消、事件和清理。
+- `App/Program.cs:5-43`：Windows/STA 入口和完整对象图。
+- `App/AppOptions.cs:3-72`：模式、默认值、参数解析和间隔下限。
+- `App/RandomizedExecutableLauncher.cs:8-67`：父/子进程判定和重启。
+- `App/RandomizedExecutableLauncher.cs:69-173`：旧临时内容清理、随机路径与复制清单。
+- `App/RandomizedExecutableLauncher.cs:245-253`：追加随机标记。
+- `Infrastructure/AppPaths.cs:5-25`：原始业务根目录恢复。
+- `Infrastructure/WowProcessLocator.cs`：运行期目标进程配置和窗口选择。
+- `App/ShigureRuntimeFactory.cs:27-40`：每会话依赖装配。
+- `App/RuntimeSessionCoordinator.cs:106-238`：串行重启、取消、事件和清理。
 
 ## 知识图谱链接
 
-- 上游应用入口：[[docs/30-Shigure/00-Shigure-MOC]]
-- 下游主循环：[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]
-- 相关 UI 生命周期：[[docs/30-Shigure/10-Shigure-UI功能地图与数据所有权]]
-- 原始说明：[[Shigure/README]]、[[Shigure/CLAUDE]]
+- 上游应用入口：[[30-Shigure/00-Shigure-MOC]]
+- 下游主循环：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
+- 相关 UI 生命周期：[[30-Shigure/10-Shigure-UI功能地图与数据所有权]]
+- 原始说明：`README.md`、`CLAUDE.md`

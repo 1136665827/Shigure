@@ -58,7 +58,9 @@ Modules/        模块模型/存储/匹配/规则执行、条件求值(FormulaEv
 Input/          keymap 读取、按键发送、Win32 API
 Infrastructure/ 配置读取(ConfigService)、JSON 辅助、UI 缓存、路径、Fuyutsui 插件文件读写
 UI/             WinForms 界面、编辑器、主题
+Fuyutsui/       内置插件权威源；构建/发布时完整复制，运行时部署到游戏 AddOns
 config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .csproj 的 None+CopyToOutputDirectory)
+wow_process.txt 目标游戏进程名列表；构建时复制，运行期间每次定位都会重新读取
 ```
 
 ## 模块解析（改逻辑前必读）

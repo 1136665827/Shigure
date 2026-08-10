@@ -12,16 +12,16 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/05-Shigure-模块存储匹配与版本迁移]]"
-  - "[[docs/30-Shigure/07-Shigure-动态单位数量与公式]]"
+  - "[[30-Shigure/05-Shigure-模块存储匹配与版本迁移]]"
+  - "[[30-Shigure/07-Shigure-动态单位数量与公式]]"
 source_files:
-  - Shigure/Modules/LogicRegistry.cs
-  - Shigure/Modules/ModuleStore.cs
-  - Shigure/Modules/ModuleSpecialActions.cs
-  - Shigure/Runtime/GameState.cs
-  - Shigure/UI/ConditionEditorForm.cs
+  - Modules/LogicRegistry.cs
+  - Modules/ModuleStore.cs
+  - Modules/ModuleSpecialActions.cs
+  - Runtime/GameState.cs
+  - UI/ConditionEditorForm.cs
 source_symbols:
   - LogicRegistry.Evaluate
   - ModuleLogic.Run
@@ -39,14 +39,14 @@ verified_at: 2026-08-09
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 上游模块：[[docs/30-Shigure/05-Shigure-模块存储匹配与版本迁移]]
-- 动态字段：[[docs/30-Shigure/07-Shigure-动态单位数量与公式]]
-- 下游按键：[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 上游模块：[[30-Shigure/05-Shigure-模块存储匹配与版本迁移]]
+- 动态字段：[[30-Shigure/07-Shigure-动态单位数量与公式]]
+- 下游按键：[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
 
 ## 范围与非范围
 
-本页描述“选哪条规则/哪个动作”。规则冷却和全局逻辑暂停实际由运行时执行，见 [[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]；动态单位算法和公式解析不在此重复。
+本页描述“选哪条规则/哪个动作”。规则冷却和全局逻辑暂停实际由运行时执行，见 [[30-Shigure/04-Shigure-运行循环触发模式与快照]]；动态单位算法和公式解析不在此重复。
 
 ## 决策层级
 
@@ -140,17 +140,17 @@ MainCondition AND (没有 SubConditions OR 任一 SubCondition 为真)
 
 ## 源码索引
 
-- `Shigure/Modules/LogicRegistry.cs:29-94`：模块优先、禁用求值和默认逻辑。
-- `Shigure/Modules/ModuleStore.cs:697-810`：规则顺序、错误短路、目标/Hotkey/Keymap 与特殊动作。
-- `Shigure/Modules/ModuleStore.cs:1165-1260`：AND/OR 拆分和主/子条件组合。
-- `Shigure/Modules/ModuleStore.cs:1277-1468`：操作符、路径、字面量和比较。
-- `Shigure/Modules/ModuleStore.cs:1471-1540`：`in` 列表解析。
-- `Shigure/Modules/ModuleSpecialActions.cs:36-55`：自动插入与一键辅助解析。
-- `Shigure/UI/ConditionEditorForm.cs:13-133`：UI 条件表示和规范化。
+- `Modules/LogicRegistry.cs:29-94`：模块优先、禁用求值和默认逻辑。
+- `Modules/ModuleStore.cs:697-810`：规则顺序、错误短路、目标/Hotkey/Keymap 与特殊动作。
+- `Modules/ModuleStore.cs:1165-1260`：AND/OR 拆分和主/子条件组合。
+- `Modules/ModuleStore.cs:1277-1468`：操作符、路径、字面量和比较。
+- `Modules/ModuleStore.cs:1471-1540`：`in` 列表解析。
+- `Modules/ModuleSpecialActions.cs:36-55`：自动插入与一键辅助解析。
+- `UI/ConditionEditorForm.cs:13-133`：UI 条件表示和规范化。
 
 ## 知识图谱链接
 
-- 上游状态：[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
-- 动态求值：[[docs/30-Shigure/07-Shigure-动态单位数量与公式]]
-- 运行节流：[[docs/30-Shigure/04-Shigure-运行循环触发模式与快照]]
-- 按键契约：[[docs/40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]
+- 上游状态：[[30-Shigure/03-Shigure-配置合并与GameState构建]]
+- 动态求值：[[30-Shigure/07-Shigure-动态单位数量与公式]]
+- 运行节流：[[30-Shigure/04-Shigure-运行循环触发模式与快照]]
+- 按键契约：[[40-跨项目/03-Shingen-ClassMacros到keymap与按键契约]]

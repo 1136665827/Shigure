@@ -16,9 +16,10 @@ doc_type: "historical-audit"
 status: "historical"
 authority: "historical-audit"
 up:
-  - "[[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[50-参考资料/00-参考资料-MOC|参考资料 MOC]]"
 related:
-  - "[[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]"
+  - "[[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]]"
+  - "[[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]]"
 source_files:
   - "Fuyutsui/main.lua"
   - "Fuyutsui/core/*.lua"
@@ -30,7 +31,7 @@ verified_at: "2026-07-25"
 # Fuyutsui 优化建议
 
 > [!warning] 历史审计
-> 本文保留 2026-07-25 的静态审计结论与当时行号，不是当前缺陷清单。代码已拆分且部分问题可能已修复；实施任何条目前必须回到当前源码复核，并使用 [[docs/40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]] 评估双项目影响。
+> 本文保留 2026-07-25 的静态审计结论与当时行号，不是当前缺陷清单。代码已拆分且部分问题可能已修复；实施任何条目前必须回到当前源码复核，并使用 [[40-跨项目/04-Shingen-兼容性变更检查清单|兼容性变更检查清单]] 评估双项目影响。
 
 本文档基于 2026-07-25 工作区源码的**静态审计**，不含游戏内实测结论。
 
@@ -43,7 +44,7 @@ verified_at: "2026-07-25"
 - **[协议]** = 像素输出协议的健壮性，影响外部读取程序。
 - 每条都标注 `静态检查` 或 `需游戏内验证`。
 
-遵守 `AGENTS.md`：不要格式化整个仓库或 `libs/`；公开 API 使用 PascalCase；改 `core/block.lua` 前先确认工作区没有未提交改动。
+当前仓库开发约定见 `CLAUDE.md`。不要格式化整个仓库或 `libs/`；改 `core/block.lua` 前先确认工作区没有未提交改动。本文原始审计时期引用的 `AGENTS.md` 未随当前内置插件保留。
 
 ---
 
@@ -266,7 +267,7 @@ if Fuyutsui.playerClassFile ~= "DEATHKNIGHT" then return end
 
 - 位置：`libs/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:4064`（已有 `isMidnight and issecretvalue(guid)` 分支）、4246/4247/4640/4794/4816/4970（`UnitClass` / `UnitRace`）
 - 说明：该库已经开始适配 Midnight（缓存键会在 GUID 为秘密值时退化成 unit token），但多处 `UnitClass("player")` / `UnitRace("player")` 仍未防护。
-- 建议：**不要直接改 vendored 库**（`AGENTS.md` 明确禁止）。改为：
+- 建议：**不要直接改 vendored 库**；当前约定以根 `CLAUDE.md` 为准。改为：
   1. 升级到上游最新版本；
   2. 若上游未修，在 `Fuyutsui` 侧包一层，捕获 `UpdateUnitRange` 的错误，失败时退化到 `UnitInRange` / `IsSpellInRange`，避免单个库错误打断 `OnUpdate`（`UpdateEnemyCount` 每 0.2s 对每个铭牌调一次，见 `main.lua:1155`）。
 - 判定：静态检查；**需游戏内验证**。
@@ -387,7 +388,7 @@ end
 - 位置：`core/block.lua:600-615`
 - 说明：友方单位上的 `HARMFUL` 光环**不允许**用 `includeSpellIDs` 做身份过滤（参考文档 §8：spellID 身份过滤只对"可协助单位上的 HELPFUL"和"不可协助单位上的 HARMFUL"开放）。这里用 `includeDispelTypes` 是唯一合法路径。
 - 建议：在该处加一行注释说明"此处不能改用 includeSpellIDs"，防止将来被"优化"成按 ID 过滤。
-- 相关缺陷与当前接线边界见 [[docs/20-Fuyutsui/08-Fuyutsui-光环容器本地集成|光环容器本地集成]]；`getTargetDispelType()` 只输出 0/1/11，注释里声明的 2/3/12/13/14/15 都没有写入路径。这一项应当改为由 AuraContainer 的 dispel 槽驱动，而不是在 Lua 侧判断。
+- 相关缺陷与当前接线边界见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成|光环容器本地集成]]；`getTargetDispelType()` 只输出 0/1/11，注释里声明的 2/3/12/13/14/15 都没有写入路径。这一项应当改为由 AuraContainer 的 dispel 槽驱动，而不是在 Lua 侧判断。
 - 判定：静态检查。
 
 ### 3.7 `UNIT_AURA` 是死注册
@@ -498,7 +499,7 @@ local function ScheduleReadKeybindings()
 end
 ```
 
-- 另一个已知问题见 [[docs/20-Fuyutsui/09-Fuyutsui-动作条键位扫描|动作条键位扫描]]：`GetActionInfo` 的第二个返回值对 `macro` 和 `spell` 两种类型语义不同，当前代码一视同仁当 spellId 用，宏槽位会产生错误的 spellId 映射。
+- 另一个已知问题见 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描|动作条键位扫描]]：`GetActionInfo` 的第二个返回值对 `macro` 和 `spell` 两种类型语义不同，当前代码一视同仁当 spellId 用，宏槽位会产生错误的 spellId 映射。
 - 判定：静态检查；抖动现象 **需游戏内验证**（拖动技能时观察绑定像素）。
 
 ### 4.6 空事件处理函数：注册了但什么都不做
@@ -693,5 +694,5 @@ elseif v.type == "group" then
 ## 8. 与既有文档的关系
 
 - `AuraContainer_AI_Reference_zh-CN.md` 是光环实现的**唯一**权威。本文档第 3 节的每条都可追溯到它的对应章节（§0 变更索引、§8 candidateFilters、§9 排序、§12 时长颜色曲线、§19.1 秘密值扩展、§20 常见错误）。
-- 当前事实与功能边界以 [[docs/20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]] 及对应源码派生功能页为准；本文只保留历史审计问题和当时的改进建议。
+- 当前事实与功能边界以 [[20-Fuyutsui/00-Fuyutsui-MOC|Fuyutsui MOC]] 及对应源码派生功能页为准；本文只保留历史审计问题和当时的改进建议。
 - 本文档不修改任何代码。落地时请逐条独立提交，便于回退。

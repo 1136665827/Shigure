@@ -12,15 +12,15 @@ project: Shigure
 doc_type: feature
 status: current
 authority: source-derived
-up: "[[docs/30-Shigure/00-Shigure-MOC]]"
+up: "[[30-Shigure/00-Shigure-MOC]]"
 related:
-  - "[[docs/30-Shigure/01-Shigure-启动随机副本与会话协调]]"
-  - "[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]"
+  - "[[30-Shigure/01-Shigure-启动随机副本与会话协调]]"
+  - "[[30-Shigure/06-Shigure-规则条件与特殊动作]]"
 source_files:
-  - Shigure/Runtime/ShigureRuntime.cs
-  - Shigure/Runtime/RuntimeDependencies.cs
-  - Shigure/Runtime/RenderSnapshot.cs
-  - Shigure/App/AppOptions.cs
+  - Runtime/ShigureRuntime.cs
+  - Runtime/RuntimeDependencies.cs
+  - Runtime/RenderSnapshot.cs
+  - App/AppOptions.cs
 source_symbols:
   - ShigureRuntime.RunAsync
   - ShigureRuntime.TickLogic
@@ -37,10 +37,10 @@ verified_at: 2026-08-09
 
 ## 图谱位置
 
-- 上级：[[docs/30-Shigure/00-Shigure-MOC]]
-- 上游会话：[[docs/30-Shigure/01-Shigure-启动随机副本与会话协调]]
-- 下游规则：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 下游输出：[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]
+- 上级：[[30-Shigure/00-Shigure-MOC]]
+- 上游会话：[[30-Shigure/01-Shigure-启动随机副本与会话协调]]
+- 下游规则：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 下游输出：[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
 
 ## 范围与非范围
 
@@ -116,17 +116,17 @@ verified_at: 2026-08-09
 
 ## 源码索引
 
-- `Shigure/Runtime/ShigureRuntime.cs:7-29`：队列、状态和计时字段。
-- `Shigure/Runtime/ShigureRuntime.cs:52-89`：命令入队与禁用清理。
-- `Shigure/Runtime/ShigureRuntime.cs:92-191`：25 ms 循环、间隔、触发模式与去抖。
-- `Shigure/Runtime/ShigureRuntime.cs:193-273`：扫描、状态、有效性、逻辑和 Click 消费。
-- `Shigure/Runtime/ShigureRuntime.cs:275-328`：规则速率、发送成功和逻辑暂停。
-- `Shigure/Runtime/ShigureRuntime.cs:330-417`：快照和动态字段物化。
-- `Shigure/Runtime/RuntimeDependencies.cs:3-54`：端口和 `LogicDecision`。
+- `Runtime/ShigureRuntime.cs:7-29`：队列、状态和计时字段。
+- `Runtime/ShigureRuntime.cs:52-89`：命令入队与禁用清理。
+- `Runtime/ShigureRuntime.cs:92-191`：25 ms 循环、间隔、触发模式与去抖。
+- `Runtime/ShigureRuntime.cs:193-273`：扫描、状态、有效性、逻辑和 Click 消费。
+- `Runtime/ShigureRuntime.cs:275-328`：规则速率、发送成功和逻辑暂停。
+- `Runtime/ShigureRuntime.cs:330-417`：快照和动态字段物化。
+- `Runtime/RuntimeDependencies.cs:3-54`：端口和 `LogicDecision`。
 
 ## 知识图谱链接
 
-- 上游状态：[[docs/30-Shigure/03-Shigure-配置合并与GameState构建]]
-- 决策：[[docs/30-Shigure/06-Shigure-规则条件与特殊动作]]
-- 输出：[[docs/30-Shigure/08-Shigure-Keymap解析与按键发送]]
-- UI 消费者：[[docs/30-Shigure/10-Shigure-UI功能地图与数据所有权]]
+- 上游状态：[[30-Shigure/03-Shigure-配置合并与GameState构建]]
+- 决策：[[30-Shigure/06-Shigure-规则条件与特殊动作]]
+- 输出：[[30-Shigure/08-Shigure-Keymap解析与按键发送]]
+- UI 消费者：[[30-Shigure/10-Shigure-UI功能地图与数据所有权]]
