@@ -98,13 +98,12 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private Control BuildSidebar()
     {
-        var panel = new TableLayoutPanel
+        var panel = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(12),
+            Padding = new Padding(14),
             Margin = new Padding(0, 0, 12, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
@@ -117,6 +116,7 @@ public sealed class ClassConfigEditorControl : UserControl
             ForeColor = UiTheme.Text,
             Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         }, 0, 0);
 
@@ -125,6 +125,7 @@ public sealed class ClassConfigEditorControl : UserControl
             _classList,
             item => (item as ClassListItem)?.ClassId,
             iconSize: 40);
+        _classList.BackColor = UiTheme.SurfaceRaised;
         _classList.SelectedIndexChanged += (_, _) =>
         {
             if (_suppressUi)
@@ -140,13 +141,12 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private Control BuildSpecSidebar()
     {
-        var panel = new TableLayoutPanel
+        var panel = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(12),
+            Padding = new Padding(14),
             Margin = new Padding(0, 0, 12, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
@@ -159,6 +159,7 @@ public sealed class ClassConfigEditorControl : UserControl
             ForeColor = UiTheme.Text,
             Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         }, 0, 0);
 
@@ -167,6 +168,7 @@ public sealed class ClassConfigEditorControl : UserControl
             _specList,
             item => item is SpecOption spec ? (spec.ClassId, spec.Id) : null,
             iconSize: 40);
+        _specList.BackColor = UiTheme.SurfaceRaised;
         _specList.SelectedIndexChanged += (_, _) =>
         {
             if (_suppressUi)
@@ -202,14 +204,13 @@ public sealed class ClassConfigEditorControl : UserControl
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
 
-        var header = new TableLayoutPanel
+        var header = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 2,
             RowCount = 2,
             Padding = new Padding(14, 12, 14, 12),
-            Margin = new Padding(0, 0, 0, 8)
+            Margin = new Padding(0, 0, 0, 12)
         };
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -233,14 +234,13 @@ public sealed class ClassConfigEditorControl : UserControl
 
         root.Controls.Add(BuildSectionTabs(), 0, 1);
 
-        var actionRow = new TableLayoutPanel
+        var actionRow = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Surface,
             ColumnCount = 2,
             RowCount = 1,
-            Margin = new Padding(0),
-            Padding = new Padding(0, 8, 12, 12)
+            Margin = new Padding(0, 12, 0, 0),
+            Padding = new Padding(14, 10, 14, 10)
         };
         actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 228));
@@ -250,7 +250,7 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
-            BackColor = UiTheme.Surface,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
         StyleActionButton(_reloadButton);
@@ -276,16 +276,16 @@ public sealed class ClassConfigEditorControl : UserControl
             RowCount = 2,
             Margin = new Padding(0)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var tabBar = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Border,
+            BackColor = UiTheme.Surface,
             ColumnCount = 5,
             RowCount = 1,
-            Margin = new Padding(0),
+            Margin = new Padding(0, 0, 0, 8),
             Padding = new Padding(0)
         };
         for (var i = 0; i < 5; i++)
@@ -293,13 +293,25 @@ public sealed class ClassConfigEditorControl : UserControl
             tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
         }
 
+        var contentCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(14)
+        };
+        contentCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        contentCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
         var contentHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0),
-            Padding = new Padding(12)
+            Padding = new Padding(0)
         };
+        contentCard.Controls.Add(contentHost, 0, 0);
 
         var pages = new Control[]
         {
@@ -313,10 +325,11 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             page.Dock = DockStyle.Fill;
             page.Visible = false;
+            page.BackColor = UiTheme.SurfaceRaised;
             contentHost.Controls.Add(page);
         }
 
-        var labels = new Label[5];
+        var tabs = new UiPillTab[5];
         var selectedIndex = -1;
         void SelectTab(int index)
         {
@@ -326,12 +339,10 @@ public sealed class ClassConfigEditorControl : UserControl
             }
 
             selectedIndex = index;
-            for (var i = 0; i < labels.Length; i++)
+            for (var i = 0; i < tabs.Length; i++)
             {
                 var selected = i == index;
-                labels[i].BackColor = selected ? UiTheme.Field : UiTheme.Surface;
-                labels[i].ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
-                labels[i].Invalidate();
+                tabs[i].Selected = selected;
                 pages[i].Visible = selected;
                 if (selected)
                 {
@@ -344,49 +355,14 @@ public sealed class ClassConfigEditorControl : UserControl
         for (var i = 0; i < titles.Length; i++)
         {
             var index = i;
-            var label = new Label
-            {
-                Text = titles[i],
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                AutoSize = false,
-                BackColor = UiTheme.Surface,
-                ForeColor = UiTheme.Muted,
-                Cursor = Cursors.Hand,
-                Margin = new Padding(i == 0 ? 0 : 1, 0, 0, 0)
-            };
-            label.Click += (_, _) => SelectTab(index);
-            label.MouseEnter += (_, _) =>
-            {
-                if (selectedIndex != index)
-                {
-                    label.BackColor = UiTheme.Hover;
-                }
-            };
-            label.MouseLeave += (_, _) =>
-            {
-                if (selectedIndex != index)
-                {
-                    label.BackColor = UiTheme.Surface;
-                }
-            };
-            label.Paint += (_, e) =>
-            {
-                if (selectedIndex != index)
-                {
-                    return;
-                }
-
-                using var accent = new SolidBrush(UiTheme.Accent);
-                e.Graphics.FillRectangle(accent, 8, label.Height - 3, Math.Max(0, label.Width - 16), 2);
-            };
-            label.SizeChanged += (_, _) => label.Invalidate();
-            labels[i] = label;
-            tabBar.Controls.Add(label, i, 0);
+            var tab = new UiPillTab(titles[i]);
+            tab.Click += (_, _) => SelectTab(index);
+            tabs[i] = tab;
+            tabBar.Controls.Add(tab, i, 0);
         }
 
         root.Controls.Add(tabBar, 0, 0);
-        root.Controls.Add(contentHost, 0, 1);
+        root.Controls.Add(contentCard, 0, 1);
         SelectTab(0);
         return root;
     }
@@ -432,7 +408,7 @@ public sealed class ClassConfigEditorControl : UserControl
         var tabBar = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Border,
+            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = categories.Length,
             RowCount = 1,
             Margin = new Padding(0),
@@ -443,15 +419,12 @@ public sealed class ClassConfigEditorControl : UserControl
             tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / categories.Length));
         }
 
-        var labels = new Label[categories.Length];
+        var tabs = new UiPillTab[categories.Length];
         void ApplySelection()
         {
-            for (var i = 0; i < labels.Length; i++)
+            for (var i = 0; i < tabs.Length; i++)
             {
-                var selected = string.Equals(categories[i], _selectedStateCategory, StringComparison.Ordinal);
-                labels[i].BackColor = selected ? UiTheme.Field : UiTheme.Surface;
-                labels[i].ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
-                labels[i].Invalidate();
+                tabs[i].Selected = string.Equals(categories[i], _selectedStateCategory, StringComparison.Ordinal);
             }
         }
 
@@ -474,45 +447,10 @@ public sealed class ClassConfigEditorControl : UserControl
         for (var i = 0; i < categories.Length; i++)
         {
             var category = categories[i];
-            var label = new Label
-            {
-                Text = category,
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                AutoSize = false,
-                BackColor = UiTheme.Surface,
-                ForeColor = UiTheme.Muted,
-                Cursor = Cursors.Hand,
-                Margin = new Padding(i == 0 ? 0 : 1, 0, 0, 0)
-            };
-            label.Click += (_, _) => SelectCategory(category);
-            label.MouseEnter += (_, _) =>
-            {
-                if (!string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
-                {
-                    label.BackColor = UiTheme.Hover;
-                }
-            };
-            label.MouseLeave += (_, _) =>
-            {
-                if (!string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
-                {
-                    label.BackColor = UiTheme.Surface;
-                }
-            };
-            label.Paint += (_, e) =>
-            {
-                if (!string.Equals(category, _selectedStateCategory, StringComparison.Ordinal))
-                {
-                    return;
-                }
-
-                using var accent = new SolidBrush(UiTheme.Accent);
-                e.Graphics.FillRectangle(accent, 8, label.Height - 3, Math.Max(0, label.Width - 16), 2);
-            };
-            label.SizeChanged += (_, _) => label.Invalidate();
-            labels[i] = label;
-            tabBar.Controls.Add(label, i, 0);
+            var tab = new UiPillTab(category);
+            tab.Click += (_, _) => SelectCategory(category);
+            tabs[i] = tab;
+            tabBar.Controls.Add(tab, i, 0);
         }
 
         ApplySelection();
@@ -859,6 +797,7 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             AutoSize = false,
             ForeColor = UiTheme.Muted,
+            BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleLeft,
             Margin = new Padding(0),
             AutoEllipsis = true
@@ -869,6 +808,7 @@ public sealed class ClassConfigEditorControl : UserControl
         label.Dock = DockStyle.Fill;
         label.AutoSize = false;
         label.ForeColor = foreColor;
+        label.BackColor = Color.Transparent;
         label.TextAlign = ContentAlignment.MiddleLeft;
         label.AutoEllipsis = true;
         label.Margin = new Padding(0);
