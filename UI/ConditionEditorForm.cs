@@ -156,7 +156,8 @@ public sealed class ConditionEditorForm : Form
         new("Shigure", ConditionFieldCategory.Shigure),
         new("光环", ConditionFieldCategory.Aura),
         new("技能", ConditionFieldCategory.Spell),
-        new("动态单位", ConditionFieldCategory.DynamicUnit)
+        new("动态单位", ConditionFieldCategory.DynamicUnit),
+        new("动态数值", ConditionFieldCategory.DynamicValue)
     ];
 
     private readonly IReadOnlyList<ConditionField> _fields;

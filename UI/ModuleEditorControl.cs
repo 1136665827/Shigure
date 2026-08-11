@@ -84,7 +84,8 @@ public sealed class ModuleEditorControl : UserControl
         ("状态", ConditionFieldCategory.State),
         ("技能", ConditionFieldCategory.Spell),
         ("光环", ConditionFieldCategory.Aura),
-        ("动态单位", ConditionFieldCategory.DynamicUnit)
+        ("动态单位", ConditionFieldCategory.DynamicUnit),
+        ("动态数值", ConditionFieldCategory.DynamicValue)
     ];
 
     public ModuleEditorControl(ModuleStore moduleStore, Func<Task> runtimeRestartRequested, string baseDirectory)
@@ -695,7 +696,7 @@ public sealed class ModuleEditorControl : UserControl
         // "类型"列加在集合末尾以保留 Rows.Add 的位置参数(启用/数值/调整/条件), 再用 DisplayIndex 显示到"数值"前。
         _adjustmentTypeColumn.Name = "Type";
         _adjustmentTypeColumn.HeaderText = "类型";
-        _adjustmentTypeColumn.Width = 120;
+        _adjustmentTypeColumn.Width = 140;
         _adjustmentTypeColumn.MinimumWidth = 100;
         _adjustmentTypeColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _adjustmentTypeColumn.FlatStyle = FlatStyle.Flat;
@@ -1251,7 +1252,7 @@ public sealed class ModuleEditorControl : UserControl
         return AdjustmentTypeOptions[0].Text;
     }
 
-    // 优先按目录里的字段类别判定; 目录外的自定义字段按 auras./spells. 前缀兜底, 其余归为状态。
+    // 优先按目录里的字段类别判定; 目录外的自定义字段按 auras./spells. 前缀兜底, 其余归为动态数值。
     private ConditionFieldCategory ResolveAdjustmentCategory(string field)
     {
         var name = field?.Trim() ?? string.Empty;
@@ -1279,7 +1280,7 @@ public sealed class ModuleEditorControl : UserControl
             return ConditionFieldCategory.Spell;
         }
 
-        return ConditionFieldCategory.State;
+        return ConditionFieldCategory.DynamicValue;
     }
 
     private void OnAdjustmentsGridCellValueChanged(object? sender, DataGridViewCellEventArgs e)
@@ -1313,11 +1314,8 @@ public sealed class ModuleEditorControl : UserControl
             }
         }
 
-        foreach (var fieldName in GetAdjustmentTargetFields())
-        {
-            AddAdjustmentField(fields, seen, fieldName, $"{fieldName} (动态数值)", ConditionFieldCategory.State);
-        }
-
+        // 已定义的动态单位生命值和数量拥有明确类别，必须先于动态数值目标加入；
+        // 否则同名目标会被 seen 抢先登记成错误类别，载入时无法正确回填“类型”。
         foreach (var unit in _units)
         {
             if (!string.IsNullOrWhiteSpace(unit.HealthName))
@@ -1330,8 +1328,14 @@ public sealed class ModuleEditorControl : UserControl
         {
             if (!string.IsNullOrWhiteSpace(count.Name))
             {
-                AddAdjustmentField(fields, seen, count.Name, $"人数: {count.Name}", ConditionFieldCategory.DynamicUnit);
+                AddAdjustmentField(fields, seen, count.Name, $"人数: {count.Name}", ConditionFieldCategory.DynamicValue);
             }
+        }
+
+        // 公式结果和其它不属于状态/技能/光环/动态单位的命名目标都是动态数值。
+        foreach (var fieldName in GetAdjustmentTargetFields())
+        {
+            AddAdjustmentField(fields, seen, fieldName, $"{fieldName} (动态数值)", ConditionFieldCategory.DynamicValue);
         }
 
         return fields;
@@ -1542,9 +1546,11 @@ public sealed class ModuleEditorControl : UserControl
 
     private IReadOnlyList<string> GetThresholdFields()
     {
-        // 阈值字段仅取状态/动态单位(可加减数值), 排除新加入"数值"选项的技能/光环字段。
+        // 阈值字段仅取状态/动态单位/动态数值(可加减数值), 排除技能/光环字段。
         return BuildAdjustmentFields()
-            .Where(field => field.Category is ConditionFieldCategory.State or ConditionFieldCategory.DynamicUnit)
+            .Where(field => field.Category is ConditionFieldCategory.State
+                or ConditionFieldCategory.DynamicUnit
+                or ConditionFieldCategory.DynamicValue)
             .Select(field => field.Name)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .ToList();
@@ -2774,7 +2780,7 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.InvalidateRow(rowIndex);
     }
 
-    // 条件字段 = 状态/技能字段 + 每个动态单位的裸名(存在)和值名称 + 每个数量名。
+    // 条件字段 = 状态/技能字段 + 每个动态单位的裸名(存在)和值名称 + 动态数值。
     private IReadOnlyList<ConditionField> BuildConditionFields(bool includeRuleSettings = false)
     {
         var classId = ReadMatchCombo(_classBox);
@@ -2824,7 +2830,19 @@ public sealed class ModuleEditorControl : UserControl
         {
             if (!string.IsNullOrWhiteSpace(count.Name) && seen.Add(count.Name))
             {
-                fields.Add(new ConditionField(count.Name, $"人数: {count.Name}", ConditionFieldType.Int, ConditionFieldCategory.DynamicUnit));
+                fields.Add(new ConditionField(count.Name, $"人数: {count.Name}", ConditionFieldType.Int, ConditionFieldCategory.DynamicValue));
+            }
+        }
+
+        foreach (var fieldName in GetAdjustmentTargetFields())
+        {
+            if (seen.Add(fieldName))
+            {
+                fields.Add(new ConditionField(
+                    fieldName,
+                    $"{fieldName} (动态数值)",
+                    ConditionFieldType.Int,
+                    ConditionFieldCategory.DynamicValue));
             }
         }
 
