@@ -359,7 +359,8 @@ public sealed class MainForm : Form, IMessageFilter
 
         var closeButton = UiTheme.CreateButton("✕", UiTheme.Field, UiTheme.Muted);
         ConfigureTopBarButton(closeButton);
-        closeButton.FlatAppearance.MouseOverBackColor = UiTheme.Danger;
+        closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(196, 43, 28);
+        closeButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(153, 27, 21);
         closeButton.Click += (_, _) => Close();
 
         buttons.Controls.AddRange(new Control[] { _enableButton, _settingsButton, closeButton });
