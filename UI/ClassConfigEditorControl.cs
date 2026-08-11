@@ -23,7 +23,6 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly DataGridView _statesGrid = new();
     private readonly DataGridViewComboBoxColumn _stateNameColumn = new();
     private readonly DataGridView _aurasGrid = new();
-    private readonly ComboBox _auraBucketBox = new();
     private readonly DataGridView _spellsGrid = new();
     private readonly DataGridView _spellsListGrid = new();
     private readonly NumericUpDown _groupNumBox = new();
@@ -31,6 +30,8 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly NumericUpDown _groupRoleBox = new();
     private readonly NumericUpDown _groupDispelBox = new();
     private readonly CheckBox _groupEnabledBox = new();
+    private readonly CheckBox _groupHasHealthBox = new();
+    private readonly CheckBox _groupHasRoleBox = new();
     private readonly CheckBox _groupHasDispelBox = new();
     private readonly DataGridView _groupAurasGrid = new();
 
@@ -470,34 +471,7 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
-        var top = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false
-        };
-        top.Controls.Add(CreateMutedLabel("单位"));
-        UiTheme.StyleComboBox(_auraBucketBox);
-        _auraBucketBox.Width = 180;
-        foreach (var bucket in AuraBuckets)
-        {
-            _auraBucketBox.Items.Add(new BucketOption(bucket.Key, bucket.Text));
-        }
-
-        _auraBucketBox.SelectedIndex = 0;
-        _auraBucketBox.SelectedIndexChanged += (_, _) =>
-        {
-            if (_suppressUi)
-            {
-                return;
-            }
-
-            WriteBackAuras(_lastAuraBucket);
-            _lastAuraBucket = (_auraBucketBox.SelectedItem as BucketOption)?.Key ?? "player";
-            FillAurasGrid();
-        };
-        top.Controls.Add(_auraBucketBox);
-        panel.Controls.Add(top, 0, 0);
+        panel.Controls.Add(BuildAuraBucketTabs(), 0, 0);
 
         ConfigureGrid(_aurasGrid);
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "名称", Width = 160 });
@@ -516,6 +490,66 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.Controls.Add(_aurasGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_aurasGrid), 0, 2);
         return panel;
+    }
+
+    private Control BuildAuraBucketTabs()
+    {
+        var tabBar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.SurfaceRaised,
+            ColumnCount = AuraBuckets.Length,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        foreach (var _ in AuraBuckets)
+        {
+            tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / AuraBuckets.Length));
+        }
+
+        var tabs = new UiPillTab[AuraBuckets.Length];
+        void ApplySelection()
+        {
+            for (var i = 0; i < tabs.Length; i++)
+            {
+                tabs[i].Selected = string.Equals(AuraBuckets[i].Key, _lastAuraBucket, StringComparison.Ordinal);
+            }
+        }
+
+        void SelectBucket(string key)
+        {
+            if (_suppressUi || string.Equals(key, _lastAuraBucket, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _aurasGrid.EndEdit();
+            WriteBackAuras(_lastAuraBucket);
+            _lastAuraBucket = key;
+            ApplySelection();
+            _suppressUi = true;
+            try
+            {
+                FillAurasGrid();
+            }
+            finally
+            {
+                _suppressUi = false;
+            }
+        }
+
+        for (var i = 0; i < AuraBuckets.Length; i++)
+        {
+            var bucket = AuraBuckets[i];
+            var tab = new UiPillTab(bucket.Text);
+            tab.Click += (_, _) => SelectBucket(bucket.Key);
+            tabs[i] = tab;
+            tabBar.Controls.Add(tab, i, 0);
+        }
+
+        ApplySelection();
+        return tabBar;
     }
 
     private Control BuildSpellsPage()
@@ -608,7 +642,7 @@ public sealed class ClassConfigEditorControl : UserControl
             RowCount = 3,
             BackColor = UiTheme.SurfaceRaised
         };
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
@@ -616,10 +650,13 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true,
-            BackColor = UiTheme.SurfaceRaised
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = UiTheme.SurfaceRaised,
+            Padding = new Padding(4, 6, 4, 6),
+            Margin = new Padding(0)
         };
-        _groupEnabledBox.Text = "启用 group";
+        _groupEnabledBox.Text = "启用";
         _groupEnabledBox.ForeColor = UiTheme.Text;
         _groupEnabledBox.AutoSize = true;
         _groupEnabledBox.CheckedChanged += (_, _) =>
@@ -630,23 +667,33 @@ public sealed class ClassConfigEditorControl : UserControl
                 UpdateGroupEditorsEnabled();
             }
         };
-        fields.Controls.Add(_groupEnabledBox);
-        fields.Controls.Add(CreateField("num", _groupNumBox, 1, 40, 5));
-        fields.Controls.Add(CreateField("healthPercent", _groupHealthBox, 0, 40, 1));
-        fields.Controls.Add(CreateField("role", _groupRoleBox, 0, 40, 2));
-        _groupHasDispelBox.Text = "dispel";
-        _groupHasDispelBox.ForeColor = UiTheme.Text;
-        _groupHasDispelBox.AutoSize = true;
-        _groupHasDispelBox.CheckedChanged += (_, _) =>
+        var groupCards = new Control[]
         {
-            if (!_suppressUi)
-            {
-                MarkDirty();
-                _groupDispelBox.Enabled = _groupEnabledBox.Checked && _groupHasDispelBox.Checked;
-            }
+            CreateGroupCard("GROUP", _groupEnabledBox),
+            CreateGroupNumberCard("NUM", _groupNumBox, 1, 40, 5),
+            CreateGroupOptionalNumberCard("HEALTH PERCENT", _groupHasHealthBox, _groupHealthBox, 0, 40, 1),
+            CreateGroupOptionalNumberCard("ROLE", _groupHasRoleBox, _groupRoleBox, 0, 40, 2),
+            CreateGroupOptionalNumberCard("DISPEL", _groupHasDispelBox, _groupDispelBox, 0, 40, 3)
         };
-        fields.Controls.Add(_groupHasDispelBox);
-        fields.Controls.Add(CreateField("", _groupDispelBox, 0, 40, 3));
+        foreach (var card in groupCards)
+        {
+            fields.Controls.Add(card);
+        }
+
+        void FitGroupCards()
+        {
+            const int minimumCardWidth = 176;
+            var totalMargins = groupCards.Sum(card => card.Margin.Horizontal);
+            var availableWidth = Math.Max(0, fields.ClientSize.Width - fields.Padding.Horizontal - totalMargins);
+            var cardWidth = Math.Max(minimumCardWidth, availableWidth / groupCards.Length);
+            foreach (var card in groupCards)
+            {
+                card.Width = cardWidth;
+            }
+        }
+
+        fields.SizeChanged += (_, _) => FitGroupCards();
+        fields.HandleCreated += (_, _) => FitGroupCards();
         panel.Controls.Add(fields, 0, 0);
 
         ConfigureGrid(_groupAurasGrid);
@@ -668,25 +715,27 @@ public sealed class ClassConfigEditorControl : UserControl
         return panel;
     }
 
-    private Control CreateField(string label, NumericUpDown box, decimal min, decimal max, decimal value)
+    private Control CreateGroupNumberCard(
+        string title,
+        NumericUpDown box,
+        decimal min,
+        decimal max,
+        decimal value)
     {
-        var host = new FlowLayoutPanel
-        {
-            AutoSize = true,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            Margin = new Padding(12, 0, 0, 0)
-        };
-        if (!string.IsNullOrEmpty(label))
-        {
-            host.Controls.Add(CreateMutedLabel(label));
-        }
+        ConfigureGroupNumberBox(box, min, max, value);
+        box.AutoSize = false;
+        box.Width = 110;
+        box.Anchor = AnchorStyles.Left;
+        box.Margin = Padding.Empty;
+        return CreateGroupCard(title, box);
+    }
 
+    private void ConfigureGroupNumberBox(NumericUpDown box, decimal min, decimal max, decimal value)
+    {
         UiTheme.StyleNumericUpDown(box);
         box.Minimum = min;
         box.Maximum = max;
         box.Value = value;
-        box.Width = 70;
         box.ValueChanged += (_, _) =>
         {
             if (!_suppressUi)
@@ -694,8 +743,99 @@ public sealed class ClassConfigEditorControl : UserControl
                 MarkDirty();
             }
         };
-        host.Controls.Add(box);
-        return host;
+    }
+
+    private Control CreateGroupOptionalNumberCard(
+        string title,
+        CheckBox enabledBox,
+        NumericUpDown numberBox,
+        decimal min,
+        decimal max,
+        decimal value)
+    {
+        enabledBox.Text = "启用";
+        enabledBox.ForeColor = UiTheme.Text;
+        enabledBox.AutoSize = true;
+        enabledBox.Anchor = AnchorStyles.Left;
+        enabledBox.Margin = new Padding(0, 0, 10, 0);
+        enabledBox.CheckedChanged += (_, _) =>
+        {
+            if (!_suppressUi)
+            {
+                MarkDirty();
+                numberBox.Enabled = _groupEnabledBox.Checked && enabledBox.Checked;
+            }
+        };
+
+        ConfigureGroupNumberBox(numberBox, min, max, value);
+        numberBox.AutoSize = false;
+        numberBox.Width = 76;
+        numberBox.Anchor = AnchorStyles.Left;
+        numberBox.Margin = Padding.Empty;
+
+        var body = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 3,
+            RowCount = 1,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        // 复选框列按“勾选框 + 启用文字”的实际首选宽度计算，避免高 DPI 下文字被裁切。
+        body.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));
+        body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        body.Controls.Add(enabledBox, 0, 0);
+        body.Controls.Add(numberBox, 1, 0);
+        return CreateGroupCard(title, body);
+    }
+
+    private Control CreateGroupCard(string title, Control content)
+    {
+        var card = new UiCardPanel
+        {
+            AutoSize = false,
+            Size = new Size(160, 88),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(12, 10, 12, 10),
+            Margin = new Padding(4, 0, 4, 0)
+        };
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+        card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        card.Controls.Add(new Label
+        {
+            Text = title,
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            ForeColor = UiTheme.Muted,
+            BackColor = Color.Transparent,
+            Font = new Font(Font.FontFamily, 8F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = Padding.Empty
+        }, 0, 0);
+
+        if (content is CheckBox checkBox)
+        {
+            checkBox.Anchor = AnchorStyles.Left;
+            checkBox.Margin = Padding.Empty;
+        }
+        else if (content is NumericUpDown numeric)
+        {
+            numeric.Dock = DockStyle.None;
+            numeric.Anchor = AnchorStyles.Left;
+            numeric.Margin = Padding.Empty;
+        }
+        else
+        {
+            content.Dock = DockStyle.Fill;
+            content.Margin = Padding.Empty;
+        }
+
+        card.Controls.Add(content, 0, 1);
+        return card;
     }
 
     private Control BuildMoveButtons(DataGridView grid)
@@ -1042,7 +1182,6 @@ public sealed class ClassConfigEditorControl : UserControl
         try
         {
             _lastStateCategory = _selectedStateCategory;
-            _lastAuraBucket = (_auraBucketBox.SelectedItem as BucketOption)?.Key ?? "player";
             FillStatesGrid();
             FillAurasGrid();
             FillSpellsGrid();
@@ -1272,7 +1411,9 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             _groupEnabledBox.Checked = true;
             _groupNumBox.Value = Clamp(_groupNumBox, group.Num);
+            _groupHasHealthBox.Checked = group.HealthPercent is not null;
             _groupHealthBox.Value = Clamp(_groupHealthBox, group.HealthPercent ?? 1);
+            _groupHasRoleBox.Checked = group.Role is not null;
             _groupRoleBox.Value = Clamp(_groupRoleBox, group.Role ?? 2);
             _groupHasDispelBox.Checked = group.Dispel is not null;
             _groupDispelBox.Value = Clamp(_groupDispelBox, group.Dispel ?? 3);
@@ -1289,6 +1430,8 @@ public sealed class ClassConfigEditorControl : UserControl
         else
         {
             _groupEnabledBox.Checked = false;
+            _groupHasHealthBox.Checked = false;
+            _groupHasRoleBox.Checked = false;
             _groupHasDispelBox.Checked = false;
             _groupNumBox.Value = 5;
             _groupHealthBox.Value = 1;
@@ -1303,8 +1446,10 @@ public sealed class ClassConfigEditorControl : UserControl
     {
         var enabled = _groupEnabledBox.Checked;
         _groupNumBox.Enabled = enabled;
-        _groupHealthBox.Enabled = enabled;
-        _groupRoleBox.Enabled = enabled;
+        _groupHasHealthBox.Enabled = enabled;
+        _groupHealthBox.Enabled = enabled && _groupHasHealthBox.Checked;
+        _groupHasRoleBox.Enabled = enabled;
+        _groupRoleBox.Enabled = enabled && _groupHasRoleBox.Checked;
         _groupHasDispelBox.Enabled = enabled;
         _groupDispelBox.Enabled = enabled && _groupHasDispelBox.Checked;
         _groupAurasGrid.Enabled = enabled;
@@ -1312,7 +1457,7 @@ public sealed class ClassConfigEditorControl : UserControl
     }
 
     private List<ClassBlocksStore.AuraEntry> GetCurrentAuraList()
-        => ResolveAuraList((_auraBucketBox.SelectedItem as BucketOption)?.Key ?? "player");
+        => ResolveAuraList(_lastAuraBucket);
 
     private List<ClassBlocksStore.AuraEntry> ResolveAuraList(string key)
     {
@@ -1504,8 +1649,8 @@ public sealed class ClassConfigEditorControl : UserControl
         var group = new ClassBlocksStore.GroupBlocks
         {
             Num = (int)_groupNumBox.Value,
-            HealthPercent = (int)_groupHealthBox.Value,
-            Role = (int)_groupRoleBox.Value,
+            HealthPercent = _groupHasHealthBox.Checked ? (int)_groupHealthBox.Value : null,
+            Role = _groupHasRoleBox.Checked ? (int)_groupRoleBox.Value : null,
             Dispel = _groupHasDispelBox.Checked ? (int)_groupDispelBox.Value : null
         };
 
@@ -1742,10 +1887,5 @@ public sealed class ClassConfigEditorControl : UserControl
     private sealed record SpecOption(int ClassId, int Id, string Name)
     {
         public override string ToString() => Name;
-    }
-
-    private sealed record BucketOption(string Key, string Text)
-    {
-        public override string ToString() => Text;
     }
 }
