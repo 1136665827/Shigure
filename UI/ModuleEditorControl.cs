@@ -195,7 +195,7 @@ public sealed class ModuleEditorControl : UserControl
         getModulesButton.FlatAppearance.BorderColor = Color.FromArgb(252, 238, 10);
         getModulesButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
         getModulesButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
-        getModulesButton.Paint += (_, e) => DrawExternalLinkIcon(
+        getModulesButton.Paint += (_, e) => UiTheme.DrawExternalLinkIcon(
             e.Graphics,
             getModulesButton.ClientRectangle,
             getModulesButton.Text,
@@ -207,57 +207,6 @@ public sealed class ModuleEditorControl : UserControl
         footer.Controls.Add(reloadButton, 0, 0);
         footer.Controls.Add(getModulesButton, 2, 0);
         return footer;
-    }
-
-    private static void DrawExternalLinkIcon(
-        Graphics graphics,
-        Rectangle clientBounds,
-        string text,
-        Font font,
-        Color color,
-        float scale)
-    {
-        var iconSize = 17F * scale;
-        var iconGap = 6F * scale;
-        var textSize = TextRenderer.MeasureText(
-            graphics,
-            text,
-            font,
-            Size.Empty,
-            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
-        var groupWidth = textSize.Width + iconGap + iconSize;
-        var left = clientBounds.Left
-            + ((clientBounds.Width - groupWidth) / 2F)
-            + textSize.Width
-            + iconGap;
-        var top = clientBounds.Top + (clientBounds.Height - iconSize) / 2F;
-
-        var previousSmoothingMode = graphics.SmoothingMode;
-        graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using var pen = new Pen(color, 1.8F * scale)
-        {
-            StartCap = LineCap.Round,
-            EndCap = LineCap.Round,
-            LineJoin = LineJoin.Round
-        };
-
-        PointF Point(float x, float y) => new(left + (x * scale), top + (y * scale));
-
-        graphics.DrawLines(
-            pen,
-            [
-                Point(7, 2),
-                Point(4, 2),
-                Point(2, 4),
-                Point(2, 13),
-                Point(4, 15),
-                Point(13, 15),
-                Point(15, 13),
-                Point(15, 9)
-            ]);
-        graphics.DrawLine(pen, Point(8, 9), Point(15, 2));
-        graphics.DrawLines(pen, [Point(10, 2), Point(15, 2), Point(15, 7)]);
-        graphics.SmoothingMode = previousSmoothingMode;
     }
 
     private static void OpenModuleWebsite()

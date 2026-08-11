@@ -705,7 +705,7 @@ public sealed class StatusForm : Form
         }, 0, 0);
         heading.Controls.Add(new Label
         {
-            Text = "应用信息与 ClassBlocks 可用状态字段参考",
+            Text = "世界上的大多数人想到荒坂公司时，脑中浮现的景象便是被众多企业、组织、权势雇佣的黑衣保安。",
             AutoSize = true,
             ForeColor = UiTheme.Muted,
             BackColor = Color.Transparent,
