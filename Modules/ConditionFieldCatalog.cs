@@ -15,7 +15,8 @@ public enum ConditionFieldCategory
     Shigure,
     Aura,
     Spell,
-    DynamicUnit
+    DynamicUnit,
+    DynamicValue
 }
 
 public static class ShigureConditionFields
