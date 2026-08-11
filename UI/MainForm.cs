@@ -648,17 +648,45 @@ public sealed class MainForm : Form, IMessageFilter
         _settingsToolTip.SetToolTip(moduleWebsiteLabel, $"在默认浏览器中打开 {ModuleWebsiteUrl}");
         getModulesCard.Controls.Add(moduleWebsiteLabel, 0, 2);
 
+        var moduleActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+
         var moduleWebsiteButtonColor = Color.FromArgb(252, 238, 10);
-        var openModuleWebsiteButton = UiTheme.CreateButton("打开模块网站", moduleWebsiteButtonColor, Color.Black);
+        var openModuleWebsiteButton = UiTheme.CreateButton("获取模块", moduleWebsiteButtonColor, Color.Black);
         openModuleWebsiteButton.AutoSize = false;
         openModuleWebsiteButton.Size = new Size(160, settingsActionButtonHeight);
-        openModuleWebsiteButton.Dock = DockStyle.Left;
-        openModuleWebsiteButton.Margin = new Padding(0);
+        openModuleWebsiteButton.Margin = new Padding(0, 0, 10, 0);
+        openModuleWebsiteButton.Padding = new Padding(0, 2, 24, 2);
         openModuleWebsiteButton.FlatAppearance.BorderColor = moduleWebsiteButtonColor;
         openModuleWebsiteButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
         openModuleWebsiteButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
+        openModuleWebsiteButton.Paint += (_, e) => UiTheme.DrawExternalLinkIcon(
+            e.Graphics,
+            openModuleWebsiteButton.ClientRectangle,
+            openModuleWebsiteButton.Text,
+            openModuleWebsiteButton.Font,
+            openModuleWebsiteButton.ForeColor,
+            openModuleWebsiteButton.DeviceDpi / 96F);
         openModuleWebsiteButton.Click += (_, _) => OpenModuleWebsite();
-        getModulesCard.Controls.Add(openModuleWebsiteButton, 0, 3);
+
+        var openModuleDirectoryButton = UiTheme.CreateButton("打开模块目录", UiTheme.ButtonKind.Secondary);
+        openModuleDirectoryButton.AutoSize = false;
+        openModuleDirectoryButton.Size = new Size(160, settingsActionButtonHeight);
+        openModuleDirectoryButton.Margin = new Padding(0);
+        openModuleDirectoryButton.Click += (_, _) => OpenModuleDirectory();
+        _settingsToolTip.SetToolTip(openModuleDirectoryButton, "在资源管理器中打开本地模块目录");
+
+        moduleActions.Controls.Add(openModuleWebsiteButton);
+        moduleActions.Controls.Add(openModuleDirectoryButton);
+        getModulesCard.Controls.Add(moduleActions, 0, 3);
 
         panel.Controls.Add(inputCard, 0, 0);
         panel.Controls.Add(configCard, 1, 0);
@@ -683,6 +711,30 @@ public sealed class MainForm : Form, IMessageFilter
             MessageBox.Show(
                 this,
                 $"无法打开模块网站：{ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private void OpenModuleDirectory()
+    {
+        var moduleDirectory = _moduleStore.ModuleDirectory;
+        try
+        {
+            Directory.CreateDirectory(moduleDirectory);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{moduleDirectory}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"无法打开模块目录：{ex.Message}",
                 "Shigure",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
