@@ -55,6 +55,15 @@ Fuyutsui.ClassBlocks = {
                 { name = "冰封之韧", spellId = 48792, },
                 { name = "枯萎凋零", spellId = 188290, },
                 { name = "破灭", spellId = 441416, },
+                { name = "午夜舞步", spellId = 1264407, },
+                { name = "沸点", spellId = 1265968, },
+                { name = "赤色天灾", spellId = 81136, },
+                { name = "鲜血护盾", spellId = 77535, maxApps = 50, },
+            },
+            target = {
+                harmful = {
+                    { name = "血之疫病", spellId = 55078, },
+                },
             },
         },
         spells = {
