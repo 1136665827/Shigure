@@ -142,31 +142,28 @@ public sealed class ConditionEditorForm : Form
     private const int CategoryWidth = 140;
     private const int FieldWidth = 230;
     private const int OpWidth = 90;
-    private const int RecognizedAuraMetricWidth = 110;
     private const int ValueWidth = 130;
     private const int DeleteWidth = 36;
-    private const int RowTotalWidth = ConnectorWidth + CategoryWidth + FieldWidth + OpWidth + RecognizedAuraMetricWidth + ValueWidth + DeleteWidth;
+    private const int RowTotalWidth = ConnectorWidth + CategoryWidth + FieldWidth + OpWidth + ValueWidth + DeleteWidth;
 
     private static readonly string[] AllOperators = ["==", "!=", ">", ">=", "<", "<=", "in", "not in"];
     private static readonly string[] TextOperators = ["==", "!=", "in", "not in"];
     private static readonly string[] BoolOperators = ["==", "!="];
-    private static readonly CategoryItem RecognizedAuraCategory = new("识别光环", ConditionFieldCategory.RecognizedAura);
-    private static readonly RecognizedAuraMetricItem[] RecognizedAuraMetricItems =
-    [
-        new("时间", RecognizedAuraMetric.Time),
-        new("层数", RecognizedAuraMetric.Stacks)
-    ];
+    private static readonly string[] DelayOperators = ["=="];
     private static readonly CategoryItem[] CategoryItems =
     [
         new("状态", ConditionFieldCategory.State),
+        new("Shigure", ConditionFieldCategory.Shigure),
         new("光环", ConditionFieldCategory.Aura),
         new("技能", ConditionFieldCategory.Spell),
-        new("动态单位", ConditionFieldCategory.DynamicUnit)
+        new("动态单位", ConditionFieldCategory.DynamicUnit),
+        new("动态数值", ConditionFieldCategory.DynamicValue)
     ];
 
     private readonly IReadOnlyList<ConditionField> _fields;
     private readonly string _originalCondition;
     private readonly bool _allowSubConditions;
+    private readonly bool _allowRuleSettings;
     private readonly FlowLayoutPanel _rowsPanel = new();
     private readonly Label _previewLabel = new();
     private readonly ToolTip _previewToolTip = new();
@@ -175,6 +172,8 @@ public sealed class ConditionEditorForm : Form
     private readonly ListBox _subList = new();
 
     public string ConditionText { get; private set; } = string.Empty;
+    public int? DelayMs { get; private set; }
+    public int? LogicDelayMs { get; private set; }
 
     // 子条件: 与主条件是「且」、子条件彼此是「或」。allowSubConditions=false(默认)时不显示该区,
     // 也用于子条件自身的嵌套编辑弹窗防止无限递归。
@@ -184,11 +183,15 @@ public sealed class ConditionEditorForm : Form
         IReadOnlyList<ConditionField> fields,
         string? condition,
         IEnumerable<string>? subConditions = null,
-        bool allowSubConditions = false)
+        bool allowSubConditions = false,
+        int? delayMs = null,
+        int? logicDelayMs = null,
+        bool allowRuleSettings = false)
     {
         _fields = fields;
         _originalCondition = condition ?? string.Empty;
         _allowSubConditions = allowSubConditions;
+        _allowRuleSettings = allowRuleSettings;
         if (subConditions is not null)
         {
             _subConditions.AddRange(subConditions
@@ -201,6 +204,24 @@ public sealed class ConditionEditorForm : Form
         foreach (var term in ConditionExpression.Parse(condition))
         {
             AddRow(term);
+        }
+
+        if (_allowRuleSettings && delayMs is > 0)
+        {
+            AddRow(new ConditionTerm(
+                OrWithPrevious: false,
+                ShigureConditionFields.Delay,
+                "==",
+                delayMs.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        if (_allowRuleSettings && logicDelayMs is > 0)
+        {
+            AddRow(new ConditionTerm(
+                OrWithPrevious: false,
+                ShigureConditionFields.LogicDelay,
+                "==",
+                logicDelayMs.Value.ToString(CultureInfo.InvariantCulture)));
         }
 
         // 空条件直接落在一条可填行上, 无需先去找"添加条件"。
@@ -429,14 +450,13 @@ public sealed class ConditionEditorForm : Form
             Height = 24,
             BackColor = UiTheme.Background,
             Margin = new Padding(0),
-            ColumnCount = 7,
+            ColumnCount = 6,
             RowCount = 1
         };
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ConnectorWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, CategoryWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FieldWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OpWidth));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, RecognizedAuraMetricWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ValueWidth));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DeleteWidth));
 
@@ -444,9 +464,8 @@ public sealed class ConditionEditorForm : Form
         header.Controls.Add(CreateHeaderLabel("类型"), 1, 0);
         header.Controls.Add(CreateHeaderLabel("字段"), 2, 0);
         header.Controls.Add(CreateHeaderLabel("判断"), 3, 0);
-        header.Controls.Add(CreateHeaderLabel("分类"), 4, 0);
-        header.Controls.Add(CreateHeaderLabel("值"), 5, 0);
-        header.Controls.Add(CreateHeaderLabel(string.Empty), 6, 0);
+        header.Controls.Add(CreateHeaderLabel("值"), 4, 0);
+        header.Controls.Add(CreateHeaderLabel(string.Empty), 5, 0);
         return header;
     }
 
@@ -536,6 +555,16 @@ public sealed class ConditionEditorForm : Form
         }
 
         var text = ConditionExpression.Build(CollectTerms());
+        if (!TryReadDelay(out var delayMs))
+        {
+            return;
+        }
+
+        if (!TryReadLogicDelay(out var logicDelayMs))
+        {
+            return;
+        }
+
         // 仅当原本有条件、现在主条件与子条件都为空时才提醒(避免把已有规则误清成"始终命中")。
         if (text.Length == 0
             && _subConditions.Count == 0
@@ -550,12 +579,19 @@ public sealed class ConditionEditorForm : Form
         }
 
         ConditionText = text;
+        DelayMs = delayMs;
+        LogicDelayMs = logicDelayMs;
         DialogResult = DialogResult.OK;
     }
 
     // 恰好字段与值一空一非空 → 不完整; 两者都空只是空行(静默忽略, 不算不完整)。
     private static bool IsRowIncomplete(ConditionRow row)
     {
+        if (IsRuleSettingField(row.SelectedField))
+        {
+            return false;
+        }
+
         var field = row.SelectedField?.Name.Trim() ?? string.Empty;
         var value = ReadRowValue(row);
         return (field.Length == 0) ^ (value.Length == 0);
@@ -569,14 +605,13 @@ public sealed class ConditionEditorForm : Form
             Height = 34,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0, 1, 0, 5),
-            ColumnCount = 7,
+            ColumnCount = 6,
             RowCount = 1
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ConnectorWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, CategoryWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FieldWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OpWidth));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, RecognizedAuraMetricWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ValueWidth));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DeleteWidth));
 
@@ -589,8 +624,9 @@ public sealed class ConditionEditorForm : Form
 
         var categoryBox = new ComboBox();
         UiTheme.StyleComboBox(categoryBox);
-        categoryBox.Items.AddRange(CategoryItems);
-        categoryBox.Items.Add(RecognizedAuraCategory);
+        categoryBox.Items.AddRange(CategoryItems
+            .Where(item => item.Category != ConditionFieldCategory.Shigure || _allowRuleSettings)
+            .ToArray());
         categoryBox.Dock = DockStyle.Fill;
         categoryBox.Margin = new Padding(0, 2, 8, 2);
 
@@ -605,12 +641,6 @@ public sealed class ConditionEditorForm : Form
         UiTheme.StyleComboBox(opBox);
         opBox.Dock = DockStyle.Fill;
         opBox.Margin = new Padding(0, 2, 8, 2);
-
-        var metricBox = new ComboBox();
-        UiTheme.StyleComboBox(metricBox);
-        metricBox.Items.AddRange(RecognizedAuraMetricItems);
-        metricBox.Dock = DockStyle.Fill;
-        metricBox.Margin = new Padding(0, 2, 8, 2);
 
         var valueHost = new Panel
         {
@@ -630,15 +660,12 @@ public sealed class ConditionEditorForm : Form
         panel.Controls.Add(categoryBox, 1, 0);
         panel.Controls.Add(fieldBox, 2, 0);
         panel.Controls.Add(opBox, 3, 0);
-        panel.Controls.Add(metricBox, 4, 0);
-        panel.Controls.Add(valueHost, 5, 0);
-        panel.Controls.Add(deleteButton, 6, 0);
+        panel.Controls.Add(valueHost, 4, 0);
+        panel.Controls.Add(deleteButton, 5, 0);
 
-        var row = new ConditionRow(panel, connectorBox, categoryBox, fieldBox, opBox, metricBox, valueHost);
-        SelectRecognizedAuraMetric(row, term?.Field);
+        var row = new ConditionRow(panel, connectorBox, categoryBox, fieldBox, opBox, valueHost);
         SelectCategory(row, ResolveCategory(term?.Field));
         PopulateFields(row, term?.Field);
-        UpdateRecognizedAuraMetricVisibility(row);
         PopulateOps(row, term?.Op);
         CreateValueControl(row, term?.Value, preserveRaw: true);
 
@@ -646,29 +673,21 @@ public sealed class ConditionEditorForm : Form
         categoryBox.SelectedIndexChanged += (_, _) =>
         {
             PopulateFields(row, null);
-            UpdateRecognizedAuraMetricVisibility(row);
             OnFieldChanged(row);
+            RefreshConnectors();
             UpdatePreview();
         };
         fieldBox.SelectedIndexChanged += (_, _) =>
         {
             OnFieldChanged(row);
+            RefreshConnectors();
             UpdatePreview();
-        };
-        fieldBox.TextChanged += (_, _) =>
-        {
-            if (row.SelectedCategory?.Category == ConditionFieldCategory.RecognizedAura)
-            {
-                OnFieldChanged(row);
-                UpdatePreview();
-            }
         };
         opBox.SelectedIndexChanged += (_, _) =>
         {
             OnOperatorChanged(row);
             UpdatePreview();
         };
-        metricBox.SelectedIndexChanged += (_, _) => UpdatePreview();
         deleteButton.Click += (_, _) => RemoveRow(row);
 
         _rows.Add(row);
@@ -689,7 +708,7 @@ public sealed class ConditionEditorForm : Form
     {
         for (var i = 0; i < _rows.Count; i++)
         {
-            _rows[i].Connector.Visible = i > 0;
+            _rows[i].Connector.Visible = i > 0 && !IsRuleSettingField(_rows[i].SelectedField);
         }
     }
 
@@ -697,8 +716,7 @@ public sealed class ConditionEditorForm : Form
     {
         var fieldBox = row.FieldBox;
         var category = row.SelectedCategory?.Category ?? ConditionFieldCategory.State;
-        var isRecognizedAura = category == ConditionFieldCategory.RecognizedAura;
-        fieldBox.DropDownStyle = isRecognizedAura ? ComboBoxStyle.DropDown : ComboBoxStyle.DropDownList;
+        fieldBox.DropDownStyle = ComboBoxStyle.DropDownList;
         fieldBox.Items.Clear();
         foreach (var field in _fields.Where(field => field.Category == category))
         {
@@ -707,23 +725,11 @@ public sealed class ConditionEditorForm : Form
 
         if (!string.IsNullOrWhiteSpace(currentField))
         {
-            if (isRecognizedAura)
-            {
-                currentField = RecognizedAuraFields.ToFieldName(currentField);
-            }
-
             var index = FindFieldIndex(fieldBox, currentField);
             if (index < 0)
             {
                 // 目录里没有的字段(如 group.* 或手写字段)保留为自定义项, 避免丢失原条件。
-                if (isRecognizedAura && RecognizedAuraFields.TryGetName(currentField, out var auraName))
-                {
-                    fieldBox.Items.Add(new FieldItem(currentField, auraName, ConditionFieldType.Int, category, IsCustom: false));
-                }
-                else
-                {
-                    fieldBox.Items.Add(new FieldItem(currentField, $"{currentField} (自定义)", ConditionFieldType.Int, category, IsCustom: true));
-                }
+                fieldBox.Items.Add(new FieldItem(currentField, $"{currentField} (自定义)", ConditionFieldType.Int, category, IsCustom: true));
 
                 index = fieldBox.Items.Count - 1;
             }
@@ -735,10 +741,6 @@ public sealed class ConditionEditorForm : Form
         if (fieldBox.Items.Count > 0)
         {
             fieldBox.SelectedIndex = 0;
-        }
-        else if (isRecognizedAura)
-        {
-            fieldBox.Text = RecognizedAuraFields.Prefix;
         }
     }
 
@@ -768,11 +770,6 @@ public sealed class ConditionEditorForm : Form
             return ConditionFieldCategory.Spell;
         }
 
-        if (RecognizedAuraFields.TryGetName(fieldName, out _))
-        {
-            return ConditionFieldCategory.RecognizedAura;
-        }
-
         return ConditionFieldCategory.State;
     }
 
@@ -788,32 +785,6 @@ public sealed class ConditionEditorForm : Form
         }
 
         row.CategoryBox.SelectedIndex = 0;
-    }
-
-    private static void SelectRecognizedAuraMetric(ConditionRow row, string? fieldName)
-    {
-        var metric = RecognizedAuraMetric.Stacks;
-        if (!string.IsNullOrWhiteSpace(fieldName)
-            && RecognizedAuraFields.TryParse(fieldName, out _, out var parsedMetric))
-        {
-            metric = parsedMetric;
-        }
-
-        for (var i = 0; i < row.MetricBox.Items.Count; i++)
-        {
-            if (row.MetricBox.Items[i] is RecognizedAuraMetricItem item && item.Metric == metric)
-            {
-                row.MetricBox.SelectedIndex = i;
-                return;
-            }
-        }
-
-        row.MetricBox.SelectedIndex = 0;
-    }
-
-    private static void UpdateRecognizedAuraMetricVisibility(ConditionRow row)
-    {
-        row.MetricBox.Visible = row.SelectedCategory?.Category == ConditionFieldCategory.RecognizedAura;
     }
 
     private static int FindFieldIndex(ComboBox fieldBox, string fieldName)
@@ -833,7 +804,10 @@ public sealed class ConditionEditorForm : Form
     private static void PopulateOps(ConditionRow row, string? desiredOp)
     {
         var field = row.SelectedField;
-        var ops = field is { IsCustom: false, Type: ConditionFieldType.Bool }
+        var isRuleSetting = IsRuleSettingField(field);
+        var ops = isRuleSetting
+            ? DelayOperators
+            : field is { IsCustom: false, Type: ConditionFieldType.Bool }
             ? BoolOperators
             : field is { IsCustom: false, Type: ConditionFieldType.String }
                 ? TextOperators
@@ -841,9 +815,10 @@ public sealed class ConditionEditorForm : Form
 
         row.OpBox.Items.Clear();
         row.OpBox.Items.AddRange(ops);
-        var normalizedOp = ConditionExpression.NormalizeOperator(desiredOp);
+        var normalizedOp = isRuleSetting ? "==" : ConditionExpression.NormalizeOperator(desiredOp);
         var index = normalizedOp.Length == 0 ? -1 : Array.IndexOf(ops, normalizedOp);
         row.OpBox.SelectedIndex = index >= 0 ? index : 0;
+        row.OpBox.Enabled = !isRuleSetting;
     }
 
     private void CreateValueControl(ConditionRow row, string? rawValue, bool preserveRaw)
@@ -858,7 +833,21 @@ public sealed class ConditionEditorForm : Form
         var field = row.SelectedField;
         var usesListValue = ConditionExpression.IsInOperator(row.OpBox.SelectedItem?.ToString());
         Control control;
-        if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
+        if (IsRuleSettingField(field))
+        {
+            var numeric = new NumericUpDown
+            {
+                Minimum = 0,
+                Maximum = int.MaxValue,
+                Value = TryParseDelayText(rawValue, out var delay) ? delay : 0,
+                ThousandsSeparator = true
+            };
+            UiTheme.StyleNumericUpDown(numeric);
+            numeric.ValueChanged += (_, _) => UpdatePreview();
+            numeric.TextChanged += (_, _) => UpdatePreview();
+            control = numeric;
+        }
+        else if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
         {
             var combo = new ComboBox();
             UiTheme.StyleComboBox(combo);
@@ -925,6 +914,11 @@ public sealed class ConditionEditorForm : Form
         for (var i = 0; i < _rows.Count; i++)
         {
             var row = _rows[i];
+            if (IsRuleSettingField(row.SelectedField))
+            {
+                continue;
+            }
+
             var field = row.SelectedField?.Name.Trim() ?? string.Empty;
             var op = row.OpBox.SelectedItem?.ToString() ?? "==";
             var value = ReadRowValue(row);
@@ -966,22 +960,135 @@ public sealed class ConditionEditorForm : Form
 
     private void UpdatePreview()
     {
-        var full = ComposePreview(ConditionExpression.Build(CollectTerms()));
+        _ = TryReadDelay(out var delayMs, showWarning: false);
+        _ = TryReadLogicDelay(out var logicDelayMs, showWarning: false);
+        var full = ComposePreview(ConditionExpression.Build(CollectTerms()), delayMs, logicDelayMs);
         _previewLabel.Text = full.Length == 0 ? "预览: (无条件, 始终命中)" : $"预览: {full}";
         // 单行预览会被省略号截断, 悬停看完整表达式。
         _previewToolTip.SetToolTip(_previewLabel, full.Length == 0 ? string.Empty : full);
     }
 
     // 把主条件文本与子条件合成为可读的整体表达式(与 ModuleRule.DescribeCondition 同形)。
-    private string ComposePreview(string mainText)
+    private string ComposePreview(string mainText, int? delayMs, int? logicDelayMs)
     {
-        if (_subConditions.Count == 0)
+        var conditionText = mainText;
+        if (_subConditions.Count > 0)
         {
-            return mainText;
+            var any = string.Join(" | ", _subConditions);
+            conditionText = mainText.Length == 0 ? $"任一({any})" : $"{mainText}  且任一({any})";
         }
 
-        var any = string.Join(" | ", _subConditions);
-        return mainText.Length == 0 ? $"任一({any})" : $"{mainText}  且任一({any})";
+        if (delayMs is > 0)
+        {
+            conditionText = conditionText.Length == 0
+                ? $"延迟 {delayMs.Value} ms"
+                : $"{conditionText}；延迟 {delayMs.Value} ms";
+        }
+
+        if (logicDelayMs is > 0)
+        {
+            conditionText = conditionText.Length == 0
+                ? $"逻辑延迟 {logicDelayMs.Value} ms"
+                : $"{conditionText}；逻辑延迟 {logicDelayMs.Value} ms";
+        }
+
+        return conditionText;
+    }
+
+    private bool TryReadDelay(out int? delayMs, bool showWarning = true)
+    {
+        return TryReadRuleSettingDelay(
+            ShigureConditionFields.Delay,
+            "延迟",
+            out delayMs,
+            showWarning);
+    }
+
+    private bool TryReadLogicDelay(out int? delayMs, bool showWarning = true)
+    {
+        return TryReadRuleSettingDelay(
+            ShigureConditionFields.LogicDelay,
+            "逻辑延迟",
+            out delayMs,
+            showWarning);
+    }
+
+    private bool TryReadRuleSettingDelay(
+        string fieldName,
+        string displayName,
+        out int? delayMs,
+        bool showWarning)
+    {
+        delayMs = null;
+        var delayRows = _rows.Where(row => IsRuleSettingField(row.SelectedField, fieldName)).ToList();
+        if (delayRows.Count > 1)
+        {
+            if (showWarning)
+            {
+                MessageBox.Show(
+                    $"每条规则只能设置一个“{displayName}”。请删除多余的 Shigure {displayName}行。",
+                    "Shigure",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+
+            return false;
+        }
+
+        if (delayRows.Count == 0)
+        {
+            return true;
+        }
+
+        var value = ReadRowValue(delayRows[0]);
+        if (!TryParseDelayText(value, out var parsed))
+        {
+            if (showWarning)
+            {
+                MessageBox.Show(
+                    $"{displayName}必须是 0 到 2147483647 之间的整数，单位为 ms。",
+                    "Shigure",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+
+            return false;
+        }
+
+        delayMs = parsed > 0 ? parsed : null;
+        return true;
+    }
+
+    private static bool IsDelayField(FieldItem? field)
+    {
+        return IsRuleSettingField(field, ShigureConditionFields.Delay);
+    }
+
+    private static bool IsLogicDelayField(FieldItem? field)
+    {
+        return IsRuleSettingField(field, ShigureConditionFields.LogicDelay);
+    }
+
+    private static bool IsRuleSettingField(FieldItem? field)
+    {
+        return IsDelayField(field) || IsLogicDelayField(field);
+    }
+
+    private static bool IsRuleSettingField(FieldItem? field, string fieldName)
+    {
+        return field is not null
+            && field.Category == ConditionFieldCategory.Shigure
+            && string.Equals(field.Name, fieldName, StringComparison.Ordinal);
+    }
+
+    private static bool TryParseDelayText(string? text, out int value)
+    {
+        return int.TryParse(
+            text?.Trim(),
+            NumberStyles.Integer | NumberStyles.AllowThousands,
+            CultureInfo.InvariantCulture,
+            out value)
+            && value >= 0;
     }
 
     private static bool IsFalseText(string? value)
@@ -1026,11 +1133,6 @@ public sealed class ConditionEditorForm : Form
         public override string ToString() => Display;
     }
 
-    private sealed record RecognizedAuraMetricItem(string Display, RecognizedAuraMetric Metric)
-    {
-        public override string ToString() => Display;
-    }
-
     private sealed record FieldItem(string Name, string Display, ConditionFieldType Type, ConditionFieldCategory Category, bool IsCustom)
     {
         public override string ToString() => Display;
@@ -1042,7 +1144,6 @@ public sealed class ConditionEditorForm : Form
         ComboBox categoryBox,
         ComboBox fieldBox,
         ComboBox opBox,
-        ComboBox metricBox,
         Panel valueHost)
     {
         public TableLayoutPanel Panel { get; } = panel;
@@ -1050,69 +1151,10 @@ public sealed class ConditionEditorForm : Form
         public ComboBox CategoryBox { get; } = categoryBox;
         public ComboBox FieldBox { get; } = fieldBox;
         public ComboBox OpBox { get; } = opBox;
-        public ComboBox MetricBox { get; } = metricBox;
         public Panel ValueHost { get; } = valueHost;
         public Control? ValueControl { get; set; }
 
         public CategoryItem? SelectedCategory => CategoryBox.SelectedItem as CategoryItem;
-        public RecognizedAuraMetric SelectedMetric =>
-            MetricBox.SelectedItem is RecognizedAuraMetricItem item
-                ? item.Metric
-                : RecognizedAuraMetric.Stacks;
-
-        public FieldItem? SelectedField
-        {
-            get
-            {
-                if (SelectedCategory?.Category == ConditionFieldCategory.RecognizedAura)
-                {
-                    if (FieldBox.SelectedItem is FieldItem selected
-                        && (string.Equals(FieldBox.Text.Trim(), selected.Display, StringComparison.Ordinal)
-                            || string.Equals(FieldBox.Text.Trim(), selected.Name, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        return selected with
-                        {
-                            Name = RecognizedAuraFields.ToFieldName(selected.Name, SelectedMetric),
-                            Type = ConditionFieldType.Int,
-                            Category = ConditionFieldCategory.RecognizedAura,
-                            IsCustom = false
-                        };
-                    }
-
-                    var text = FieldBox.Text.Trim();
-                    var name = RecognizedAuraFields.TryGetName(text, out var parsedName)
-                        ? parsedName.Trim()
-                        : text;
-                    if (name.Length == 0
-                        || RecognizedAuraFields.IsBarePrefix(text)
-                        || RecognizedAuraFields.IsBarePrefix(name))
-                    {
-                        return null;
-                    }
-
-                    var fieldName = RecognizedAuraFields.ToFieldName(name, SelectedMetric);
-                    var isCustom = true;
-                    foreach (var candidateObject in FieldBox.Items)
-                    {
-                        if (candidateObject is FieldItem candidate
-                            && RecognizedAuraFields.TryGetName(candidate.Name, out var candidateName)
-                            && string.Equals(candidateName, name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            isCustom = candidate.IsCustom;
-                            break;
-                        }
-                    }
-
-                    return new FieldItem(
-                        fieldName,
-                        name,
-                        ConditionFieldType.Int,
-                        ConditionFieldCategory.RecognizedAura,
-                        IsCustom: false);
-                }
-
-                return FieldBox.SelectedItem as FieldItem;
-            }
-        }
+        public FieldItem? SelectedField => FieldBox.SelectedItem as FieldItem;
     }
 }

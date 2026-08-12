@@ -7,6 +7,7 @@ public sealed class MainForm : Form, IMessageFilter
     private const int ResizeGripSize = 8;
     private const int RoundedCornerResizeDebounceMs = 80;
     private const string HeaderIconResourcePath = "Assets.arasaka-icon-transparent.png";
+    private const string ModuleWebsiteUrl = "https://www.shigure.club";
     private static readonly Color DefaultHeaderIconColor = Color.White;
     private static readonly IReadOnlyDictionary<int, Color> ClassIconColors = new Dictionary<int, Color>
     {
@@ -30,6 +31,9 @@ public sealed class MainForm : Form, IMessageFilter
     private ComboBox _moduleComboBox = null!;
     private Label _moduleFilterLabel = null!;
     private Label _moduleCountLabel = null!;
+    private Label _configSourceLabel = null!;
+    private Button _updateConfigButton = null!;
+    private readonly ToolTip _settingsToolTip = new();
     private Button _settingsButton = null!;
     private string _toggleKeyName = "XBUTTON2";
     private string? _selectedModuleId;
@@ -47,27 +51,53 @@ public sealed class MainForm : Form, IMessageFilter
     private Color? _currentHeaderIconColor;
 
     private readonly StatusForm _statusForm;
+    private readonly string _baseDirectory;
     private readonly ModuleStore _moduleStore;
+    private readonly ITriggerKeyState _triggerKeyState;
+    private readonly WowProcessLocator _processLocator;
+    private readonly FuyutsuiAddonSyncService _addonSyncService;
+    private readonly RuntimeSessionCoordinator _runtimeSession;
     private readonly ModuleEditorControl _moduleEditor;
+    private readonly ClassConfigEditorControl _classConfigEditor;
+    private readonly ClassMacrosEditorControl _classMacrosEditor;
     private readonly AppOptions _initialOptions;
     private readonly UiCacheState _uiCache;
     private readonly System.Windows.Forms.Timer _roundedCornerResizeTimer;
-    private IReadOnlyList<RecognizedAuraInfo> _recognizedAuras = Array.Empty<RecognizedAuraInfo>();
-    private ShigureRuntime? _runtime;
-    private CancellationTokenSource? _runtimeCts;
-    private Task? _runtimeTask;
     private RenderSnapshot? _lastSnapshot;
     private string? _lastLoggedStep;
-    private string? _lastLoggedStepTarget;
+    private string? _lastLoggedStepDetails;
+    private string? _lastLoggedScanFailureReason;
     private string? _lastLoggedClass;
     private string? _lastLoggedModule;
     private bool? _lastLoggedEnabled;
+    private readonly object _configUpdateSync = new();
+    private Task _configUpdateTail = Task.CompletedTask;
+    private long _runtimeRequestVersion;
+    private bool _shutdownStarted;
+    private bool _shutdownCompleted;
 
-    public MainForm(AppOptions? initialOptions = null)
+    private sealed record ProjectConfigUpdateResult(
+        FuyutsuiConfigConverter.UpdateResult Config,
+        FuyutsuiKeymapConverter.UpdateResult? Keymap,
+        FuyutsuiAddonSyncResult AddonSync);
+
+    internal MainForm(
+        AppOptions initialOptions,
+        string baseDirectory,
+        ModuleStore moduleStore,
+        ITriggerKeyState triggerKeyState,
+        WowProcessLocator processLocator,
+        RuntimeSessionCoordinator runtimeSession)
     {
-        _initialOptions = initialOptions ?? AppOptions.FromArgs(Array.Empty<string>());
+        _initialOptions = initialOptions;
+        _baseDirectory = baseDirectory;
+        _moduleStore = moduleStore;
+        _triggerKeyState = triggerKeyState;
+        _processLocator = processLocator;
+        var localAddonRoot = Path.Combine(_baseDirectory, "Fuyutsui");
+        _addonSyncService = new FuyutsuiAddonSyncService(localAddonRoot, _processLocator);
+        _runtimeSession = runtimeSession;
         _uiCache = UiCacheStore.Load();
-        _moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory(AppPaths.BaseDirectory));
         _statusForm = new StatusForm();
         _roundedCornerResizeTimer = new System.Windows.Forms.Timer
         {
@@ -84,13 +114,18 @@ public sealed class MainForm : Form, IMessageFilter
         Application.AddMessageFilter(this);
         InitializeComponent();
         _statusForm.AttachSettingsPanel(BuildSettingsPanel());
-        _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditor, AppPaths.BaseDirectory);
+        _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditorAsync, _baseDirectory);
         _statusForm.AttachModuleEditor(_moduleEditor);
-        var auraRecognitionPanel = new AuraRecognitionSettingsControl(
-            _initialOptions.WindowTitle,
-            () => (_lastSnapshot?.ClassId, _lastSnapshot?.SpecId));
-        auraRecognitionPanel.RecognizedAurasChanged += HandleRecognizedAurasChanged;
-        _statusForm.AttachAuraRecognitionPanel(auraRecognitionPanel);
+        _classConfigEditor = new ClassConfigEditorControl(
+            () => Path.Combine(_addonSyncService.SourceRoot, "class"),
+            UpdateConfigAfterSaveAsync);
+        _statusForm.AttachConfigEditor(_classConfigEditor);
+        _classConfigEditor.DirtyStateChanged += dirty => _statusForm.SetPageDirty(SettingsPage.Config, dirty);
+        _classMacrosEditor = new ClassMacrosEditorControl(
+            () => Path.Combine(_addonSyncService.SourceRoot, "core", "classmacros.lua"),
+            UpdateConfigAfterSaveAsync);
+        _statusForm.AttachMacrosEditor(_classMacrosEditor);
+        _classMacrosEditor.DirtyStateChanged += dirty => _statusForm.SetPageDirty(SettingsPage.Macros, dirty);
         _statusForm.FormClosing += (_, _) =>
         {
             CancelToggleKeyCapture();
@@ -100,6 +135,9 @@ public sealed class MainForm : Form, IMessageFilter
         ApplyCachedWindowState();
         ApplyInitialOptions();
         WireSettingEvents();
+        _runtimeSession.SnapshotUpdated += HandleSnapshotUpdated;
+        _runtimeSession.RuntimeFailed += HandleRuntimeFailed;
+        _runtimeSession.RuntimeStopped += HandleRuntimeStopped;
         SetRuntimeControls(running: false);
         AppendLog("界面已就绪");
     }
@@ -112,18 +150,31 @@ public sealed class MainForm : Form, IMessageFilter
         _usesDwmRoundedCorners = UiTheme.ApplyRoundedCorners(this);
     }
 
-    protected override void OnShown(EventArgs e)
+    protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        StartRuntime();
+        await SynchronizeAddonAtStartupAsync();
+        await StartRuntimeAsync();
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        SaveUiCache();
-        _roundedCornerResizeTimer.Stop();
-        Application.RemoveMessageFilter(this);
-        _runtimeCts?.Cancel();
+        if (!_shutdownCompleted)
+        {
+            e.Cancel = true;
+            if (!_shutdownStarted)
+            {
+                _shutdownStarted = true;
+                SaveUiCache();
+                _roundedCornerResizeTimer.Stop();
+                Application.RemoveMessageFilter(this);
+                _ = CompleteShutdownAsync();
+            }
+
+            base.OnFormClosing(e);
+            return;
+        }
+
         base.OnFormClosing(e);
     }
 
@@ -131,6 +182,32 @@ public sealed class MainForm : Form, IMessageFilter
     {
         _roundedCornerResizeTimer.Dispose();
         base.OnFormClosed(e);
+    }
+
+    private async Task CompleteShutdownAsync()
+    {
+        _runtimeSession.SnapshotUpdated -= HandleSnapshotUpdated;
+        _runtimeSession.RuntimeFailed -= HandleRuntimeFailed;
+        _runtimeSession.RuntimeStopped -= HandleRuntimeStopped;
+
+        try
+        {
+            var runtimeShutdown = _runtimeSession.DisposeAsync().AsTask();
+            await Task.WhenAll(runtimeShutdown, GetPendingConfigUpdateTask());
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"停止运行失败: {ex.Message}");
+        }
+        finally
+        {
+            _statusForm.Dispose();
+            _shutdownCompleted = true;
+            if (!IsDisposed)
+            {
+                Close();
+            }
+        }
     }
 
     protected override void OnResize(EventArgs e)
@@ -179,7 +256,7 @@ public sealed class MainForm : Form, IMessageFilter
     {
         SuspendLayout();
 
-        Text = GetWindowTitle();
+        Text = "Shigure";
 
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.None;
@@ -282,7 +359,8 @@ public sealed class MainForm : Form, IMessageFilter
 
         var closeButton = UiTheme.CreateButton("✕", UiTheme.Field, UiTheme.Muted);
         ConfigureTopBarButton(closeButton);
-        closeButton.FlatAppearance.MouseOverBackColor = UiTheme.Danger;
+        closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(196, 43, 28);
+        closeButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(153, 27, 21);
         closeButton.Click += (_, _) => Close();
 
         buttons.Controls.AddRange(new Control[] { _enableButton, _settingsButton, closeButton });
@@ -373,134 +451,587 @@ public sealed class MainForm : Form, IMessageFilter
 
     private Control BuildSettingsPanel()
     {
-        var panel = new TableLayoutPanel
+        var scrollHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(0),
-            ColumnCount = 1,
-            Margin = new Padding(0),
-            RowCount = 2
+            AutoScroll = true,
+            Margin = new Padding(0)
         };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var settingsGrid = new TableLayoutPanel
+        var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Top,
             AutoSize = true,
-            BackColor = UiTheme.SurfaceRaised,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = UiTheme.Surface,
             ColumnCount = 2,
             RowCount = 2,
-            Padding = new Padding(16, 16, 16, 10),
-            Margin = new Padding(0, 0, 0, 14)
+            Padding = new Padding(0),
+            Margin = new Padding(0)
         };
-        settingsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
-        settingsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-        settingsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        const int settingsCardHeight = 232;
+        const int settingsCardGap = 14;
+        const int settingsActionButtonHeight = 36;
+        // 第一行包含 14px 下间距；第二行无需间距，因此卡片的实际高度均为 232px。
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight));
 
+        Label CreateTitle(string text) => new()
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 11F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        };
+        Label CreateDescription(string text) => new()
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Muted,
+            AutoEllipsis = true,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        };
         Label CreateSettingLabel(string text) => new()
         {
             Text = text,
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
             ForeColor = UiTheme.Muted,
-            Margin = new Padding(0, 0, 12, 14)
+            Margin = new Padding(0)
         };
 
-        const int settingControlWidth = 190;
+        var inputCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(0, 0, 7, 14)
+        };
+        inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+        inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
+        inputCard.Controls.Add(CreateTitle("输入与运行"), 0, 0);
+        inputCard.SetColumnSpan(inputCard.GetControlFromPosition(0, 0)!, 2);
+        inputCard.Controls.Add(CreateDescription("设置触发方式；修改后运行循环会自动重启"), 0, 1);
+        inputCard.SetColumnSpan(inputCard.GetControlFromPosition(0, 1)!, 2);
 
-        _toggleKeyButton = UiTheme.CreateButton("XBUTTON2", UiTheme.Field, UiTheme.Text);
+        _toggleKeyButton = UiTheme.CreateButton("XBUTTON2", UiTheme.ButtonKind.Secondary);
         _toggleKeyButton.AutoSize = false;
-        _toggleKeyButton.Width = settingControlWidth;
-        _toggleKeyButton.Height = 36;
-        _toggleKeyButton.Padding = new Padding(6, 0, 6, 0);
+        _toggleKeyButton.Size = new Size(190, settingsActionButtonHeight);
         _toggleKeyButton.TextAlign = ContentAlignment.MiddleCenter;
         _toggleKeyButton.Anchor = AnchorStyles.Left;
-        _toggleKeyButton.Margin = new Padding(0, 0, 0, 12);
+        _toggleKeyButton.Margin = new Padding(0);
         _toggleKeyButton.Click += (_, _) => BeginCaptureToggleKey();
-        settingsGrid.Controls.Add(CreateSettingLabel("触发键"), 0, 0);
-        settingsGrid.Controls.Add(_toggleKeyButton, 1, 0);
+        _settingsToolTip.SetToolTip(_toggleKeyButton, "点击后按下新的键盘键或鼠标侧键");
+        inputCard.Controls.Add(CreateSettingLabel("触发键"), 0, 2);
+        inputCard.Controls.Add(_toggleKeyButton, 1, 2);
 
         _modeComboBox = new ComboBox();
         UiTheme.StyleComboBox(_modeComboBox);
         _modeComboBox.Items.AddRange(new object[] { "开关", "单击", "按住" });
         _modeComboBox.SelectedIndex = 0;
-        _modeComboBox.Width = settingControlWidth;
+        _modeComboBox.Width = 190;
         _modeComboBox.Anchor = AnchorStyles.Left;
-        _modeComboBox.Margin = new Padding(0, 0, 0, 12);
-        settingsGrid.Controls.Add(CreateSettingLabel("发送模式"), 0, 1);
-        settingsGrid.Controls.Add(_modeComboBox, 1, 1);
+        _modeComboBox.Margin = new Padding(0);
+        _settingsToolTip.SetToolTip(_modeComboBox, "开关：按一次切换；单击：每次触发发送一次；按住：持续按下时运行");
+        inputCard.Controls.Add(CreateSettingLabel("发送模式"), 0, 3);
+        inputCard.Controls.Add(_modeComboBox, 1, 3);
 
-        var moduleInfo = new TableLayoutPanel
+        var configCard = new UiCardPanel
         {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            BackColor = UiTheme.SurfaceRaised,
-            ColumnCount = 2,
-            RowCount = 2,
-            Padding = new Padding(16, 16, 16, 14),
-            Margin = new Padding(0)
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(7, 0, 0, 14)
         };
-        moduleInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
-        moduleInfo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        moduleInfo.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-        moduleInfo.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        configCard.Controls.Add(CreateTitle("配置同步"), 0, 0);
+        configCard.Controls.Add(CreateDescription("从项目 Fuyutsui 生成 config/keymap，并同步到游戏"), 0, 1);
+        _configSourceLabel = CreateInfoLabel("项目目录是唯一配置源；尚未执行手动更新");
+        _configSourceLabel.Dock = DockStyle.Fill;
+        _configSourceLabel.AutoSize = false;
+        _configSourceLabel.AutoEllipsis = true;
+        _configSourceLabel.TextAlign = ContentAlignment.TopLeft;
+        _configSourceLabel.Margin = new Padding(0, 10, 0, 8);
+        _settingsToolTip.SetToolTip(_configSourceLabel, _configSourceLabel.Text);
+        configCard.Controls.Add(_configSourceLabel, 0, 2);
+        _updateConfigButton = UiTheme.CreateButton("更新配置", UiTheme.ButtonKind.Secondary);
+        _updateConfigButton.AutoSize = false;
+        _updateConfigButton.Size = new Size(122, settingsActionButtonHeight);
+        _updateConfigButton.Dock = DockStyle.Left;
+        _updateConfigButton.Margin = new Padding(0);
+        _updateConfigButton.Click += async (_, _) => await UpdateConfigFromProjectWithFeedbackAsync();
+        configCard.Controls.Add(_updateConfigButton, 0, 3);
 
+        var moduleCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(0, 0, 7, 0)
+        };
+        moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        moduleCard.Controls.Add(CreateTitle("模块选择"), 0, 0);
+        moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 0)!, 2);
+        moduleCard.Controls.Add(CreateDescription("按实时职业与专精自动匹配，或手动指定模块"), 0, 1);
+        moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 1)!, 2);
         _moduleComboBox = new ComboBox();
         UiTheme.StyleComboBox(_moduleComboBox);
-        _moduleComboBox.Width = 520;
-        _moduleComboBox.Anchor = AnchorStyles.Left;
-        _moduleComboBox.Margin = new Padding(0, 0, 0, 12);
-        moduleInfo.Controls.Add(CreateSettingLabel("模块选择"), 0, 0);
-        moduleInfo.Controls.Add(_moduleComboBox, 1, 0);
-
-        var moduleStatus = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            ColumnCount = 1,
-            RowCount = 2,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0)
-        };
-        moduleStatus.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        moduleStatus.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        moduleStatus.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
+        _moduleComboBox.Dock = DockStyle.Fill;
+        _moduleComboBox.Margin = new Padding(0, 0, 14, 0);
+        _settingsToolTip.SetToolTip(_moduleComboBox, "列表会根据当前游戏状态筛选可用模块");
+        moduleCard.Controls.Add(_moduleComboBox, 0, 2);
+        var refreshModulesButton = UiTheme.CreateButton("刷新模块", UiTheme.ButtonKind.Secondary);
+        refreshModulesButton.AutoSize = false;
+        refreshModulesButton.Dock = DockStyle.Fill;
+        refreshModulesButton.Margin = new Padding(0);
+        refreshModulesButton.Click += (_, _) => RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        moduleCard.Controls.Add(refreshModulesButton, 1, 2);
         var moduleInfoText = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             AutoSize = true,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0)
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 8, 0, 0)
         };
-
         _moduleFilterLabel = CreateInfoLabel("筛选: 等待游戏状态");
         _moduleCountLabel = CreateInfoLabel("可选模块: 0");
         moduleInfoText.Controls.Add(_moduleFilterLabel);
         moduleInfoText.Controls.Add(_moduleCountLabel);
+        moduleCard.Controls.Add(moduleInfoText, 0, 3);
+        moduleCard.SetColumnSpan(moduleInfoText, 2);
 
-        var refreshModulesButton = UiTheme.CreateButton("刷新模块", UiTheme.Field, UiTheme.Text);
-        refreshModulesButton.AutoSize = false;
-        refreshModulesButton.Size = new Size(116, 38);
-        refreshModulesButton.Padding = new Padding(8, 0, 8, 0);
-        refreshModulesButton.TextAlign = ContentAlignment.MiddleCenter;
-        refreshModulesButton.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-        refreshModulesButton.Margin = new Padding(0, 0, 0, 8);
-        refreshModulesButton.Click += (_, _) => RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        var getModulesCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(7, 0, 0, 0)
+        };
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        getModulesCard.Controls.Add(CreateTitle("获取模块"), 0, 0);
+        getModulesCard.Controls.Add(CreateDescription("访问 Shigure 官网，浏览并获取可用模块"), 0, 1);
 
-        moduleStatus.Controls.Add(refreshModulesButton, 0, 0);
-        moduleStatus.Controls.Add(moduleInfoText, 0, 1);
-        moduleInfo.Controls.Add(moduleStatus, 1, 1);
+        var moduleWebsiteLabel = CreateInfoLabel(ModuleWebsiteUrl);
+        moduleWebsiteLabel.Dock = DockStyle.Fill;
+        moduleWebsiteLabel.AutoSize = false;
+        moduleWebsiteLabel.AutoEllipsis = true;
+        moduleWebsiteLabel.TextAlign = ContentAlignment.TopLeft;
+        moduleWebsiteLabel.ForeColor = UiTheme.Accent;
+        moduleWebsiteLabel.Cursor = Cursors.Hand;
+        moduleWebsiteLabel.Margin = new Padding(0, 10, 0, 8);
+        moduleWebsiteLabel.Click += (_, _) => OpenModuleWebsite();
+        _settingsToolTip.SetToolTip(moduleWebsiteLabel, $"在默认浏览器中打开 {ModuleWebsiteUrl}");
+        getModulesCard.Controls.Add(moduleWebsiteLabel, 0, 2);
 
-        panel.Controls.Add(settingsGrid, 0, 0);
-        panel.Controls.Add(moduleInfo, 0, 1);
-        return panel;
+        var moduleActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+
+        var moduleWebsiteButtonColor = Color.FromArgb(252, 238, 10);
+        var openModuleWebsiteButton = UiTheme.CreateButton("获取模块", moduleWebsiteButtonColor, Color.Black);
+        openModuleWebsiteButton.AutoSize = false;
+        openModuleWebsiteButton.Size = new Size(160, settingsActionButtonHeight);
+        openModuleWebsiteButton.Margin = new Padding(0, 0, 10, 0);
+        openModuleWebsiteButton.Padding = new Padding(0, 2, 24, 2);
+        openModuleWebsiteButton.FlatAppearance.BorderColor = moduleWebsiteButtonColor;
+        openModuleWebsiteButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
+        openModuleWebsiteButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
+        openModuleWebsiteButton.Paint += (_, e) => UiTheme.DrawExternalLinkIcon(
+            e.Graphics,
+            openModuleWebsiteButton.ClientRectangle,
+            openModuleWebsiteButton.Text,
+            openModuleWebsiteButton.Font,
+            openModuleWebsiteButton.ForeColor,
+            openModuleWebsiteButton.DeviceDpi / 96F);
+        openModuleWebsiteButton.Click += (_, _) => OpenModuleWebsite();
+
+        var openModuleDirectoryButton = UiTheme.CreateButton("打开模块目录", UiTheme.ButtonKind.Secondary);
+        openModuleDirectoryButton.AutoSize = false;
+        openModuleDirectoryButton.Size = new Size(160, settingsActionButtonHeight);
+        openModuleDirectoryButton.Margin = new Padding(0);
+        openModuleDirectoryButton.Click += (_, _) => OpenModuleDirectory();
+        _settingsToolTip.SetToolTip(openModuleDirectoryButton, "在资源管理器中打开本地模块目录");
+
+        moduleActions.Controls.Add(openModuleWebsiteButton);
+        moduleActions.Controls.Add(openModuleDirectoryButton);
+        getModulesCard.Controls.Add(moduleActions, 0, 3);
+
+        panel.Controls.Add(inputCard, 0, 0);
+        panel.Controls.Add(configCard, 1, 0);
+        panel.Controls.Add(moduleCard, 0, 1);
+        panel.Controls.Add(getModulesCard, 1, 1);
+        scrollHost.Controls.Add(panel);
+        scrollHost.Resize += (_, _) => panel.Width = Math.Max(0, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
+        return scrollHost;
+    }
+
+    private void OpenModuleWebsite()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ModuleWebsiteUrl)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"无法打开模块网站：{ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private void OpenModuleDirectory()
+    {
+        var moduleDirectory = _moduleStore.ModuleDirectory;
+        try
+        {
+            Directory.CreateDirectory(moduleDirectory);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{moduleDirectory}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"无法打开模块目录：{ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private async Task UpdateConfigFromProjectWithFeedbackAsync()
+    {
+        _updateConfigButton.Enabled = false;
+        _updateConfigButton.Text = "更新中…";
+        _configSourceLabel.ForeColor = UiTheme.Warning;
+        _configSourceLabel.Text = "正在生成配置并同步游戏插件…";
+        try
+        {
+            var updated = await UpdateConfigFromProjectAsync();
+            _configSourceLabel.ForeColor = updated ? UiTheme.Success : UiTheme.Danger;
+        }
+        catch
+        {
+            _configSourceLabel.ForeColor = UiTheme.Danger;
+            throw;
+        }
+        finally
+        {
+            _updateConfigButton.Text = "更新配置";
+            _updateConfigButton.Enabled = true;
+            _settingsToolTip.SetToolTip(_configSourceLabel, _configSourceLabel.Text);
+        }
+    }
+
+    private async Task SynchronizeAddonAtStartupAsync()
+    {
+        try
+        {
+            var result = await Task.Run(_addonSyncService.SynchronizeAll);
+            LogAddonSyncResult("启动插件同步", result);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"启动插件同步失败，程序将继续运行: {ex.Message}");
+        }
+    }
+
+    private async Task<bool> UpdateConfigFromProjectAsync()
+    {
+        try
+        {
+            var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath: null);
+            if (!_shutdownStarted)
+            {
+                ShowProjectConfigUpdateResult(result);
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (_shutdownStarted)
+            {
+                return false;
+            }
+
+            AppendLog($"更新配置失败: {ex.Message}");
+            MessageBox.Show(ex.Message, "更新配置失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _configSourceLabel.Text = $"更新失败：{ex.Message}";
+            return false;
+        }
+    }
+
+    private async Task<string?> UpdateConfigAfterSaveAsync(string savedAddonFilePath)
+    {
+        var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath);
+        return DescribeAddonSyncIssue(result.AddonSync);
+    }
+
+    private Task<ProjectConfigUpdateResult> QueueProjectConfigUpdateAsync(string? savedAddonFilePath)
+    {
+        lock (_configUpdateSync)
+        {
+            if (_shutdownStarted)
+            {
+                return Task.FromException<ProjectConfigUpdateResult>(
+                    new OperationCanceledException("程序正在关闭。"));
+            }
+
+            var updateTask = RunQueuedConfigUpdateAsync(_configUpdateTail, savedAddonFilePath);
+            _configUpdateTail = updateTask;
+            return updateTask;
+        }
+    }
+
+    private async Task<ProjectConfigUpdateResult> RunQueuedConfigUpdateAsync(
+        Task previousUpdate,
+        string? savedAddonFilePath)
+    {
+        await Task.Yield();
+        try
+        {
+            await previousUpdate;
+        }
+        catch
+        {
+            // 前一个调用方会收到自己的异常；队列仍继续处理后续更新。
+        }
+
+        if (_shutdownStarted)
+        {
+            throw new OperationCanceledException("程序正在关闭。");
+        }
+
+        return await UpdateConfigFromProjectCoreAsync(savedAddonFilePath);
+    }
+
+    private Task GetPendingConfigUpdateTask()
+    {
+        lock (_configUpdateSync)
+        {
+            return _configUpdateTail;
+        }
+    }
+
+    private async Task WaitForPendingConfigUpdatesAsync()
+    {
+        while (true)
+        {
+            var pending = GetPendingConfigUpdateTask();
+            await pending;
+            lock (_configUpdateSync)
+            {
+                if (ReferenceEquals(pending, _configUpdateTail))
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    private async Task<ProjectConfigUpdateResult> UpdateConfigFromProjectCoreAsync(string? savedAddonFilePath)
+    {
+        if (_shutdownStarted)
+        {
+            throw new OperationCanceledException("程序正在关闭。");
+        }
+
+        var classDirectory = Path.Combine(_addonSyncService.SourceRoot, "class");
+        var classMacrosPath = Path.Combine(_addonSyncService.SourceRoot, "core", "classmacros.lua");
+        if (!Directory.Exists(classDirectory))
+        {
+            throw new DirectoryNotFoundException($"找不到项目 Fuyutsui class 目录: {classDirectory}");
+        }
+
+        _configSourceLabel.Text = File.Exists(classMacrosPath)
+            ? $"项目 Fuyutsui: {classDirectory} + classmacros.lua"
+            : $"项目 Fuyutsui class: {classDirectory}";
+        var configDirectory = ConfigService.ResolveConfigPath(_baseDirectory);
+        if (!Directory.Exists(configDirectory))
+        {
+            throw new DirectoryNotFoundException($"配置目录不存在: {configDirectory}");
+        }
+
+        var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
+
+        try
+        {
+            UseWaitCursor = true;
+            var result = await Task.Run(() =>
+            {
+                var configResult = FuyutsuiConfigConverter.UpdateFromClassDirectory(classDirectory, configDirectory);
+                FuyutsuiKeymapConverter.UpdateResult? keymapResult = null;
+                if (File.Exists(classMacrosPath))
+                {
+                    keymapResult = FuyutsuiKeymapConverter.UpdateFromClassMacros(classMacrosPath, keymapDirectory);
+                }
+
+                var addonSync = string.IsNullOrWhiteSpace(savedAddonFilePath)
+                    ? _addonSyncService.SynchronizeAll()
+                    : _addonSyncService.SynchronizeFile(savedAddonFilePath);
+                return new ProjectConfigUpdateResult(configResult, keymapResult, addonSync);
+            });
+
+            if (_shutdownStarted)
+            {
+                throw new OperationCanceledException("程序正在关闭。");
+            }
+
+            _moduleEditor.ReloadCatalogs();
+            AppendLog($"已从项目 Fuyutsui 更新配置: {result.Config.UpdatedFiles.Count} 个文件 ← {result.Config.ClassDirectory}");
+            foreach (var warning in result.Config.Warnings.Take(20))
+            {
+                AppendLog($"配置警告: {warning}");
+            }
+
+            if (result.Keymap is { } keymap)
+            {
+                AppendLog($"已从 classmacros 更新 keymap: {keymap.UpdatedFiles.Count} 个文件 ← {keymap.ClassMacrosPath}");
+                foreach (var warning in keymap.Warnings.Take(20))
+                {
+                    AppendLog($"keymap 警告: {warning}");
+                }
+            }
+            else
+            {
+                AppendLog("项目 Fuyutsui 中未找到 core\\classmacros.lua，已跳过 keymap 更新");
+            }
+
+            LogAddonSyncResult(
+                string.IsNullOrWhiteSpace(savedAddonFilePath) ? "游戏插件全量同步" : "游戏插件文件同步",
+                result.AddonSync);
+
+            if (_runtimeSession.HasSession)
+            {
+                AppendLog("配置已更新, 重新启动运行");
+                await StartOrRestartRuntimeAsync(restart: true, waitForConfigUpdates: false);
+            }
+
+            if (_shutdownStarted)
+            {
+                throw new OperationCanceledException("程序正在关闭。");
+            }
+
+            return result;
+        }
+        finally
+        {
+            UseWaitCursor = false;
+        }
+    }
+
+    private void ShowProjectConfigUpdateResult(ProjectConfigUpdateResult result)
+    {
+        var warningCount = result.Config.Warnings.Count + (result.Keymap?.Warnings.Count ?? 0);
+        var warningText = warningCount == 0
+            ? string.Empty
+            : $"\n转换警告 {warningCount} 条（详见日志）。";
+        var keymapText = result.Keymap is { } keymap
+            ? $"\nkeymap: {keymap.UpdatedFiles.Count} 个文件"
+            : "\nkeymap: 未更新（缺少 classmacros.lua）";
+        var syncIssue = DescribeAddonSyncIssue(result.AddonSync);
+        var syncText = syncIssue is null
+            ? $"\n游戏插件: 已复制 {result.AddonSync.CopiedFiles.Count}，哈希相同 {result.AddonSync.SkippedFiles.Count}\n{result.AddonSync.TargetRoot}"
+            : $"\n游戏插件: {syncIssue}";
+
+        _configSourceLabel.Text = syncIssue is null && warningCount == 0
+            ? $"已更新 {result.Config.UpdatedFiles.Count} 个配置文件，并完成游戏同步"
+            : $"配置已更新；{syncIssue ?? $"存在 {warningCount} 条转换警告"}";
+        _configSourceLabel.ForeColor = syncIssue is null && warningCount == 0
+            ? UiTheme.Success
+            : UiTheme.Warning;
+        _settingsToolTip.SetToolTip(_configSourceLabel, _configSourceLabel.Text);
+
+        if (syncIssue is not null || warningCount > 0)
+        {
+            MessageBox.Show(
+                $"已从项目 Fuyutsui 更新 {result.Config.UpdatedFiles.Count} 个职业配置。{keymapText}{syncText}{warningText}",
+                "更新配置",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private void LogAddonSyncResult(string operation, FuyutsuiAddonSyncResult result)
+    {
+        if (!result.TargetFound)
+        {
+            AppendLog($"{operation}: {result.SkippedReason}");
+            return;
+        }
+
+        AppendLog(
+            $"{operation}: 已复制 {result.CopiedFiles.Count}，哈希相同 {result.SkippedFiles.Count} → {result.TargetRoot}");
+        foreach (var failure in result.Failures.Take(20))
+        {
+            AppendLog($"插件同步失败: {failure.RelativePath}: {failure.Message}");
+        }
+
+        if (result.Failures.Count > 20)
+        {
+            AppendLog($"插件同步另有 {result.Failures.Count - 20} 个失败文件未展开。");
+        }
+    }
+
+    private static string? DescribeAddonSyncIssue(FuyutsuiAddonSyncResult result)
+    {
+        if (!result.TargetFound)
+        {
+            return result.SkippedReason;
+        }
+
+        if (result.Failures.Count == 0)
+        {
+            return null;
+        }
+
+        var first = result.Failures[0];
+        return result.Failures.Count == 1
+            ? $"{first.RelativePath}: {first.Message}"
+            : $"{result.Failures.Count} 个文件同步失败；首个失败为 {first.RelativePath}: {first.Message}";
     }
 
     private void ApplyInitialOptions()
@@ -535,132 +1066,132 @@ public sealed class MainForm : Form, IMessageFilter
         await RestartRuntimeAfterSettingChangeAsync();
     }
 
-    private void StartRuntime()
+    private async Task StartRuntimeAsync()
     {
-        if (_runtimeTask is { IsCompleted: false })
+        if (_runtimeSession.IsRunning)
         {
             return;
+        }
+
+        await StartOrRestartRuntimeAsync(restart: false);
+    }
+
+    private async Task<bool> StartOrRestartRuntimeAsync(
+        bool restart,
+        bool waitForConfigUpdates = true)
+    {
+        if (_shutdownStarted)
+        {
+            return false;
         }
 
         var options = BuildOptions();
+        if (!ValidateRuntimeOptions(options))
+        {
+            return false;
+        }
+
+        var requestVersion = Interlocked.Increment(ref _runtimeRequestVersion);
+
+        try
+        {
+            if (waitForConfigUpdates)
+            {
+                await WaitForPendingConfigUpdatesAsync();
+                if (_shutdownStarted || requestVersion != Volatile.Read(ref _runtimeRequestVersion))
+                {
+                    return false;
+                }
+            }
+
+            if (restart)
+            {
+                await _runtimeSession.RestartAsync(options, requestVersion);
+            }
+            else
+            {
+                await _runtimeSession.StartAsync(options, requestVersion);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_shutdownStarted || requestVersion != Volatile.Read(ref _runtimeRequestVersion))
+            {
+                return false;
+            }
+
+            var operation = restart ? "重启" : "启动";
+            MessageBox.Show(ex.Message, $"{operation}失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            AppendLog($"{operation}失败: {ex.Message}");
+            SetRuntimeControls(running: _runtimeSession.IsRunning);
+            return false;
+        }
+
+        if (_shutdownStarted || requestVersion != Volatile.Read(ref _runtimeRequestVersion))
+        {
+            return false;
+        }
+
+        if (!_runtimeSession.IsRunning)
+        {
+            SetRuntimeControls(running: false);
+            return false;
+        }
+
+        ResetRuntimeLogState();
+        SetRuntimeControls(running: true);
+        AppendLog($"运行已{(restart ? "重启" : "启动")}: {_processLocator.DescribeConfiguredProcesses()} / {options.ToggleKey} / {ModeLabel(options.Mode)}");
+        return true;
+    }
+
+    private bool ValidateRuntimeOptions(AppOptions options)
+    {
         if (IsUnsupportedToggleKey(options.ToggleKey))
         {
             MessageBox.Show("触发键不支持 ALT，请选择其他按键。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
+            return false;
         }
 
-        if (KeySender.GetVk(options.ToggleKey) is null)
+        if (_triggerKeyState.ResolveVirtualKey(options.ToggleKey) is null)
         {
             MessageBox.Show($"无法识别触发键: {options.ToggleKey}", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
+            return false;
         }
 
-        try
-        {
-            _runtimeCts = new CancellationTokenSource();
-            _moduleStore.Reload();
-            _runtime = new ShigureRuntime(AppPaths.BaseDirectory, options, _moduleStore);
-            _runtime.SnapshotUpdated += HandleSnapshotUpdated;
-            _runtime.SetRecognizedAuras(_recognizedAuras);
-            _runtimeTask = Task.Run(() => RunRuntimeAsync(_runtime, _runtimeCts.Token));
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(ex.Message, "启动失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            AppendLog($"启动失败: {ex.Message}");
-            return;
-        }
+        return true;
+    }
 
+    private void ResetRuntimeLogState()
+    {
         _lastLoggedStep = null;
-        _lastLoggedStepTarget = null;
+        _lastLoggedStepDetails = null;
+        _lastLoggedScanFailureReason = null;
         _lastLoggedClass = null;
         _lastLoggedModule = null;
         _lastLoggedEnabled = null;
-        SetRuntimeControls(running: true);
-        AppendLog($"运行已启动: {options.WindowTitle} / {options.ToggleKey} / {ModeLabel(options.Mode)}");
     }
 
-    private async Task RunRuntimeAsync(ShigureRuntime runtime, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await runtime.RunAsync(cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            // Normal stop path.
-        }
-        catch (Exception ex)
-        {
-            PostToUi(() =>
-            {
-                AppendLog($"运行异常: {ex.Message}");
-                _titleLabel.ForeColor = UiTheme.Danger;
-            });
-        }
-        finally
-        {
-            PostToUi(() => SetRuntimeControls(running: false));
-        }
-    }
-
-    private async Task StopRuntimeAsync()
-    {
-        if (_runtimeCts is null)
-        {
-            return;
-        }
-
-        _runtimeCts.Cancel();
-
-        if (_runtimeTask is not null)
-        {
-            try
-            {
-                await _runtimeTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // Already handled by the runtime task.
-            }
-        }
-
-        if (_runtime is not null)
-        {
-            _runtime.SnapshotUpdated -= HandleSnapshotUpdated;
-        }
-
-        _runtimeCts.Dispose();
-        _runtimeCts = null;
-        _runtimeTask = null;
-        _runtime = null;
-        SetRuntimeControls(running: false);
-        AppendLog("运行已停止");
-    }
-
-    private async void RestartRuntimeFromEditor()
+    private async Task RestartRuntimeFromEditorAsync()
     {
         RefreshModuleSelector(_lastSnapshot, reloadModules: true);
-        if (_runtime is null)
+        if (!_runtimeSession.HasSession)
         {
             _moduleStore.Reload();
             return;
         }
 
         AppendLog("模块已变更, 重新启动运行");
-        await StopRuntimeAsync();
-        StartRuntime();
+        await StartOrRestartRuntimeAsync(restart: true);
     }
 
     private void ToggleEnabled()
     {
-        if (_runtime is null)
+        if (!_runtimeSession.IsRunning)
         {
             return;
         }
 
-        var nextEnabled = !(_lastSnapshot?.Enabled ?? false);
-        _runtime.SetEnabled(nextEnabled);
+        _runtimeSession.ToggleEnabled();
     }
 
     private AppOptions BuildOptions()
@@ -682,19 +1213,41 @@ public sealed class MainForm : Form, IMessageFilter
         };
     }
 
-    private void HandleSnapshotUpdated(RenderSnapshot snapshot)
+    private void HandleSnapshotUpdated(long sessionId, RenderSnapshot snapshot)
     {
-        PostToUi(() => ApplySnapshot(snapshot));
+        PostToUi(() =>
+        {
+            if (_runtimeSession.CurrentSessionId == sessionId)
+            {
+                ApplySnapshot(snapshot);
+            }
+        });
     }
 
-    private void HandleRecognizedAurasChanged(IReadOnlyList<RecognizedAuraInfo> auras)
+    private void HandleRuntimeFailed(long sessionId, Exception exception)
     {
-        _recognizedAuras = auras.Count == 0
-            ? Array.Empty<RecognizedAuraInfo>()
-            : auras.ToArray();
-        _statusForm.SetRecognizedAuras(_recognizedAuras);
-        _moduleEditor.SetRecognizedAuras(_recognizedAuras);
-        _runtime?.SetRecognizedAuras(_recognizedAuras);
+        PostToUi(() =>
+        {
+            if (_runtimeSession.CurrentSessionId != sessionId)
+            {
+                return;
+            }
+
+            AppendLog($"运行异常: {exception.Message}");
+            _titleLabel.ForeColor = UiTheme.Danger;
+            SetRuntimeControls(running: false);
+        });
+    }
+
+    private void HandleRuntimeStopped(long sessionId)
+    {
+        PostToUi(() =>
+        {
+            if (_runtimeSession.CurrentSessionId == sessionId)
+            {
+                SetRuntimeControls(running: false);
+            }
+        });
     }
 
     private void ApplySnapshot(RenderSnapshot snapshot)
@@ -837,18 +1390,34 @@ public sealed class MainForm : Form, IMessageFilter
     private async Task RestartRuntimeAfterSettingChangeAsync()
     {
         var options = BuildOptions();
-        if (_runtime is not null && options == _runtime.Options)
+        if (_runtimeSession.IsRunning && options == _runtimeSession.CurrentOptions)
         {
             return;
         }
 
         AppendLog("设置已变更, 重新启动运行");
-        await StopRuntimeAsync();
-        StartRuntime();
+        await StartOrRestartRuntimeAsync(restart: _runtimeSession.HasSession);
     }
 
     private void WriteSnapshotLog(RenderSnapshot snapshot)
     {
+        if (!string.Equals(snapshot.ScanFailureReason, _lastLoggedScanFailureReason, StringComparison.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(snapshot.ScanFailureReason))
+            {
+                if (!string.IsNullOrWhiteSpace(_lastLoggedScanFailureReason))
+                {
+                    AppendLog("扫描已恢复");
+                }
+            }
+            else
+            {
+                AppendLog($"扫描失败: {snapshot.ScanFailureReason}");
+            }
+
+            _lastLoggedScanFailureReason = snapshot.ScanFailureReason;
+        }
+
         var classSpec = snapshot.ClassName is null ? null : $"{snapshot.ClassName} / {snapshot.SpecName ?? "-"}";
         if (!string.IsNullOrWhiteSpace(classSpec) && classSpec != _lastLoggedClass)
         {
@@ -873,26 +1442,44 @@ public sealed class MainForm : Form, IMessageFilter
 
         if (!string.IsNullOrWhiteSpace(snapshot.CurrentStep))
         {
-            var target = GetActionTarget(snapshot);
-            if (snapshot.CurrentStep != _lastLoggedStep || target != _lastLoggedStepTarget)
+            var details = BuildStepLogDetails(snapshot);
+            if (snapshot.CurrentStep != _lastLoggedStep || details != _lastLoggedStepDetails)
             {
                 _lastLoggedStep = snapshot.CurrentStep;
-                _lastLoggedStepTarget = target;
-                var targetText = string.IsNullOrWhiteSpace(target) ? string.Empty : $"，目标: {target}";
-                AppendLog($"步骤: {snapshot.CurrentStep}{targetText}");
+                _lastLoggedStepDetails = details;
+                AppendLog($"步骤: {snapshot.CurrentStep}{details}");
             }
         }
     }
 
-    private static string? GetActionTarget(RenderSnapshot snapshot)
+    private static string BuildStepLogDetails(RenderSnapshot snapshot)
     {
-        if (!snapshot.UnitInfo.TryGetValue("动作单位", out var value))
+        var fields = new (string Key, string Label)[]
         {
-            return null;
+            ("动作单位", "目标"),
+            ("动作按键", "按键"),
+            ("动作延迟", "动作延迟"),
+            ("逻辑延迟", "逻辑延迟"),
+            ("规则编号", "规则编号"),
+            ("限流键", "限流键"),
+            ("发送失败", "发送失败")
+        };
+        var details = new List<string>();
+        foreach (var (key, label) in fields)
+        {
+            if (!snapshot.UnitInfo.TryGetValue(key, out var value))
+            {
+                continue;
+            }
+
+            var text = UiTheme.FormatValue(value);
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                details.Add($"{label}: {text}");
+            }
         }
 
-        var text = UiTheme.FormatValue(value);
-        return string.IsNullOrWhiteSpace(text) || text == "-" ? null : text;
+        return details.Count == 0 ? string.Empty : $"，{string.Join("，", details)}";
     }
 
     private void SetRuntimeControls(bool running)
@@ -1071,6 +1658,7 @@ public sealed class MainForm : Form, IMessageFilter
         }
 
         _statusForm.ApplyCachedBounds(_uiCache.SettingsWindowBounds);
+        _statusForm.ApplyCachedPage(_uiCache.SelectedSettingsPage);
     }
 
     private void SaveUiCache()
@@ -1095,6 +1683,8 @@ public sealed class MainForm : Form, IMessageFilter
         {
             _uiCache.SettingsWindowBounds = _statusForm.GetCachedBounds();
         }
+
+        _uiCache.SelectedSettingsPage = _statusForm.SelectedPageKey;
 
         _uiCache.ToggleKey = _toggleKeyName;
         _uiCache.SelectedModuleId = _selectedModuleId;
@@ -1182,7 +1772,7 @@ public sealed class MainForm : Form, IMessageFilter
         return NativeMethods.HtClient;
     }
 
-    private static string? TryMapKeyToHotkey(Keys key)
+    private string? TryMapKeyToHotkey(Keys key)
     {
         var keyName = key.ToString().ToUpperInvariant();
         if (IsUnsupportedToggleKey(keyName))
@@ -1218,7 +1808,7 @@ public sealed class MainForm : Form, IMessageFilter
             "SUBTRACT" => "NUMPADMINUS",
             "MULTIPLY" => "NUMPADMULTIPLY",
             "DIVIDE" => "NUMPADDIVIDE",
-            _ => KeySender.GetVk(keyName) is not null ? keyName : null
+            _ => _triggerKeyState.ResolveVirtualKey(keyName) is not null ? keyName : null
         };
     }
 
@@ -1237,12 +1827,6 @@ public sealed class MainForm : Form, IMessageFilter
             ForeColor = UiTheme.Muted,
             Margin = new Padding(0, 0, 0, 4)
         };
-    }
-
-    private static string GetWindowTitle()
-    {
-        var randomizedName = Environment.GetEnvironmentVariable(AppPaths.RandomizedDisplayNameEnvironmentKey);
-        return string.IsNullOrWhiteSpace(randomizedName) ? "Shigure" : randomizedName;
     }
 
     private void EnableDrag(Control control)

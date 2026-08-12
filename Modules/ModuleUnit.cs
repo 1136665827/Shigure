@@ -30,7 +30,22 @@ public enum UnitSelectorKind
     UnitWithAura,
 
     /// <summary>带某驱散类型的首个单位。get_unit_with_dispel_type</summary>
-    UnitWithDispelType
+    UnitWithDispelType,
+
+    /// <summary>治疗吸收高于阈值且治疗吸收最高的单位。</summary>
+    HighestHealingAbsorb,
+
+    /// <summary>拥有任一光环、治疗吸收高于阈值且治疗吸收最高的单位。</summary>
+    HighestHealingAbsorbWithAnyAura,
+
+    /// <summary>不带某光环、治疗吸收高于阈值且治疗吸收最高的单位。</summary>
+    HighestHealingAbsorbWithoutAura,
+
+    /// <summary>带某光环、治疗吸收高于阈值且治疗吸收最高的单位。</summary>
+    HighestHealingAbsorbWithAura,
+
+    /// <summary>某光环值等于指定值、治疗吸收高于阈值且治疗吸收最高的单位。</summary>
+    HighestHealingAbsorbWithAuraCount
 }
 
 /// <summary>
@@ -86,7 +101,19 @@ public enum CountKind
     UnitsWithoutAuraBelowHealth,
 
     /// <summary>拥有某光环的人数。count_units_with_aura</summary>
-    UnitsWithAura
+    UnitsWithAura,
+
+    /// <summary>拥有某光环且生命值低于阈值的人数。</summary>
+    UnitsWithAuraBelowHealth,
+
+    /// <summary>治疗吸收大于阈值的人数。</summary>
+    UnitsAboveHealingAbsorb,
+
+    /// <summary>不带某光环且治疗吸收大于阈值的人数。</summary>
+    UnitsWithoutAuraAboveHealingAbsorb,
+
+    /// <summary>拥有某光环且治疗吸收大于阈值的人数。</summary>
+    UnitsWithAuraAboveHealingAbsorb
 }
 
 /// <summary>

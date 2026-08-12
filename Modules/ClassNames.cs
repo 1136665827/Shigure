@@ -7,16 +7,34 @@ public static class ClassNames
         [1] = "战士",
         [2] = "圣骑士",
         [3] = "猎人",
-        [4] = "盗贼",
+        [4] = "潜行者",
         [5] = "牧师",
         [6] = "死亡骑士",
-        [7] = "萨满",
+        [7] = "萨满祭司",
         [8] = "法师",
         [9] = "术士",
         [10] = "武僧",
         [11] = "德鲁伊",
         [12] = "恶魔猎手",
         [13] = "唤魔师"
+    };
+
+    /// <summary>config/ 职业文件名（不含扩展名），PascalCase 英文名。</summary>
+    private static readonly Dictionary<int, string> ConfigFileNames = new()
+    {
+        [1] = "Warrior",
+        [2] = "Paladin",
+        [3] = "Hunter",
+        [4] = "Rogue",
+        [5] = "Priest",
+        [6] = "DeathKnight",
+        [7] = "Shaman",
+        [8] = "Mage",
+        [9] = "Warlock",
+        [10] = "Monk",
+        [11] = "Druid",
+        [12] = "DemonHunter",
+        [13] = "Evoker"
     };
 
     private static readonly Dictionary<(int ClassId, int SpecId), string> Specs = new()
@@ -27,26 +45,26 @@ public static class ClassNames
         [(2, 1)] = "神圣",
         [(2, 2)] = "防护",
         [(2, 3)] = "惩戒",
-        [(3, 1)] = "兽王",
+        [(3, 1)] = "野兽控制",
         [(3, 2)] = "射击",
         [(3, 3)] = "生存",
-        [(4, 1)] = "刺杀",
+        [(4, 1)] = "奇袭",
         [(4, 2)] = "狂徒",
         [(4, 3)] = "敏锐",
         [(5, 1)] = "戒律",
-        [(5, 2)] = "神牧",
+        [(5, 2)] = "神圣",
         [(5, 3)] = "暗影",
         [(6, 1)] = "鲜血",
         [(6, 2)] = "冰霜",
         [(6, 3)] = "邪恶",
         [(7, 1)] = "元素",
         [(7, 2)] = "增强",
-        [(7, 3)] = "奶萨",
+        [(7, 3)] = "恢复",
         [(8, 1)] = "奥术",
         [(8, 2)] = "火焰",
         [(8, 3)] = "冰霜",
         [(9, 1)] = "痛苦",
-        [(9, 2)] = "恶魔",
+        [(9, 2)] = "恶魔学识",
         [(9, 3)] = "毁灭",
         [(10, 1)] = "酒仙",
         [(10, 2)] = "织雾",
@@ -54,13 +72,57 @@ public static class ClassNames
         [(11, 1)] = "平衡",
         [(11, 2)] = "野性",
         [(11, 3)] = "守护",
-        [(11, 4)] = "奶德",
+        [(11, 4)] = "恢复",
         [(12, 1)] = "浩劫",
         [(12, 2)] = "复仇",
         [(12, 3)] = "噬灭",
         [(13, 1)] = "湮灭",
         [(13, 2)] = "恩护",
         [(13, 3)] = "增辉"
+    };
+
+    private static readonly Dictionary<(int ClassId, int SpecId), string> SpecIconFileNames = new()
+    {
+        [(1, 1)] = "warrior-arms",
+        [(1, 2)] = "warrior-fury",
+        [(1, 3)] = "warrior-protection",
+        [(2, 1)] = "paladin-holy",
+        [(2, 2)] = "paladin-protection",
+        [(2, 3)] = "paladin-retribution",
+        [(3, 1)] = "hunter-beastmastery",
+        [(3, 2)] = "hunter-marksmanship",
+        [(3, 3)] = "hunter-survival",
+        [(4, 1)] = "rogue-assassination",
+        [(4, 2)] = "rogue-outlaw",
+        [(4, 3)] = "rogue-subtlety",
+        [(5, 1)] = "priest-discipline",
+        [(5, 2)] = "priest-holy",
+        [(5, 3)] = "priest-shadow",
+        [(6, 1)] = "deathknight-blood",
+        [(6, 2)] = "deathknight-frost",
+        [(6, 3)] = "deathknight-unholy",
+        [(7, 1)] = "shaman-elemental",
+        [(7, 2)] = "shaman-enhancement",
+        [(7, 3)] = "shaman-restoration",
+        [(8, 1)] = "mage-arcane",
+        [(8, 2)] = "mage-fire",
+        [(8, 3)] = "mage-frost",
+        [(9, 1)] = "warlock-affliction",
+        [(9, 2)] = "warlock-demonology",
+        [(9, 3)] = "warlock-destruction",
+        [(10, 1)] = "monk-brewmaster",
+        [(10, 2)] = "monk-mistweaver",
+        [(10, 3)] = "monk-windwalker",
+        [(11, 1)] = "druid-balance",
+        [(11, 2)] = "druid-feral",
+        [(11, 3)] = "druid-guardian",
+        [(11, 4)] = "druid-restoration",
+        [(12, 1)] = "demonhunter-havoc",
+        [(12, 2)] = "demonhunter-vengeance",
+        [(12, 3)] = "demonhunter-devourer",
+        [(13, 1)] = "evoker-devastation",
+        [(13, 2)] = "evoker-preservation",
+        [(13, 3)] = "evoker-augmentation"
     };
 
     private static readonly Dictionary<(int ClassId, int SpecId, int HeroTalentId), string> HeroTalents = new()
@@ -176,6 +238,9 @@ public static class ClassNames
             .ToList();
     }
 
+    public static string GetConfigFileName(int classId)
+        => ConfigFileNames.GetValueOrDefault(classId, classId.ToString());
+
     public static IReadOnlyList<(int Id, string Name)> GetSpecs(int classId)
     {
         return Specs
@@ -184,6 +249,9 @@ public static class ClassNames
             .Select(item => (item.Key.SpecId, item.Value))
             .ToList();
     }
+
+    public static string? GetSpecIconFileName(int classId, int specId)
+        => SpecIconFileNames.GetValueOrDefault((classId, specId));
 
     public static IReadOnlyList<(int Id, string Name)> GetHeroTalents(int classId, int specId)
     {
@@ -194,4 +262,3 @@ public static class ClassNames
             .ToList();
     }
 }
-

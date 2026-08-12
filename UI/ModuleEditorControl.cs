@@ -1,16 +1,22 @@
+using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 
 namespace Shigure;
 
 public sealed class ModuleEditorControl : UserControl
 {
+    private const string ModuleWebsiteUrl = "https://www.shigure.club";
+
     private readonly ModuleStore _moduleStore;
-    private readonly Action _runtimeRestartRequested;
-    private readonly ConditionFieldCatalog _fieldCatalog;
-    private readonly KeymapCatalog _keymapCatalog;
+    private readonly Func<Task> _runtimeRestartRequested;
+    private readonly string _baseDirectory;
+    private ConditionFieldCatalog _fieldCatalog;
+    private KeymapCatalog _keymapCatalog;
     private readonly ListBox _moduleList = new();
     private readonly TextBox _nameBox = new();
     private readonly TextBox _authorBox = new();
+    private readonly TextBox _recommendedTalentBox = new();
     private readonly ComboBox _classBox = new();
     private readonly ComboBox _specBox = new();
     private readonly ComboBox _partyTypeBox = new();
@@ -20,6 +26,8 @@ public sealed class ModuleEditorControl : UserControl
     private readonly DataGridView _formulaAdjustmentsGrid = new();
     private readonly DataGridViewComboBoxColumn _spellColumn = new();
     private readonly DataGridViewComboBoxColumn _unitColumn = new();
+    private readonly DataGridViewComboBoxColumn _macroConditionColumn = new();
+    private ToolStripDropDown? _rulesComboDropDown;
     private readonly DataGridViewComboBoxColumn _adjustmentFieldColumn = new();
     private readonly DataGridViewComboBoxColumn _adjustmentTypeColumn = new();
     private readonly ListView _unitsList = new();
@@ -27,8 +35,10 @@ public sealed class ModuleEditorControl : UserControl
     private readonly Label _versionLabel = new();
     private readonly Label _unitsEmptyHint = new();
     private readonly Label _editorEmptyHint = new();
+    private readonly ToolTip _pathToolTip = new();
     private Button _saveButton = null!;
     private Button _deleteButton = null!;
+    private Button _addButton = null!;
     private readonly ToolTip _rulesGridToolTip = new()
     {
         InitialDelay = 300,
@@ -42,12 +52,12 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ModuleUnit> _units = new();
     private readonly List<ModuleCountField> _counts = new();
     private readonly List<ModuleValueAdjustment> _valueAdjustments = new();
-    private IReadOnlyList<RecognizedAuraInfo> _recognizedAuras = Array.Empty<RecognizedAuraInfo>();
     // 程序化恢复列宽时置真, 避免 ColumnWidthChanged 把默认值回写覆盖用户保存的宽度。
     private bool _suppressColumnSave;
     private bool _suppressUnitsColumnResize;
     // 载入时程序化写入"类型"单元格会触发 CellValueChanged; 置真以跳过"按类型清空数值"的联动。
     private bool _suppressAdjustmentTypeChange;
+    private bool _moduleCommandInProgress;
     // 规则行拖拽重排: 拖动起始行, 以及拖动中的插入指示位置(显示一条强调线)。
     private int _dragSourceRow = -1;
     private int _dragIndicatorRow = -1;
@@ -59,13 +69,14 @@ public sealed class ModuleEditorControl : UserControl
         new("队伍 (46)", "46")
     ];
     private static readonly MatchOption[] ClassOptions = BuildClassOptions();
-    // 这三列固定宽度并缓存; "条件"列为 Fill, 图标列固定且不缓存。
-    private static readonly string[] FixedWidthColumns = ["Enabled", "Spell", "Unit"];
+    // 这些列固定宽度并缓存; "条件"列为 Fill, 图标列固定且不缓存。
+    private static readonly string[] FixedWidthColumns = ["Enabled", "Spell", "Unit", "MacroCondition"];
     private static readonly HashSet<string> NonAuraGroupFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "生命值",
         "职责",
-        "驱散"
+        "驱散",
+        "治疗吸收"
     };
     // 条件动态数值"类型"下拉: 决定"数值"可选项的过滤类别, 顺序与界面一致。
     private static readonly (string Text, ConditionFieldCategory Category)[] AdjustmentTypeOptions =
@@ -73,25 +84,34 @@ public sealed class ModuleEditorControl : UserControl
         ("状态", ConditionFieldCategory.State),
         ("技能", ConditionFieldCategory.Spell),
         ("光环", ConditionFieldCategory.Aura),
-        ("动态单位", ConditionFieldCategory.DynamicUnit)
+        ("动态单位", ConditionFieldCategory.DynamicUnit),
+        ("动态数值", ConditionFieldCategory.DynamicValue)
     ];
 
-    public ModuleEditorControl(ModuleStore moduleStore, Action runtimeRestartRequested, string baseDirectory)
+    public ModuleEditorControl(ModuleStore moduleStore, Func<Task> runtimeRestartRequested, string baseDirectory)
     {
         _moduleStore = moduleStore;
         _runtimeRestartRequested = runtimeRestartRequested;
+        _baseDirectory = baseDirectory;
         _fieldCatalog = ConditionFieldCatalog.Load(baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(baseDirectory);
         InitializeComponent();
         LoadModules();
     }
 
-    public void SetRecognizedAuras(IReadOnlyList<RecognizedAuraInfo> auras)
+    public void ReloadCatalogs()
     {
-        _recognizedAuras = auras.Count == 0
-            ? Array.Empty<RecognizedAuraInfo>()
-            : auras.ToArray();
+        _fieldCatalog = ConditionFieldCatalog.Load(_baseDirectory);
+        _keymapCatalog = KeymapCatalog.Load(_baseDirectory);
+        // “更新配置”可能刚重建了 keymap；立即刷新当前规则的技能/目标/宏条件下拉，
+        // 避免必须切换职业或重启应用后才能看到新解析出的宏条件。
+        RefreshKeymapColumns();
+        RefreshAdjustmentFieldColumn();
+        _rulesGrid.Invalidate();
     }
+
+    private const int ModuleFooterBarHeight = 56;
+    private const int ModuleFooterButtonHeight = 36;
 
     private void InitializeComponent()
     {
@@ -105,60 +125,107 @@ public sealed class ModuleEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             ColumnCount = 2,
-            RowCount = 1,
+            RowCount = 2,
             Margin = new Padding(0)
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, ModuleFooterBarHeight));
         Controls.Add(root);
 
         root.Controls.Add(BuildSidebar(), 0, 0);
         root.Controls.Add(BuildEditor(), 1, 0);
+        root.Controls.Add(BuildSidebarFooter(), 0, 1);
+        root.Controls.Add(BuildActionRow(), 1, 1);
     }
 
     private Control BuildSidebar()
     {
-        var sidebar = new TableLayoutPanel
+        var sidebar = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Padding = new Padding(0, 0, 14, 0),
+            Padding = new Padding(14),
+            Margin = new Padding(0, 0, 12, 12),
             ColumnCount = 1,
-            RowCount = 2
+            RowCount = 1
         };
         sidebar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
         _moduleList.Dock = DockStyle.Fill;
-        UiTheme.StyleListBox(_moduleList, Font);
-        _moduleList.BackColor = UiTheme.Background;
+        UiTheme.StyleListBox(
+            _moduleList,
+            Font,
+            index => index >= 0 && index < _modules.Count
+                ? (_modules[index].Match.ClassId, _modules[index].Match.SpecId)
+                : (null, null));
+        _moduleList.BackColor = UiTheme.SurfaceRaised;
         _moduleList.SelectedIndexChanged += (_, _) => SelectModule(_moduleList.SelectedIndex);
         sidebar.Controls.Add(_moduleList, 0, 0);
+        return sidebar;
+    }
 
-        var buttons = new FlowLayoutPanel
+    private Control BuildSidebarFooter()
+    {
+        var footer = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            BackColor = UiTheme.Background,
-            Margin = new Padding(0)
+            Padding = new Padding(14, 10, 14, 10),
+            Margin = new Padding(0, 0, 12, 0),
+            ColumnCount = 3,
+            RowCount = 1
         };
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 8));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        footer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var addButton = UiTheme.CreateButton("新建", UiTheme.Field, UiTheme.Text);
-        addButton.Width = 72;
-        addButton.Height = 34;
-        addButton.Click += (_, _) => AddModule();
-
-        var reloadButton = UiTheme.CreateButton("刷新", UiTheme.Field, UiTheme.Text);
-        reloadButton.Width = 72;
-        reloadButton.Height = 34;
+        var reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
+        StyleModuleFooterButton(reloadButton);
+        reloadButton.Dock = DockStyle.Fill;
         reloadButton.Click += (_, _) => LoadModules();
 
-        buttons.Controls.Add(addButton);
-        buttons.Controls.Add(reloadButton);
-        sidebar.Controls.Add(buttons, 0, 1);
+        var getModulesButton = UiTheme.CreateButton(
+            "获取模块",
+            Color.FromArgb(252, 238, 10),
+            Color.Black);
+        StyleModuleFooterButton(getModulesButton);
+        getModulesButton.Dock = DockStyle.Fill;
+        getModulesButton.Padding = new Padding(0, 2, 24, 2);
+        getModulesButton.FlatAppearance.BorderColor = Color.FromArgb(252, 238, 10);
+        getModulesButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 244, 64);
+        getModulesButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 207, 8);
+        getModulesButton.Paint += (_, e) => UiTheme.DrawExternalLinkIcon(
+            e.Graphics,
+            getModulesButton.ClientRectangle,
+            getModulesButton.Text,
+            getModulesButton.Font,
+            getModulesButton.ForeColor,
+            getModulesButton.DeviceDpi / 96F);
+        getModulesButton.Click += (_, _) => OpenModuleWebsite();
 
-        return sidebar;
+        footer.Controls.Add(reloadButton, 0, 0);
+        footer.Controls.Add(getModulesButton, 2, 0);
+        return footer;
+    }
+
+    private static void OpenModuleWebsite()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ModuleWebsiteUrl)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"无法打开模块网站: {ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private Control BuildEditor()
@@ -167,19 +234,18 @@ public sealed class ModuleEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(10, 0, 0, 6),
+            Padding = new Padding(0),
+            Margin = new Padding(0, 0, 0, 12),
             ColumnCount = 1,
-            RowCount = 4
+            RowCount = 3
         };
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
         editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
 
         editor.Controls.Add(BuildNameRow(), 0, 0);
         editor.Controls.Add(BuildMatchRow(), 0, 1);
         editor.Controls.Add(BuildEditorTabs(), 0, 2);
-        editor.Controls.Add(BuildActionRow(), 0, 3);
         return editor;
     }
 
@@ -188,13 +254,13 @@ public sealed class ModuleEditorControl : UserControl
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 12, 0, 8),
+            Margin = new Padding(0, 12, 0, 0),
             Padding = new Padding(0),
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
             RowCount = 2
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var tabBar = new TableLayoutPanel
@@ -203,7 +269,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.Surface,
             ColumnCount = 3,
             RowCount = 1,
-            Margin = new Padding(0),
+            Margin = new Padding(0, 0, 0, 8),
             Padding = new Padding(0)
         };
         tabBar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -212,12 +278,24 @@ public sealed class ModuleEditorControl : UserControl
             tabBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 3F));
         }
 
+        var contentCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 1,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        contentCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        contentCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
         var contentHost = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0)
         };
+        contentCard.Controls.Add(contentHost, 0, 0);
 
         var pages = new[]
         {
@@ -229,6 +307,7 @@ public sealed class ModuleEditorControl : UserControl
         {
             page.Dock = DockStyle.Fill;
             page.Visible = false;
+            page.BackColor = UiTheme.SurfaceRaised;
             contentHost.Controls.Add(page);
         }
 
@@ -241,7 +320,7 @@ public sealed class ModuleEditorControl : UserControl
         contentHost.Controls.Add(_editorEmptyHint);
         _editorEmptyHint.BringToFront();
 
-        var labels = new Label[3];
+        var tabs = new UiPillTab[3];
         var selectedIndex = -1;
 
         void SelectTab(int index)
@@ -252,12 +331,10 @@ public sealed class ModuleEditorControl : UserControl
             }
 
             selectedIndex = index;
-            for (var i = 0; i < labels.Length; i++)
+            for (var i = 0; i < tabs.Length; i++)
             {
                 var selected = i == index;
-                labels[i].BackColor = selected ? UiTheme.Field : UiTheme.Surface;
-                labels[i].ForeColor = selected ? UiTheme.Text : UiTheme.Muted;
-                labels[i].Invalidate();
+                tabs[i].Selected = selected;
                 pages[i].Visible = selected;
                 if (selected)
                 {
@@ -270,51 +347,14 @@ public sealed class ModuleEditorControl : UserControl
         for (var i = 0; i < titles.Length; i++)
         {
             var index = i;
-            var label = new Label
-            {
-                Text = titles[i],
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter,
-                AutoSize = false,
-                BackColor = UiTheme.Surface,
-                ForeColor = UiTheme.Muted,
-                Cursor = Cursors.Hand,
-                Margin = new Padding(i == 0 ? 0 : 1, 0, 0, 0)
-            };
-            label.Click += (_, _) => SelectTab(index);
-            label.MouseEnter += (_, _) =>
-            {
-                if (selectedIndex != index)
-                {
-                    label.BackColor = UiTheme.Hover;
-                }
-            };
-            label.MouseLeave += (_, _) =>
-            {
-                if (selectedIndex != index)
-                {
-                    label.BackColor = UiTheme.Surface;
-                }
-            };
-            label.Paint += (_, e) =>
-            {
-                if (selectedIndex != index)
-                {
-                    return;
-                }
-
-                using var accent = new SolidBrush(UiTheme.Accent);
-                e.Graphics.FillRectangle(accent, 8, label.Height - 3, Math.Max(0, label.Width - 16), 2);
-            };
-            // 标签随窗口/侧栏宽度变化时重绘, 否则选中下划线会停留在旧宽度。
-            label.SizeChanged += (_, _) => label.Invalidate();
-
-            labels[i] = label;
-            tabBar.Controls.Add(label, i, 0);
+            var tab = new UiPillTab(titles[i]);
+            tab.Click += (_, _) => SelectTab(index);
+            tabs[i] = tab;
+            tabBar.Controls.Add(tab, i, 0);
         }
 
         root.Controls.Add(tabBar, 0, 0);
-        root.Controls.Add(contentHost, 0, 1);
+        root.Controls.Add(contentCard, 0, 1);
         SelectTab(0);
         return root;
     }
@@ -439,14 +479,13 @@ public sealed class ModuleEditorControl : UserControl
 
     private Control BuildNameRow()
     {
-        var row = new TableLayoutPanel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 4,
             RowCount = 2,
-            Padding = new Padding(12, 10, 12, 4),
-            Margin = new Padding(0, 0, 0, 10)
+            Padding = new Padding(14, 10, 14, 8),
+            Margin = new Padding(0, 0, 0, 12)
         };
         // 名称/作者各占剩余宽度的一半, 两个输入框等宽并铺满窗口。
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
@@ -470,14 +509,17 @@ public sealed class ModuleEditorControl : UserControl
 
         _pathLabel.Dock = DockStyle.Fill;
         _pathLabel.ForeColor = UiTheme.Muted;
+        _pathLabel.BackColor = Color.Transparent;
         _pathLabel.TextAlign = ContentAlignment.MiddleLeft;
         _pathLabel.AutoEllipsis = true;
+        _pathLabel.TextChanged += (_, _) => _pathToolTip.SetToolTip(_pathLabel, _pathLabel.Text);
         row.Controls.Add(_pathLabel, 0, 1);
         row.SetColumnSpan(_pathLabel, 3);
 
         // 版本号紧贴窗口右侧, 右对齐显示在"路径"同一行。
         _versionLabel.Dock = DockStyle.Fill;
         _versionLabel.ForeColor = UiTheme.Muted;
+        _versionLabel.BackColor = Color.Transparent;
         _versionLabel.TextAlign = ContentAlignment.MiddleRight;
         _versionLabel.AutoEllipsis = true;
         row.Controls.Add(_versionLabel, 3, 1);
@@ -489,20 +531,25 @@ public sealed class ModuleEditorControl : UserControl
     {
         var matchLabels = new[] { "职业", "专精", "英雄天赋", "队伍类型" };
 
-        var row = new TableLayoutPanel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
-            ColumnCount = 8,
+            ColumnCount = 12,
             RowCount = 2,
-            Padding = new Padding(12, 10, 12, 10),
+            Padding = new Padding(14),
             Margin = new Padding(0)
         };
         foreach (var label in matchLabels)
         {
             row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, MeasureLabelColumnWidth(label, Font)));
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            // 下拉框由原来的 25% 缩短到 20%，余下 5% 作为与下一项标签之间的弹性间隔。
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 5));
         }
+        // RowCount 会预置 Percent 样式, 必须 Clear 后再设 Absolute, 否则 Add 只追加到末尾不生效。
+        row.RowStyles.Clear();
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+        row.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
 
         ResetClassOptions(_classBox);
         ResetSpecOptions(_specBox, null);
@@ -521,9 +568,37 @@ public sealed class ModuleEditorControl : UserControl
         };
 
         AddMatchField(row, "职业:", _classBox, 0);
-        AddMatchField(row, "专精:", _specBox, 2);
-        AddMatchField(row, "英雄天赋:", _heroTalentBox, 4);
-        AddMatchField(row, "队伍类型:", _partyTypeBox, 6);
+        AddMatchField(row, "专精:", _specBox, 3);
+        AddMatchField(row, "英雄天赋:", _heroTalentBox, 6);
+        AddMatchField(row, "队伍类型:", _partyTypeBox, 9);
+
+        var recommendedTalentRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 2,
+            RowCount = 1,
+            // 推荐天赋整行相对原位置下移 4px，并与上方匹配项保持清晰间距。
+            Margin = new Padding(0, 12, 0, 0)
+        };
+        recommendedTalentRow.RowStyles.Clear();
+        recommendedTalentRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        recommendedTalentRow.ColumnStyles.Add(new ColumnStyle(
+            SizeType.Absolute,
+            MeasureLabelColumnWidth("推荐天赋", Font)));
+        recommendedTalentRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        var recommendedTalentLabel = CreateLabel("推荐天赋:");
+        recommendedTalentLabel.AutoSize = false;
+        recommendedTalentLabel.Margin = Padding.Empty;
+        recommendedTalentRow.Controls.Add(recommendedTalentLabel, 0, 0);
+        UiTheme.StyleTextBox(_recommendedTalentBox);
+        _recommendedTalentBox.Dock = DockStyle.None;
+        _recommendedTalentBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _recommendedTalentBox.Margin = Padding.Empty;
+        recommendedTalentRow.Controls.Add(_recommendedTalentBox, 1, 0);
+        row.Controls.Add(recommendedTalentRow, 0, 1);
+        row.SetColumnSpan(recommendedTalentRow, 12);
+
         return row;
     }
 
@@ -570,7 +645,7 @@ public sealed class ModuleEditorControl : UserControl
         // "类型"列加在集合末尾以保留 Rows.Add 的位置参数(启用/数值/调整/条件), 再用 DisplayIndex 显示到"数值"前。
         _adjustmentTypeColumn.Name = "Type";
         _adjustmentTypeColumn.HeaderText = "类型";
-        _adjustmentTypeColumn.Width = 120;
+        _adjustmentTypeColumn.Width = 140;
         _adjustmentTypeColumn.MinimumWidth = 100;
         _adjustmentTypeColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _adjustmentTypeColumn.FlatStyle = FlatStyle.Flat;
@@ -656,7 +731,7 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
         _rulesGrid.ShowCellToolTips = false;
 
-        // 启用/技能/目标 三列宽度固定可调并缓存; 条件列用 Fill 自动充满剩余窗口。
+        // 启用/技能/目标/宏条件列宽度固定可调并缓存; 条件列用 Fill 自动充满剩余窗口。
         _rulesGrid.Columns.Add(new DataGridViewCheckBoxColumn
         {
             Name = "Enabled",
@@ -669,13 +744,25 @@ public sealed class ModuleEditorControl : UserControl
         _spellColumn.Width = 150;
         _spellColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _spellColumn.FlatStyle = FlatStyle.Flat;
+        _spellColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
+        _spellColumn.ReadOnly = true;
         _rulesGrid.Columns.Add(_spellColumn);
         _unitColumn.Name = "Unit";
         _unitColumn.HeaderText = "目标";
         _unitColumn.Width = 150;
         _unitColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _unitColumn.FlatStyle = FlatStyle.Flat;
+        _unitColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
+        _unitColumn.ReadOnly = true;
         _rulesGrid.Columns.Add(_unitColumn);
+        _macroConditionColumn.Name = "MacroCondition";
+        _macroConditionColumn.HeaderText = "宏条件";
+        _macroConditionColumn.Width = 150;
+        _macroConditionColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+        _macroConditionColumn.FlatStyle = FlatStyle.Flat;
+        _macroConditionColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
+        _macroConditionColumn.ReadOnly = true;
+        _rulesGrid.Columns.Add(_macroConditionColumn);
         _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Condition",
@@ -691,7 +778,7 @@ public sealed class ModuleEditorControl : UserControl
         AddRuleIconColumn("InsertBlank", "+", "在下一行添加空白条件");
         AddRuleIconColumn("Delete", "×", "删除", UiTheme.Danger);
 
-        // 拖拽手柄列: 加在集合末尾(保持 Rows.Add 的位置参数仍对应 启用/技能/目标/条件),
+        // 拖拽手柄列: 加在集合末尾(保持 Rows.Add 的位置参数仍对应 启用/技能/目标/宏条件/条件),
         // 用 DisplayIndex=0 显示到"启用"前面。自绘六点抓手, 按住拖动可调整该条逻辑顺序。
         _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
@@ -716,8 +803,8 @@ public sealed class ModuleEditorControl : UserControl
         });
         _rulesGrid.Columns["RuleNumber"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
         _rulesGrid.Columns["RuleNumber"]!.DefaultCellStyle.ForeColor = UiTheme.Muted;
-        _rulesGrid.Columns["RuleNumber"]!.DisplayIndex = 0;
-        _rulesGrid.Columns["Drag"]!.DisplayIndex = 1;
+        _rulesGrid.Columns["Drag"]!.DisplayIndex = 0;
+        _rulesGrid.Columns["RuleNumber"]!.DisplayIndex = 1;
 
         _rulesGrid.AllowDrop = true;
         _rulesGrid.CellClick += OnRulesGridCellClick;
@@ -735,14 +822,6 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.DataError += (_, e) => e.ThrowException = false;
         _rulesGrid.ColumnWidthChanged += OnColumnWidthChanged;
         _rulesGrid.CellValueChanged += OnRulesGridCellValueChanged;
-        // 组合框改值默认要等失焦才提交; 立即提交以便"目标"随"技能"实时联动。
-        _rulesGrid.CurrentCellDirtyStateChanged += (_, _) =>
-        {
-            if (_rulesGrid.IsCurrentCellDirty && _rulesGrid.CurrentCell is DataGridViewComboBoxCell)
-            {
-                _rulesGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-            }
-        };
         RefreshKeymapColumns();
         ApplyColumnWidths(UiCacheStore.Load().ModuleRulesGridColumns);
 
@@ -791,7 +870,7 @@ public sealed class ModuleEditorControl : UserControl
     }
 
     /// <summary>
-    /// 按当前选中职业的 keymap 重建“技能/目标”下拉选项。
+    /// 按当前选中职业的 keymap 重建“技能/目标/宏条件”下拉选项。
     /// 技能去重(同名技能只出现一次), unit 去重升序; 首项留空表示不填。
     /// 已有行里不在 keymap 中的旧值会补录为额外选项, 避免数据丢失。
     /// </summary>
@@ -817,8 +896,11 @@ public sealed class ModuleEditorControl : UserControl
         _unitColumn.Items.Add(string.Empty);
         foreach (var unit in _keymapCatalog.GetUnits(classId))
         {
-            _unitColumn.Items.Add(unit.ToString());
+            _unitColumn.Items.Add(ReservedUnit.ToDisplayText(unit));
         }
+
+        _macroConditionColumn.Items.Clear();
+        _macroConditionColumn.Items.Add(string.Empty);
 
         foreach (DataGridViewRow row in _rulesGrid.Rows)
         {
@@ -829,6 +911,7 @@ public sealed class ModuleEditorControl : UserControl
 
             EnsureComboItem(_spellColumn, row.Cells["Spell"].Value);
             UpdateUnitCellItems(row);
+            UpdateMacroConditionCellItems(row);
         }
     }
 
@@ -869,8 +952,9 @@ public sealed class ModuleEditorControl : UserControl
 
         if (ModuleSpecialActions.IsOneKeySpell(spell))
         {
-            cell.Items.Add("0");
-            cell.Value = "0";
+            var noTarget = ReservedUnit.ToDisplayText(ReservedUnit.None);
+            cell.Items.Add(noTarget);
+            cell.Value = noTarget;
             return;
         }
 
@@ -881,7 +965,7 @@ public sealed class ModuleEditorControl : UserControl
 
         foreach (var unit in allowed)
         {
-            cell.Items.Add(unit.ToString());
+            cell.Items.Add(ReservedUnit.ToDisplayText(unit));
         }
 
         // 动态单位与技能无关, 始终可选; 放在 keymap 编号之后。
@@ -910,8 +994,69 @@ public sealed class ModuleEditorControl : UserControl
         }
         else
         {
-            // 技能切换导致旧的数字目标非法, 清空。
+            // 技能切换导致旧目标非法, 清空。
             cell.Value = string.Empty;
+        }
+    }
+
+    private void UpdateMacroConditionCellItems(DataGridViewRow row)
+    {
+        if (row.IsNewRow || row.Cells["MacroCondition"] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        RebuildMacroConditionCell(row, cell.Value?.ToString());
+    }
+
+    /// <summary>
+    /// 按当前技能与目标重建“宏条件”选项。只有一个非空条件时自动选中；
+    /// 自定义技能或动态单位没有 keymap 条目时保留已有值。
+    /// </summary>
+    private void RebuildMacroConditionCell(DataGridViewRow row, string? desiredValue)
+    {
+        if (row.IsNewRow || row.Cells["MacroCondition"] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        var desired = MacroConditionText.ToDisplayText(desiredValue);
+        var spell = row.Cells["Spell"].Value?.ToString();
+        var unitText = row.Cells["Unit"].Value?.ToString();
+        var unit = ReservedUnit.ParseDisplayText(unitText);
+        var allowed = unit is null || string.IsNullOrWhiteSpace(spell)
+            ? (IReadOnlyList<string>)[]
+            : _keymapCatalog.GetMacroConditions(ReadMatchCombo(_classBox), spell, unit);
+
+        cell.Items.Clear();
+        cell.Items.Add(string.Empty);
+        foreach (var condition in allowed)
+        {
+            var displayCondition = MacroConditionText.ToDisplayText(condition);
+            if (!cell.Items.Contains(displayCondition))
+            {
+                cell.Items.Add(displayCondition);
+            }
+        }
+
+        if (desired.Length > 0 && cell.Items.Contains(desired))
+        {
+            cell.Value = desired;
+        }
+        else if (desired.Length > 0 && allowed.Count == 0)
+        {
+            cell.Items.Add(desired);
+            cell.Value = desired;
+        }
+        else
+        {
+            var nonEmptyConditions = allowed
+                .Select(MacroConditionText.ToDisplayText)
+                .Where(condition => !string.IsNullOrWhiteSpace(condition))
+                .ToList();
+            cell.Value = nonEmptyConditions.Count == 1 && allowed.Count == 1
+                ? nonEmptyConditions[0]
+                : string.Empty;
         }
     }
 
@@ -922,10 +1067,16 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        // 技能改变时联动刷新该行"目标"的可选值。
-        if (_rulesGrid.Columns[e.ColumnIndex].Name == "Spell")
+        var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
+        // 技能改变时联动刷新该行"目标"，技能或目标改变时再刷新"宏条件"。
+        if (columnName == "Spell")
         {
             UpdateUnitCellItems(_rulesGrid.Rows[e.RowIndex]);
+            UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
+        }
+        else if (columnName == "Unit")
+        {
+            UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
         }
     }
 
@@ -1050,7 +1201,7 @@ public sealed class ModuleEditorControl : UserControl
         return AdjustmentTypeOptions[0].Text;
     }
 
-    // 优先按目录里的字段类别判定; 目录外的自定义字段按 auras./spells. 前缀兜底, 其余归为状态。
+    // 优先按目录里的字段类别判定; 目录外的自定义字段按 auras./spells. 前缀兜底, 其余归为动态数值。
     private ConditionFieldCategory ResolveAdjustmentCategory(string field)
     {
         var name = field?.Trim() ?? string.Empty;
@@ -1078,7 +1229,7 @@ public sealed class ModuleEditorControl : UserControl
             return ConditionFieldCategory.Spell;
         }
 
-        return ConditionFieldCategory.State;
+        return ConditionFieldCategory.DynamicValue;
     }
 
     private void OnAdjustmentsGridCellValueChanged(object? sender, DataGridViewCellEventArgs e)
@@ -1112,11 +1263,8 @@ public sealed class ModuleEditorControl : UserControl
             }
         }
 
-        foreach (var fieldName in GetAdjustmentTargetFields())
-        {
-            AddAdjustmentField(fields, seen, fieldName, $"{fieldName} (动态数值)", ConditionFieldCategory.State);
-        }
-
+        // 已定义的动态单位生命值和数量拥有明确类别，必须先于动态数值目标加入；
+        // 否则同名目标会被 seen 抢先登记成错误类别，载入时无法正确回填“类型”。
         foreach (var unit in _units)
         {
             if (!string.IsNullOrWhiteSpace(unit.HealthName))
@@ -1129,8 +1277,14 @@ public sealed class ModuleEditorControl : UserControl
         {
             if (!string.IsNullOrWhiteSpace(count.Name))
             {
-                AddAdjustmentField(fields, seen, count.Name, $"人数: {count.Name}", ConditionFieldCategory.DynamicUnit);
+                AddAdjustmentField(fields, seen, count.Name, $"人数: {count.Name}", ConditionFieldCategory.DynamicValue);
             }
+        }
+
+        // 公式结果和其它不属于状态/技能/光环/动态单位的命名目标都是动态数值。
+        foreach (var fieldName in GetAdjustmentTargetFields())
+        {
+            AddAdjustmentField(fields, seen, fieldName, $"{fieldName} (动态数值)", ConditionFieldCategory.DynamicValue);
         }
 
         return fields;
@@ -1341,9 +1495,11 @@ public sealed class ModuleEditorControl : UserControl
 
     private IReadOnlyList<string> GetThresholdFields()
     {
-        // 阈值字段仅取状态/动态单位(可加减数值), 排除新加入"数值"选项的技能/光环字段。
+        // 阈值字段仅取状态/动态单位/动态数值(可加减数值), 排除技能/光环字段。
         return BuildAdjustmentFields()
-            .Where(field => field.Category is ConditionFieldCategory.State or ConditionFieldCategory.DynamicUnit)
+            .Where(field => field.Category is ConditionFieldCategory.State
+                or ConditionFieldCategory.DynamicUnit
+                or ConditionFieldCategory.DynamicValue)
             .Select(field => field.Name)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .ToList();
@@ -1413,7 +1569,25 @@ public sealed class ModuleEditorControl : UserControl
         Count
     }
 
-    private sealed record RuleRowValues(bool Enabled, string Spell, string UnitText, string Condition, IReadOnlyList<string> SubConditions);
+    private sealed record RuleRowValues(
+        bool Enabled,
+        string Spell,
+        string UnitText,
+        string MacroCondition,
+        string Condition,
+        IReadOnlyList<string> SubConditions,
+        int? DelayMs,
+        int? LogicDelayMs);
+
+    private sealed class RuleRowMetadata(
+        IEnumerable<string>? subConditions = null,
+        int? delayMs = null,
+        int? logicDelayMs = null)
+    {
+        public List<string> SubConditions { get; } = subConditions?.ToList() ?? new List<string>();
+        public int? DelayMs { get; set; } = delayMs;
+        public int? LogicDelayMs { get; set; } = logicDelayMs;
+    }
 
     private void ApplyColumnWidths(Dictionary<string, int>? widths)
     {
@@ -1429,7 +1603,8 @@ public sealed class ModuleEditorControl : UserControl
             {
                 if (widths.TryGetValue(name, out var width) && width > 0)
                 {
-                    _rulesGrid.Columns[name]!.Width = width;
+                    var column = _rulesGrid.Columns[name]!;
+                    column.Width = Math.Max(column.MinimumWidth, width);
                 }
             }
         }
@@ -1471,6 +1646,12 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
+        if (_rulesGrid.Rows[e.RowIndex].Cells[e.ColumnIndex] is DataGridViewComboBoxCell)
+        {
+            ShowRulesComboDropDown(e.RowIndex, e.ColumnIndex);
+            return;
+        }
+
         if (columnName == "MoveUp")
         {
             MoveRule(e.RowIndex, -1);
@@ -1507,6 +1688,173 @@ public sealed class ModuleEditorControl : UserControl
         }
     }
 
+    // 不进入 WinForms 原生 ComboBox 编辑态，直接显示受控的深色列表，避免白边、尺寸跳变和按钮错位。
+    private void ShowRulesComboDropDown(int rowIndex, int columnIndex)
+    {
+        CloseRulesComboDropDown();
+
+        var row = _rulesGrid.Rows[rowIndex];
+        if (row.IsNewRow)
+        {
+            rowIndex = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, string.Empty, string.Empty);
+            row = _rulesGrid.Rows[rowIndex];
+        }
+
+        if (row.Cells[columnIndex] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        _rulesGrid.CurrentCell = cell;
+        var values = cell.Items.Cast<object>()
+            .Select(item => item?.ToString() ?? string.Empty)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (values.Count == 0 && cell.OwningColumn is DataGridViewComboBoxColumn column)
+        {
+            values.AddRange(column.Items.Cast<object>()
+                .Select(item => item?.ToString() ?? string.Empty)
+                .Distinct(StringComparer.Ordinal));
+        }
+
+        var currentValue = cell.Value?.ToString() ?? string.Empty;
+        if (!values.Contains(currentValue, StringComparer.Ordinal))
+        {
+            values.Insert(0, currentValue);
+        }
+
+        var scale = Math.Max(1f, _rulesGrid.DeviceDpi / 96f);
+        var itemHeight = Math.Max((int)Math.Round(32 * scale), _rulesGrid.Font.Height + (int)Math.Round(12 * scale));
+        var visibleItems = Math.Clamp(values.Count, 1, 9);
+        var cellBounds = _rulesGrid.GetCellDisplayRectangle(columnIndex, rowIndex, cutOverflow: true);
+        var measuredWidth = values.Count == 0
+            ? 0
+            : values.Max(value => TextRenderer.MeasureText(DisplayRulesComboValue(value), _rulesGrid.Font).Width);
+        var listWidth = Math.Clamp(
+            Math.Max(cellBounds.Width, measuredWidth + (int)Math.Round(40 * scale)),
+            (int)Math.Round(150 * scale),
+            (int)Math.Round(420 * scale));
+        var listHeight = visibleItems * itemHeight + 2;
+
+        var listBox = new ListBox
+        {
+            BackColor = UiTheme.Surface,
+            ForeColor = UiTheme.Text,
+            BorderStyle = BorderStyle.None,
+            DrawMode = DrawMode.OwnerDrawFixed,
+            IntegralHeight = false,
+            ItemHeight = itemHeight,
+            Font = _rulesGrid.Font,
+            Size = new Size(listWidth, listHeight)
+        };
+        listBox.Items.AddRange(values.Cast<object>().ToArray());
+        listBox.DrawItem += OnRulesComboListDrawItem;
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index >= 0 && index != listBox.SelectedIndex)
+            {
+                listBox.SelectedIndex = index;
+            }
+        };
+
+        var selectedIndex = values.FindIndex(value => string.Equals(value, currentValue, StringComparison.Ordinal));
+        if (selectedIndex >= 0)
+        {
+            listBox.SelectedIndex = selectedIndex;
+        }
+
+        var host = new ToolStripControlHost(listBox)
+        {
+            AutoSize = false,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+            Size = listBox.Size
+        };
+        var dropDown = new ToolStripDropDown
+        {
+            AutoSize = false,
+            AutoClose = true,
+            BackColor = UiTheme.Border,
+            DropShadowEnabled = true,
+            Margin = Padding.Empty,
+            Padding = new Padding(1),
+            Size = new Size(listWidth + 2, listHeight + 2)
+        };
+        dropDown.Items.Add(host);
+        _rulesComboDropDown = dropDown;
+
+        void ApplySelectedValue()
+        {
+            if (listBox.SelectedIndex < 0 || listBox.SelectedIndex >= values.Count)
+            {
+                return;
+            }
+
+            cell.Value = values[listBox.SelectedIndex];
+            _rulesGrid.InvalidateCell(cell);
+            dropDown.Close(ToolStripDropDownCloseReason.ItemClicked);
+        }
+
+        listBox.Click += (_, _) => ApplySelectedValue();
+        listBox.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.Handled = true;
+                ApplySelectedValue();
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                e.Handled = true;
+                dropDown.Close(ToolStripDropDownCloseReason.Keyboard);
+            }
+        };
+        dropDown.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_rulesComboDropDown, dropDown))
+            {
+                _rulesComboDropDown = null;
+            }
+        };
+
+        dropDown.Show(_rulesGrid, new Point(cellBounds.Left, cellBounds.Bottom), ToolStripDropDownDirection.BelowRight);
+        listBox.Focus();
+    }
+
+    private static string DisplayRulesComboValue(string value)
+        => string.IsNullOrEmpty(value) ? "（留空）" : value;
+
+    private static void OnRulesComboListDrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (sender is not ListBox listBox || e.Index < 0 || e.Index >= listBox.Items.Count)
+        {
+            return;
+        }
+
+        var selected = (e.State & DrawItemState.Selected) != 0;
+        using (var background = new SolidBrush(selected ? UiTheme.AccentSoft : UiTheme.Surface))
+        {
+            e.Graphics.FillRectangle(background, e.Bounds);
+        }
+
+        var text = DisplayRulesComboValue(listBox.Items[e.Index]?.ToString() ?? string.Empty);
+        var textBounds = new Rectangle(e.Bounds.Left + 10, e.Bounds.Top, Math.Max(0, e.Bounds.Width - 20), e.Bounds.Height);
+        TextRenderer.DrawText(
+            e.Graphics,
+            text,
+            listBox.Font,
+            textBounds,
+            selected ? UiTheme.Accent : UiTheme.Text,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+    }
+
+    private void CloseRulesComboDropDown()
+    {
+        _rulesComboDropDown?.Close(ToolStripDropDownCloseReason.AppClicked);
+        _rulesComboDropDown = null;
+    }
+
     private void OnRulesGridCellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
@@ -1526,21 +1874,45 @@ public sealed class ModuleEditorControl : UserControl
         // 「条件」列在有子条件时显示成 "主条件 且任一(子1 | 子2)"; 仅改显示, 底层值仍是主条件, 不影响 ReadRules 存盘。
         if (columnName == "Condition" && !row.IsNewRow)
         {
-            e.Value = DecorateCondition(e.Value?.ToString() ?? string.Empty, row.Tag as List<string>);
+            var metadata = GetRuleMetadata(row);
+            e.Value = DecorateCondition(
+                e.Value?.ToString() ?? string.Empty,
+                metadata.SubConditions,
+                metadata.DelayMs,
+                metadata.LogicDelayMs);
             e.FormattingApplied = true;
         }
     }
 
-    // 把主条件与子条件合成可读文本(与 ModuleRule.DescribeCondition / 弹窗预览同形)。无子条件时原样返回。
-    private static string DecorateCondition(string main, List<string>? subs)
+    // 把主条件、子条件和规则延迟合成可读文本；仅改显示，不改变底层条件表达式。
+    private static string DecorateCondition(
+        string main,
+        IReadOnlyList<string>? subs,
+        int? delayMs,
+        int? logicDelayMs)
     {
-        if (subs is not { Count: > 0 })
+        var conditionText = main;
+        if (subs is { Count: > 0 })
         {
-            return main;
+            var any = string.Join(" | ", subs);
+            conditionText = main.Length == 0 ? $"任一({any})" : $"{main}  且任一({any})";
         }
 
-        var any = string.Join(" | ", subs);
-        return main.Length == 0 ? $"任一({any})" : $"{main}  且任一({any})";
+        if (delayMs is > 0)
+        {
+            conditionText = conditionText.Length == 0
+                ? $"延迟 {delayMs.Value} ms"
+                : $"{conditionText}；延迟 {delayMs.Value} ms";
+        }
+
+        if (logicDelayMs is > 0)
+        {
+            conditionText = conditionText.Length == 0
+                ? $"逻辑延迟 {logicDelayMs.Value} ms"
+                : $"{conditionText}；逻辑延迟 {logicDelayMs.Value} ms";
+        }
+
+        return conditionText;
     }
 
     private void OnRulesGridCellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
@@ -1551,6 +1923,12 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
+        if (columnName is "Spell" or "Unit" or "MacroCondition")
+        {
+            PaintRuleComboBoxCell(e);
+            return;
+        }
+
         if (columnName == "Drag")
         {
             PaintRuleDragHandle(e);
@@ -1615,7 +1993,7 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGridToolTip.Hide(_rulesGrid);
     }
 
-    // 图标列沿用原提示; 条件/技能/目标三列在文本被列宽截断或可点击时给出悬停提示。
+    // 图标列沿用原提示; 条件/技能/目标/宏条件列在文本被列宽截断或可点击时给出悬停提示。
     private string GetRuleCellToolTip(string columnName, int rowIndex, int columnIndex)
     {
         if (columnName is "MoveUp" or "MoveDown" or "Copy" or "InsertBlank" or "Delete")
@@ -1633,7 +2011,7 @@ public sealed class ModuleEditorControl : UserControl
             return "拖动调整顺序";
         }
 
-        if (columnName is not ("Condition" or "Spell" or "Unit"))
+        if (columnName is not ("Condition" or "Spell" or "Unit" or "MacroCondition"))
         {
             return string.Empty;
         }
@@ -1642,8 +2020,13 @@ public sealed class ModuleEditorControl : UserControl
         var text = CellText(row, columnName);
         if (columnName == "Condition")
         {
-            // 提示与裁剪检测都用合成后的完整文本(含子条件), 与单元格显示一致。
-            text = DecorateCondition(text, row.Tag as List<string>);
+            // 提示与裁剪检测都用合成后的完整文本(含子条件和延迟), 与单元格显示一致。
+            var metadata = GetRuleMetadata(row);
+            text = DecorateCondition(
+                text,
+                metadata.SubConditions,
+                metadata.DelayMs,
+                metadata.LogicDelayMs);
             if (text.Length == 0)
             {
                 return "点击编辑条件 (当前: 始终命中)";
@@ -1728,6 +2111,66 @@ public sealed class ModuleEditorControl : UserControl
             e.CellBounds,
             color,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        e.Handled = true;
+    }
+
+    // 避免 WinForms 按系统主题绘制高亮白色方块，统一成深色圆角按钮和青色箭头。
+    private void PaintRuleComboBoxCell(DataGridViewCellPaintingEventArgs e)
+    {
+        e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+        if (e.Graphics is null)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var selected = (_rulesGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].State & DataGridViewElementStates.Selected) != 0;
+        var cellStyle = e.CellStyle ?? _rulesGrid.DefaultCellStyle;
+        var textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
+        var buttonSize = Math.Min(24, Math.Max(18, e.CellBounds.Height - 12));
+        var buttonBounds = new Rectangle(
+            e.CellBounds.Right - buttonSize - 7,
+            e.CellBounds.Top + (e.CellBounds.Height - buttonSize) / 2,
+            buttonSize,
+            buttonSize);
+        var textBounds = new Rectangle(
+            e.CellBounds.Left + 10,
+            e.CellBounds.Top,
+            Math.Max(0, buttonBounds.Left - e.CellBounds.Left - 16),
+            e.CellBounds.Height);
+
+        TextRenderer.DrawText(
+            e.Graphics,
+            e.FormattedValue?.ToString() ?? string.Empty,
+            cellStyle.Font ?? _rulesGrid.Font,
+            textBounds,
+            textColor,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+
+        var oldSmoothingMode = e.Graphics.SmoothingMode;
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var path = UiTheme.CreateRoundedRectanglePath(buttonBounds, 4))
+        using (var background = new SolidBrush(selected ? UiTheme.Pressed : UiTheme.Hover))
+        using (var border = new Pen(selected ? UiTheme.Accent : UiTheme.Border))
+        {
+            e.Graphics.FillPath(background, path);
+            e.Graphics.DrawPath(border, path);
+        }
+
+        var centerX = buttonBounds.Left + buttonBounds.Width / 2;
+        var centerY = buttonBounds.Top + buttonBounds.Height / 2 + 1;
+        var arrow = new[]
+        {
+            new Point(centerX - 4, centerY - 2),
+            new Point(centerX + 4, centerY - 2),
+            new Point(centerX, centerY + 3)
+        };
+        using (var arrowBrush = new SolidBrush(selected ? UiTheme.Accent : UiTheme.Muted))
+        {
+            e.Graphics.FillPolygon(arrowBrush, arrow);
+        }
+
+        e.Graphics.SmoothingMode = oldSmoothingMode;
         e.Handled = true;
     }
 
@@ -2004,7 +2447,15 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        InsertRuleAfter(rowIndex, new RuleRowValues(true, string.Empty, string.Empty, string.Empty, Array.Empty<string>()));
+        InsertRuleAfter(rowIndex, new RuleRowValues(
+            true,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            null,
+            null));
     }
 
     private void InsertRuleAfter(int rowIndex, RuleRowValues values)
@@ -2213,9 +2664,12 @@ public sealed class ModuleEditorControl : UserControl
             CellBool(row, "Enabled", defaultValue: true),
             CellText(row, "Spell"),
             CellText(row, "Unit"),
+            CellText(row, "MacroCondition"),
             CellText(row, "Condition"),
-            // 子条件挂在 row.Tag, 随行一起被移动/拖拽/复制搬运。
-            row.Tag as List<string> ?? new List<string>());
+            // 子条件和延迟挂在 row.Tag, 随行一起被移动/拖拽/复制搬运。
+            GetRuleMetadata(row).SubConditions,
+            GetRuleMetadata(row).DelayMs,
+            GetRuleMetadata(row).LogicDelayMs);
     }
 
     private void WriteRuleRow(DataGridViewRow row, RuleRowValues values)
@@ -2223,19 +2677,28 @@ public sealed class ModuleEditorControl : UserControl
         row.Cells["Enabled"].Value = values.Enabled;
         EnsureComboItem(_spellColumn, values.Spell);
         row.Cells["Spell"].Value = values.Spell;
+        row.Cells["MacroCondition"].Value = string.Empty;
         row.Cells["Condition"].Value = values.Condition;
-        row.Tag = new List<string>(values.SubConditions);
+        row.Tag = new RuleRowMetadata(values.SubConditions, values.DelayMs, values.LogicDelayMs);
         RebuildUnitCell(row, values.UnitText);
+        RebuildMacroConditionCell(row, values.MacroCondition);
     }
 
     private void OpenConditionEditor(int rowIndex)
     {
         var row = _rulesGrid.Rows[rowIndex];
         var current = row.IsNewRow ? string.Empty : CellText(row, "Condition");
-        var currentSubs = row.IsNewRow ? null : row.Tag as List<string>;
-        var fields = BuildConditionFields();
+        var currentMetadata = row.IsNewRow ? new RuleRowMetadata() : GetRuleMetadata(row);
+        var fields = BuildConditionFields(includeRuleSettings: true);
 
-        using var editor = new ConditionEditorForm(fields, current, currentSubs, allowSubConditions: true);
+        using var editor = new ConditionEditorForm(
+            fields,
+            current,
+            currentMetadata.SubConditions,
+            allowSubConditions: true,
+            delayMs: currentMetadata.DelayMs,
+            logicDelayMs: currentMetadata.LogicDelayMs,
+            allowRuleSettings: true);
         if (editor.ShowDialog(FindForm()) != DialogResult.OK)
         {
             return;
@@ -2245,28 +2708,52 @@ public sealed class ModuleEditorControl : UserControl
         if (row.IsNewRow)
         {
             // 新行占位符不能直接赋值, 改为追加一行(主条件或子条件任一非空即可)。
-            if (!string.IsNullOrWhiteSpace(editor.ConditionText) || subs.Count > 0)
+            if (!string.IsNullOrWhiteSpace(editor.ConditionText)
+                || subs.Count > 0
+                || editor.DelayMs is > 0
+                || editor.LogicDelayMs is > 0)
             {
-                var index = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, editor.ConditionText);
-                _rulesGrid.Rows[index].Tag = subs;
+                var index = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, string.Empty, editor.ConditionText);
+                _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
+                    subs,
+                    editor.DelayMs,
+                    editor.LogicDelayMs);
             }
 
             return;
         }
 
         row.Cells["Condition"].Value = editor.ConditionText;
-        row.Tag = subs;
+        row.Tag = new RuleRowMetadata(subs, editor.DelayMs, editor.LogicDelayMs);
         // 让「条件」列的装饰显示(主条件 且任一(…))立即刷新。
         _rulesGrid.InvalidateRow(rowIndex);
     }
 
-    // 条件字段 = 状态/技能字段 + 每个动态单位的裸名(存在)和值名称 + 每个数量名。
-    private IReadOnlyList<ConditionField> BuildConditionFields()
+    // 条件字段 = 状态/技能字段 + 每个动态单位的裸名(存在)和值名称 + 动态数值。
+    private IReadOnlyList<ConditionField> BuildConditionFields(bool includeRuleSettings = false)
     {
         var classId = ReadMatchCombo(_classBox);
         var specId = ReadMatchCombo(_specBox);
         var fields = new List<ConditionField>(_fieldCatalog.GetFields(classId, specId));
         var seen = new HashSet<string>(fields.Select(field => field.Name), StringComparer.Ordinal);
+
+        if (includeRuleSettings && seen.Add(ShigureConditionFields.Delay))
+        {
+            fields.Add(new ConditionField(
+                ShigureConditionFields.Delay,
+                "延迟 (ms)",
+                ConditionFieldType.Int,
+                ConditionFieldCategory.Shigure));
+        }
+
+        if (includeRuleSettings && seen.Add(ShigureConditionFields.LogicDelay))
+        {
+            fields.Add(new ConditionField(
+                ShigureConditionFields.LogicDelay,
+                "逻辑延迟 (ms)",
+                ConditionFieldType.Int,
+                ConditionFieldCategory.Shigure));
+        }
 
         foreach (var unit in _units)
         {
@@ -2292,85 +2779,148 @@ public sealed class ModuleEditorControl : UserControl
         {
             if (!string.IsNullOrWhiteSpace(count.Name) && seen.Add(count.Name))
             {
-                fields.Add(new ConditionField(count.Name, $"人数: {count.Name}", ConditionFieldType.Int, ConditionFieldCategory.DynamicUnit));
+                fields.Add(new ConditionField(count.Name, $"人数: {count.Name}", ConditionFieldType.Int, ConditionFieldCategory.DynamicValue));
             }
         }
 
-        foreach (var name in LoadRecognizedAuraConditionNames(classId, specId))
+        foreach (var fieldName in GetAdjustmentTargetFields())
         {
-            var fieldName = RecognizedAuraFields.ToFieldName(name);
             if (seen.Add(fieldName))
             {
-                fields.Add(new ConditionField(fieldName, name, ConditionFieldType.Int, ConditionFieldCategory.RecognizedAura));
+                fields.Add(new ConditionField(
+                    fieldName,
+                    $"{fieldName} (动态数值)",
+                    ConditionFieldType.Int,
+                    ConditionFieldCategory.DynamicValue));
             }
         }
 
         return fields;
     }
 
-    private static IReadOnlyList<string> LoadRecognizedAuraConditionNames(int? classId, int? specId)
-    {
-        var directory = Path.Combine(
-            AuraIconRecognizer.DefaultAuraDirectory,
-            NormalizeAuraScopeValue(classId).ToString(),
-            NormalizeAuraScopeValue(specId).ToString());
-        return AuraNameStore.Load(AuraNameStore.GetNameFilePath(directory))
-            .Values
-            .Select(name => name.Trim())
-            .Where(name => name.Length > 0 && name != "-")
-            .Distinct(StringComparer.CurrentCulture)
-            .OrderBy(name => name, StringComparer.CurrentCulture)
-            .ToList();
-    }
-
-    private static int NormalizeAuraScopeValue(int? value) => value is > 0 and <= 255 ? value.Value : 0;
-
     private Control BuildActionRow()
     {
-        var row = new Panel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
+            ColumnCount = 3,
+            RowCount = 1,
             Margin = new Padding(0),
-            Padding = new Padding(12, 0, 12, 0)
+            Padding = new Padding(14, 10, 14, 10)
         };
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 360));
+        row.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var hint = new Label
+        var openFolderButton = UiTheme.CreateButton("打开目录", UiTheme.ButtonKind.Secondary);
+        StyleModuleFooterButton(openFolderButton);
+        openFolderButton.Dock = DockStyle.Fill;
+        openFolderButton.Margin = new Padding(0, 0, 8, 0);
+        openFolderButton.Click += (_, _) => OpenModuleFolder();
+        _pathToolTip.SetToolTip(
+            openFolderButton,
+            "在资源管理器中打开模块目录；若已选中已保存模块则定位到对应文件");
+
+        var spacer = new Panel
         {
-            Text = "目标可选 keymap 编号或上方定义的动态单位；点击“条件”列打开可视化编辑器",
             Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Muted,
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoEllipsis = true,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
 
-        var buttons = new FlowLayoutPanel
+        var buttons = new TableLayoutPanel
         {
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Right,
-            FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false,
-            BackColor = UiTheme.SurfaceRaised,
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 3,
+            RowCount = 1,
             Margin = new Padding(0),
-            Padding = new Padding(0, 8, 0, 8)
+            Padding = new Padding(0)
         };
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
+        buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34f));
+        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        _saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
-        _saveButton.Margin = new Padding(8, 0, 0, 0);
-        _saveButton.Click += (_, _) => SaveSelectedModule();
+        _addButton = UiTheme.CreateButton("新建", UiTheme.ButtonKind.Secondary);
+        StyleModuleFooterButton(_addButton);
+        _addButton.Dock = DockStyle.Fill;
+        _addButton.Margin = new Padding(0, 0, 8, 0);
+        _addButton.Click += async (_, _) => await RunModuleCommandAsync(AddModuleAsync);
 
-        _deleteButton = UiTheme.CreateButton("删除", UiTheme.Field, UiTheme.Danger);
-        _deleteButton.Margin = new Padding(8, 0, 0, 0);
-        _deleteButton.Click += (_, _) => DeleteSelectedModule();
+        _deleteButton = UiTheme.CreateButton("删除", UiTheme.ButtonKind.Danger);
+        StyleModuleFooterButton(_deleteButton);
+        _deleteButton.Dock = DockStyle.Fill;
+        _deleteButton.Margin = new Padding(0, 0, 8, 0);
+        _deleteButton.Click += async (_, _) => await RunModuleCommandAsync(DeleteSelectedModuleAsync);
 
-        buttons.Controls.Add(_saveButton);
-        buttons.Controls.Add(_deleteButton);
-        row.Controls.Add(hint);
-        row.Controls.Add(buttons);
+        _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
+        StyleModuleFooterButton(_saveButton);
+        _saveButton.Dock = DockStyle.Fill;
+        _saveButton.Margin = new Padding(0);
+        _saveButton.Click += async (_, _) => await RunModuleCommandAsync(SaveSelectedModuleAsync);
+
+        buttons.Controls.Add(_addButton, 0, 0);
+        buttons.Controls.Add(_deleteButton, 1, 0);
+        buttons.Controls.Add(_saveButton, 2, 0);
+
+        row.Controls.Add(openFolderButton, 0, 0);
+        row.Controls.Add(spacer, 1, 0);
+        row.Controls.Add(buttons, 2, 0);
         return row;
     }
+
+    private void OpenModuleFolder()
+    {
+        var moduleDirectory = ModuleStore.ResolveModuleDirectory(_baseDirectory);
+        var filePath = _selectedModule?.FilePath;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{filePath}\"",
+                    UseShellExecute = true
+                });
+                return;
+            }
+
+            if (!Directory.Exists(moduleDirectory))
+            {
+                Directory.CreateDirectory(moduleDirectory);
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{moduleDirectory}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"无法打开模块文件夹：{ex.Message}",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    private static void StyleModuleFooterButton(Button button)
+    {
+        button.AutoSize = false;
+        button.Height = ModuleFooterButtonHeight;
+        button.Margin = new Padding(0);
+        button.Padding = new Padding(10, 0, 10, 0);
+        button.TextAlign = ContentAlignment.MiddleCenter;
+    }
+
+    private static void StyleModuleActionButton(Button button)
+        => StyleModuleFooterButton(button);
 
     private void LoadModules()
     {
@@ -2408,6 +2958,7 @@ public sealed class ModuleEditorControl : UserControl
     {
         _nameBox.Text = module.Name;
         _authorBox.Text = module.Author;
+        _recommendedTalentBox.Text = module.RecommendedTalent;
         SetEditorEnabled(hasModule: true);
         // 先填充动态单位/数量, 后续目标下拉与条件字段都依赖它们。
         _units.Clear();
@@ -2452,17 +3003,19 @@ public sealed class ModuleEditorControl : UserControl
 
         foreach (var rule in module.Rules)
         {
-            // 动态目标优先显示单位名, 否则显示数字单位。
+            // 动态目标优先显示单位名；保留单位显示中文，其余团队槽位显示数字。
             var unitText = !string.IsNullOrWhiteSpace(rule.UnitName)
                 ? rule.UnitName!
-                : rule.Unit?.ToString() ?? string.Empty;
+                : rule.Unit is { } unit ? ReservedUnit.ToDisplayText(unit) : string.Empty;
             EnsureComboItem(_spellColumn, rule.Spell);
             // 先加行(目标先留空), 再按技能重建目标选项并写回目标值, 避免值不在选项内被吞掉。
-            var index = _rulesGrid.Rows.Add(rule.Enabled, rule.Spell, string.Empty, rule.Condition);
-            _rulesGrid.Rows[index].Tag = rule.SubConditions is null
-                ? new List<string>()
-                : new List<string>(rule.SubConditions);
+            var index = _rulesGrid.Rows.Add(rule.Enabled, rule.Spell, string.Empty, string.Empty, rule.Condition);
+            _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
+                rule.SubConditions,
+                rule.DelayMs,
+                rule.LogicDelayMs);
             RebuildUnitCell(_rulesGrid.Rows[index], unitText);
+            RebuildMacroConditionCell(_rulesGrid.Rows[index], rule.MacroCondition);
         }
     }
 
@@ -2471,6 +3024,7 @@ public sealed class ModuleEditorControl : UserControl
         _selectedModule = null;
         _nameBox.Clear();
         _authorBox.Clear();
+        _recommendedTalentBox.Clear();
         _units.Clear();
         _counts.Clear();
         _valueAdjustments.Clear();
@@ -2491,8 +3045,9 @@ public sealed class ModuleEditorControl : UserControl
     // 无选中模块时禁用保存/删除(否则点了静默无反应), 并在编辑区显示引导提示。
     private void SetEditorEnabled(bool hasModule)
     {
-        _saveButton.Enabled = hasModule;
-        _deleteButton.Enabled = hasModule;
+        _saveButton.Enabled = hasModule && !_moduleCommandInProgress;
+        _deleteButton.Enabled = hasModule && !_moduleCommandInProgress;
+        _addButton.Enabled = !_moduleCommandInProgress;
         _editorEmptyHint.Visible = !hasModule;
         if (!hasModule)
         {
@@ -2500,7 +3055,37 @@ public sealed class ModuleEditorControl : UserControl
         }
     }
 
-    private void AddModule()
+    private async Task RunModuleCommandAsync(Func<Task> command)
+    {
+        if (_moduleCommandInProgress)
+        {
+            return;
+        }
+
+        _moduleCommandInProgress = true;
+        SetEditorEnabled(_selectedModule is not null);
+        try
+        {
+            await command();
+        }
+        catch (Exception ex)
+        {
+            if (!IsDisposed)
+            {
+                MessageBox.Show(ex.Message, "模块操作失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        finally
+        {
+            _moduleCommandInProgress = false;
+            if (!IsDisposed)
+            {
+                SetEditorEnabled(_selectedModule is not null);
+            }
+        }
+    }
+
+    private async Task AddModuleAsync()
     {
         var module = ModuleDefinition.CreateDefault(_moduleStore.CreateNextModuleName());
         try
@@ -2520,10 +3105,10 @@ public sealed class ModuleEditorControl : UserControl
             _moduleList.SelectedIndex = index;
         }
 
-        _runtimeRestartRequested();
+        await _runtimeRestartRequested();
     }
 
-    private void SaveSelectedModule()
+    private async Task SaveSelectedModuleAsync()
     {
         if (_selectedModule is null)
         {
@@ -2553,10 +3138,10 @@ public sealed class ModuleEditorControl : UserControl
             _moduleList.SelectedIndex = index;
         }
 
-        _runtimeRestartRequested();
+        await _runtimeRestartRequested();
     }
 
-    private void DeleteSelectedModule()
+    private async Task DeleteSelectedModuleAsync()
     {
         if (_selectedModule is null)
         {
@@ -2575,7 +3160,7 @@ public sealed class ModuleEditorControl : UserControl
 
         _moduleStore.Delete(_selectedModule);
         LoadModules();
-        _runtimeRestartRequested();
+        await _runtimeRestartRequested();
     }
 
     private bool TryReadModule(out ModuleDefinition module)
@@ -2583,6 +3168,7 @@ public sealed class ModuleEditorControl : UserControl
         module = _selectedModule!.Clone();
         module.Name = string.IsNullOrWhiteSpace(_nameBox.Text) ? "新模块" : _nameBox.Text.Trim();
         module.Author = _authorBox.Text.Trim();
+        module.RecommendedTalent = _recommendedTalentBox.Text.Trim();
         // 保存时记录当前 Shigure 版本。
         module.Version = AppInfo.Version;
         module.Match = new ModuleMatch
@@ -2706,16 +3292,22 @@ public sealed class ModuleEditorControl : UserControl
             var condition = CellText(row, "Condition");
             var spell = CellText(row, "Spell");
             var unitText = CellText(row, "Unit");
+            var macroCondition = CellText(row, "MacroCondition");
+            var metadata = GetRuleMetadata(row);
             if (string.IsNullOrWhiteSpace(condition)
                 && string.IsNullOrWhiteSpace(spell)
-                && string.IsNullOrWhiteSpace(unitText))
+                && string.IsNullOrWhiteSpace(unitText)
+                && string.IsNullOrWhiteSpace(macroCondition)
+                && metadata.SubConditions.Count == 0
+                && metadata.DelayMs is not > 0
+                && metadata.LogicDelayMs is not > 0)
             {
                 continue;
             }
 
-            // 目标文本命中已定义动态单位名 → UnitName; 否则按数字 → Unit; 都不是则留空。
+            // 目标文本命中已定义动态单位名 → UnitName；否则把中文保留单位或数字槽位还原为 Unit。
             var isDynamic = unitNames.Contains(unitText);
-            var subs = (row.Tag as List<string>)?
+            var subs = metadata.SubConditions
                 .Select(sub => sub?.Trim() ?? string.Empty)
                 .Where(sub => sub.Length > 0)
                 .ToList();
@@ -2723,23 +3315,42 @@ public sealed class ModuleEditorControl : UserControl
             {
                 Enabled = CellBool(row, "Enabled", defaultValue: true),
                 Condition = condition,
-                Unit = isDynamic ? null : ParseNullableInt(unitText),
+                Unit = isDynamic ? null : ReservedUnit.ParseDisplayText(unitText),
                 UnitName = isDynamic ? unitText : null,
                 Spell = spell,
+                MacroCondition = MacroConditionText.ParseDisplayText(macroCondition),
                 Hotkey = string.Empty,
                 Step = string.Empty,
-                SubConditions = subs is { Count: > 0 } ? subs : null
+                SubConditions = subs is { Count: > 0 } ? subs : null,
+                DelayMs = metadata.DelayMs,
+                LogicDelayMs = metadata.LogicDelayMs
             });
         }
 
         return rules;
     }
 
+    private static RuleRowMetadata GetRuleMetadata(DataGridViewRow row)
+    {
+        return row.Tag switch
+        {
+            RuleRowMetadata metadata => metadata,
+            // 兼容本次升级前已经加载到控件中的旧 Tag 结构。
+            List<string> subConditions => new RuleRowMetadata(subConditions),
+            _ => new RuleRowMetadata()
+        };
+    }
+
     private static void AddMatchField(TableLayoutPanel row, string label, ComboBox box, int column)
     {
-        row.Controls.Add(CreateLabel(label), column, 0);
+        var fieldLabel = CreateLabel(label);
+        fieldLabel.Margin = Padding.Empty;
+        row.Controls.Add(fieldLabel, column, 0);
         UiTheme.StyleComboBox(box);
-        box.Dock = DockStyle.Fill;
+        // 仅横向拉伸，让固定高度的 ComboBox 在行内垂直居中，与标签共用一条水平中心线。
+        box.Dock = DockStyle.None;
+        box.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        box.Margin = Padding.Empty;
         row.Controls.Add(box, column + 1, 0);
     }
 
@@ -2750,6 +3361,7 @@ public sealed class ModuleEditorControl : UserControl
             Text = text,
             Dock = DockStyle.Fill,
             ForeColor = UiTheme.Muted,
+            BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleLeft,
             AutoEllipsis = true
         };
