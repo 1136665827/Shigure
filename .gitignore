@@ -24,3 +24,4 @@ cache/
 module/
 # 说明文档
 docs/
+__pycache__/

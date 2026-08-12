@@ -10,6 +10,7 @@ from pathlib import Path
 OLD_NAME = "Shigure"
 ADDON_OLD_NAME = "Fuyutsui"
 OLD_NAMES = (OLD_NAME, ADDON_OLD_NAME)
+PROTECTED_TEXTS = ("https://www.shigure.club",)
 
 SKIP_DIRS = {
     ".git",
@@ -124,8 +125,19 @@ def match_name_case(old_name: str, new_name: str) -> str:
 
 
 def replace_names(value: str, new_name: str) -> str:
+    protected_ranges = [
+        match.span()
+        for protected_text in PROTECTED_TEXTS
+        for match in re.finditer(re.escape(protected_text), value)
+    ]
+
+    def replace_match(match: re.Match[str]) -> str:
+        if any(start <= match.start() < end for start, end in protected_ranges):
+            return match.group(0)
+        return match_name_case(match.group(0), new_name)
+
     return NAME_REPLACEMENT_PATTERN.sub(
-        lambda match: match_name_case(match.group(0), new_name),
+        replace_match,
         value,
     )
 
