@@ -1,14 +1,17 @@
+using System.Collections.Concurrent;
+
 namespace Shigure;
 
 public sealed class ShigureRuntime
 {
     private readonly AppOptions _options;
-    private readonly ConfigService _config;
-    private readonly KeymapService _keymap;
-    private readonly PixelScanner _scanner;
-    private readonly StateBuilder _stateBuilder;
-    private readonly KeySender _keySender;
-    private readonly LogicRegistry _logicRegistry;
+    private readonly IRuntimeScreenScanner _scanner;
+    private readonly IRuntimeStateBuilder _stateBuilder;
+    private readonly IRuntimeKeyOutput _keySender;
+    private readonly ITriggerKeyState _triggerKeyState;
+    private readonly IRuntimeLogic _logic;
+    private readonly TimeProvider _timeProvider;
+    private readonly ConcurrentQueue<RuntimeCommand> _pendingCommands = new();
 
     private GameState? _state;
     private string? _className;
@@ -16,50 +19,79 @@ public sealed class ShigureRuntime
     private int? _classId;
     private int? _specId;
     private string? _moduleName;
+    private string? _scanFailureReason;
     private string _currentStep = "等待启动";
     private IReadOnlyDictionary<string, object?> _unitInfo = new Dictionary<string, object?>();
-    private IReadOnlyList<RecognizedAuraInfo> _recognizedAuras = Array.Empty<RecognizedAuraInfo>();
     private bool _enabled;
     private bool _clickPending;
+    private readonly Dictionary<string, DateTimeOffset> _lastRuleSentAt = new(StringComparer.Ordinal);
+    private DateTimeOffset _logicPausedUntil = DateTimeOffset.MinValue;
 
-    public ShigureRuntime(string baseDirectory, AppOptions options, ModuleStore moduleStore)
+    internal ShigureRuntime(
+        AppOptions options,
+        IRuntimeScreenScanner scanner,
+        IRuntimeStateBuilder stateBuilder,
+        IRuntimeKeyOutput keySender,
+        ITriggerKeyState triggerKeyState,
+        IRuntimeLogic logic,
+        TimeProvider timeProvider)
     {
         _options = options;
-        _config = ConfigService.LoadFromBaseDirectory(baseDirectory);
-        _keymap = new KeymapService(baseDirectory, _config);
-        _scanner = new PixelScanner(options.WindowTitle);
-        _stateBuilder = new StateBuilder(_config);
-        _keySender = new KeySender(options.WindowTitle);
-        _logicRegistry = new LogicRegistry(_keymap, moduleStore, options.ModuleId);
+        _scanner = scanner;
+        _stateBuilder = stateBuilder;
+        _keySender = keySender;
+        _triggerKeyState = triggerKeyState;
+        _logic = logic;
+        _timeProvider = timeProvider;
     }
 
     public event Action<RenderSnapshot>? SnapshotUpdated;
 
     public AppOptions Options => _options;
 
-    public void SetRecognizedAuras(IReadOnlyList<RecognizedAuraInfo> auras)
+    public void SetEnabled(bool enabled)
     {
-        _recognizedAuras = auras.Count == 0
-            ? Array.Empty<RecognizedAuraInfo>()
-            : auras.ToArray();
-
-        if (_state is not null)
-        {
-            ApplyRecognizedAuras(_state);
-        }
+        _pendingCommands.Enqueue(RuntimeCommand.SetEnabled(enabled));
     }
 
-    public void SetEnabled(bool enabled)
+    public void ToggleEnabled()
+    {
+        _pendingCommands.Enqueue(RuntimeCommand.ToggleEnabled());
+    }
+
+    private void ApplyEnabled(bool enabled)
     {
         _enabled = enabled;
         _clickPending = false;
+        if (!enabled)
+        {
+            _lastRuleSentAt.Clear();
+            _logicPausedUntil = DateTimeOffset.MinValue;
+        }
+
         _currentStep = enabled ? "手动开启" : "手动关闭";
         PublishSnapshot();
     }
 
+    private void DrainPendingCommands()
+    {
+        while (_pendingCommands.TryDequeue(out var command))
+        {
+            switch (command.Kind)
+            {
+                case RuntimeCommandKind.SetEnabled:
+                    ApplyEnabled(command.Enabled);
+                    break;
+                case RuntimeCommandKind.ToggleEnabled:
+                    ApplyEnabled(!_enabled);
+                    break;
+            }
+        }
+    }
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        var toggleVk = KeySender.GetVk(_options.ToggleKey);
+        var toggleVk = _triggerKeyState.ResolveVirtualKey(_options.ToggleKey);
         if (toggleVk is null)
         {
             _currentStep = $"无法识别触发键: {_options.ToggleKey}";
@@ -78,8 +110,9 @@ public sealed class ShigureRuntime
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                var now = DateTimeOffset.UtcNow;
-                var pressed = NativeMethods.IsKeyDown(toggleVk.Value);
+                DrainPendingCommands();
+                var now = _timeProvider.GetUtcNow();
+                var pressed = _triggerKeyState.IsPressed(toggleVk.Value);
                 var rising = pressed && !previousPressed && now - lastToggleAt >= TimeSpan.FromMilliseconds(120);
                 var falling = !pressed && previousPressed;
 
@@ -94,6 +127,8 @@ public sealed class ShigureRuntime
                     _enabled = pressed;
                     if (falling)
                     {
+                        _lastRuleSentAt.Clear();
+                        _logicPausedUntil = DateTimeOffset.MinValue;
                         _currentStep = "按住结束";
                     }
                 }
@@ -103,7 +138,10 @@ public sealed class ShigureRuntime
                 if (now - lastLogicAt >= _options.LogicInterval)
                 {
                     lastLogicAt = now;
-                    TickLogic();
+                    if (now >= _logicPausedUntil)
+                    {
+                        TickLogic();
+                    }
                 }
 
                 if (now - lastRenderAt >= _options.RenderInterval)
@@ -112,13 +150,14 @@ public sealed class ShigureRuntime
                     PublishSnapshot();
                 }
 
-                await Task.Delay(25, cancellationToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(25), _timeProvider, cancellationToken);
             }
         }
         finally
         {
             _enabled = false;
             _clickPending = false;
+            _logicPausedUntil = DateTimeOffset.MinValue;
             _currentStep = "已停止";
             PublishSnapshot();
         }
@@ -140,6 +179,12 @@ public sealed class ShigureRuntime
             default:
                 _enabled = !_enabled;
                 _clickPending = false;
+                if (!_enabled)
+                {
+                    _lastRuleSentAt.Clear();
+                    _logicPausedUntil = DateTimeOffset.MinValue;
+                }
+
                 _currentStep = _enabled ? "逻辑开启" : "逻辑关闭";
                 break;
         }
@@ -148,6 +193,7 @@ public sealed class ShigureRuntime
     private void TickLogic()
     {
         var scan = _scanner.ScanScreenData();
+        _scanFailureReason = scan.FailureReason;
 
         if (scan.RowData is null)
         {
@@ -166,13 +212,10 @@ public sealed class ShigureRuntime
             return;
         }
 
-        _state = _stateBuilder.Build(scan.RowData, scan.BarData);
-        ApplyRecognizedAuras(_state);
+        _state = _stateBuilder.Build(scan.RowData, scan.BarData, scan.HealAbsorbData);
         _classId = _state.GetInt("职业");
         _specId = _state.GetInt("专精");
         (_className, _specName) = ClassNames.GetClassAndSpecName(_classId, _specId);
-        _keymap.SelectForClass(_classId);
-
         if (!_state.GetBool("有效性"))
         {
             _moduleName = null;
@@ -181,7 +224,8 @@ public sealed class ShigureRuntime
             return;
         }
 
-        _moduleName = _logicRegistry.ResolveDynamicState(_classId, _specId, _state);
+        var evaluation = _logic.Evaluate(_classId, _specId, _specName, _state, _enabled);
+        _moduleName = evaluation.ModuleName;
 
         if (!_enabled)
         {
@@ -189,16 +233,28 @@ public sealed class ShigureRuntime
             return;
         }
 
-        var decision = _logicRegistry.Run(_classId, _specId, _specName, _state);
+        var decision = evaluation.Decision;
+        if (decision is null)
+        {
+            _currentStep = "逻辑未返回决策";
+            _unitInfo = new Dictionary<string, object?>();
+            return;
+        }
+
         _currentStep = decision.Step;
         _unitInfo = decision.UnitInfo;
         _moduleName = decision.ModuleName;
 
         if (_options.Mode == SendMode.Click)
         {
-            if (_clickPending && !string.IsNullOrWhiteSpace(decision.Hotkey))
+            if (_clickPending
+                && !string.IsNullOrWhiteSpace(decision.Hotkey))
             {
-                _keySender.Send(decision.Hotkey);
+                var sendAttemptAt = _timeProvider.GetUtcNow();
+                if (CanSend(decision, sendAttemptAt))
+                {
+                    SendAndPauseLogic(decision, scan.TargetWindowHandle);
+                }
             }
 
             _enabled = false;
@@ -208,8 +264,67 @@ public sealed class ShigureRuntime
 
         if (!string.IsNullOrWhiteSpace(decision.Hotkey))
         {
-            _keySender.Send(decision.Hotkey);
+            var sendAttemptAt = _timeProvider.GetUtcNow();
+            if (CanSend(decision, sendAttemptAt))
+            {
+                SendAndPauseLogic(decision, scan.TargetWindowHandle);
+            }
         }
+    }
+
+    private void SendAndPauseLogic(LogicDecision decision, nint targetWindowHandle)
+    {
+        var sendResult = _keySender.Send(decision.Hotkey!, targetWindowHandle);
+        if (!sendResult.Succeeded)
+        {
+            var info = _unitInfo.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value,
+                StringComparer.Ordinal);
+            info["发送失败"] = sendResult.FailureReason ?? "未知原因";
+            _unitInfo = info;
+            _currentStep = $"{decision.Step}（按键发送失败）";
+            return;
+        }
+
+        var sentAt = _timeProvider.GetUtcNow();
+        RecordSent(decision, sentAt);
+        if (decision.LogicDelayMs > 0)
+        {
+            _logicPausedUntil = sentAt.AddMilliseconds(decision.LogicDelayMs);
+        }
+    }
+
+    private bool CanSend(LogicDecision decision, DateTimeOffset now)
+    {
+        if (decision.DelayMs <= 0)
+        {
+            return true;
+        }
+
+        var key = string.IsNullOrWhiteSpace(decision.RateLimitKey)
+            ? decision.Hotkey ?? string.Empty
+            : decision.RateLimitKey;
+        if (_lastRuleSentAt.TryGetValue(key, out var lastSentAt)
+            && now - lastSentAt < TimeSpan.FromMilliseconds(decision.DelayMs))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void RecordSent(LogicDecision decision, DateTimeOffset now)
+    {
+        if (decision.DelayMs <= 0)
+        {
+            return;
+        }
+
+        var key = string.IsNullOrWhiteSpace(decision.RateLimitKey)
+            ? decision.Hotkey ?? string.Empty
+            : decision.RateLimitKey;
+        _lastRuleSentAt[key] = now;
     }
 
     private void PublishSnapshot()
@@ -224,12 +339,8 @@ public sealed class ShigureRuntime
             _state,
             _currentStep,
             _unitInfo,
-            BuildDynamicValues(_state)));
-    }
-
-    private void ApplyRecognizedAuras(GameState state)
-    {
-        state.Values[RecognizedAuraFields.StateKey] = RecognizedAuraFields.BuildValueMap(_recognizedAuras);
+            BuildDynamicValues(_state),
+            _scanFailureReason));
     }
 
     private static IReadOnlyList<DynamicValueSnapshot> BuildDynamicValues(GameState? state)
@@ -303,5 +414,20 @@ public sealed class ShigureRuntime
             bool b => b ? "是" : "否",
             _ => value.ToString() ?? "-"
         };
+    }
+
+    private enum RuntimeCommandKind
+    {
+        SetEnabled,
+        ToggleEnabled
+    }
+
+    private readonly record struct RuntimeCommand(RuntimeCommandKind Kind, bool Enabled)
+    {
+        public static RuntimeCommand SetEnabled(bool enabled)
+            => new(RuntimeCommandKind.SetEnabled, enabled);
+
+        public static RuntimeCommand ToggleEnabled()
+            => new(RuntimeCommandKind.ToggleEnabled, false);
     }
 }

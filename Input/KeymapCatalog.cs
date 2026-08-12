@@ -6,7 +6,7 @@ namespace Shigure;
 /// <summary>
 /// 从职业 keymap 文件构建模块编辑器可选择的技能与目标(unit)目录。
 /// 同名技能只保留一个；unit 去重后升序排列。
-/// 文件解析规则与 KeymapService.SelectForClass 保持一致。
+/// 专精格式会聚合顶层回退与所有专精映射；有效条目规则与 KeymapService 保持一致。
 /// </summary>
 public sealed class KeymapCatalog
 {
@@ -79,6 +79,20 @@ public sealed class KeymapCatalog
         return units.ToList();
     }
 
+    /// <summary>指定技能和 unit 在 keymap 中配置过的宏条件，按文件内首次出现顺序返回。</summary>
+    public IReadOnlyList<string> GetMacroConditions(int? classId, string? spell, int? unit)
+    {
+        if (string.IsNullOrWhiteSpace(spell))
+        {
+            return [];
+        }
+
+        var entries = GetEntries(classId);
+        return entries.MacroConditions.TryGetValue((spell, unit.GetValueOrDefault()), out var conditions)
+            ? conditions
+            : [];
+    }
+
     public IReadOnlyCollection<string> GetFailedSpellNames(int? classId)
     {
         return _config?.GetFailedSpells(classId).Values.ToList() ?? [];
@@ -135,6 +149,7 @@ public sealed class KeymapCatalog
         var spells = new List<string>();
         var units = new List<int>();
         var unitsBySpell = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        var macroConditions = new Dictionary<(string Spell, int Unit), List<string>>();
         try
         {
             var root = JsonNode.Parse(File.ReadAllText(path), documentOptions: new JsonDocumentOptions
@@ -150,44 +165,15 @@ public sealed class KeymapCatalog
 
             var seenSpells = new HashSet<string>(StringComparer.Ordinal);
             var seenUnits = new HashSet<int>();
-            foreach (var (_, node) in root)
+            AddMap(root);
+            if (JsonHelpers.Get(root, "专精") is JsonObject specRoot)
             {
-                if (node is not JsonObject entry)
+                foreach (var (_, node) in specRoot)
                 {
-                    continue;
-                }
-
-                var spell = JsonHelpers.GetString(JsonHelpers.Get(entry, "spell"))
-                    ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "技能"));
-                var hotkey = JsonHelpers.GetString(JsonHelpers.Get(entry, "hotkey"))
-                    ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "热键"));
-
-                // 与运行时一致: 只有技能和热键都非空的条目才能被查到并发送。
-                if (string.IsNullOrWhiteSpace(spell) || string.IsNullOrWhiteSpace(hotkey))
-                {
-                    continue;
-                }
-
-                var unit = JsonHelpers.GetInt(JsonHelpers.Get(entry, "unit")) ?? 0;
-                if (seenSpells.Add(spell))
-                {
-                    spells.Add(spell);
-                }
-
-                if (seenUnits.Add(unit))
-                {
-                    units.Add(unit);
-                }
-
-                if (!unitsBySpell.TryGetValue(spell, out var spellUnits))
-                {
-                    spellUnits = new List<int>();
-                    unitsBySpell[spell] = spellUnits;
-                }
-
-                if (!spellUnits.Contains(unit))
-                {
-                    spellUnits.Add(unit);
+                    if (node is JsonObject specMap)
+                    {
+                        AddMap(specMap);
+                    }
                 }
             }
 
@@ -195,6 +181,67 @@ public sealed class KeymapCatalog
             foreach (var spellUnits in unitsBySpell.Values)
             {
                 spellUnits.Sort();
+            }
+
+            void AddMap(JsonObject map)
+            {
+                foreach (var (_, node) in map)
+                {
+                    if (node is not JsonObject entry)
+                    {
+                        continue;
+                    }
+
+                    var spell = JsonHelpers.GetString(JsonHelpers.Get(entry, "spell"))
+                        ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "技能"));
+                    var hotkey = JsonHelpers.GetString(JsonHelpers.Get(entry, "hotkey"))
+                        ?? JsonHelpers.GetString(JsonHelpers.Get(entry, "热键"));
+
+                    // 与运行时一致: 只有技能和热键都非空的条目才能被查到并发送。
+                    if (string.IsNullOrWhiteSpace(spell) || string.IsNullOrWhiteSpace(hotkey))
+                    {
+                        continue;
+                    }
+
+                    var rawUnit = JsonHelpers.GetInt(JsonHelpers.Get(entry, "unit")) ?? 0;
+                    var normalizedMacro = MacroConditionText.NormalizeLegacyUnit(
+                        rawUnit,
+                        JsonHelpers.GetString(JsonHelpers.Get(entry, "宏条件")));
+                    var unit = normalizedMacro.Unit;
+                    var macroCondition = normalizedMacro.Condition;
+                    if (seenSpells.Add(spell))
+                    {
+                        spells.Add(spell);
+                    }
+
+                    if (seenUnits.Add(unit))
+                    {
+                        units.Add(unit);
+                    }
+
+                    if (!unitsBySpell.TryGetValue(spell, out var spellUnits))
+                    {
+                        spellUnits = new List<int>();
+                        unitsBySpell[spell] = spellUnits;
+                    }
+
+                    if (!spellUnits.Contains(unit))
+                    {
+                        spellUnits.Add(unit);
+                    }
+
+                    var conditionKey = (spell, unit);
+                    if (!macroConditions.TryGetValue(conditionKey, out var conditions))
+                    {
+                        conditions = new List<string>();
+                        macroConditions[conditionKey] = conditions;
+                    }
+
+                    if (!conditions.Contains(macroCondition, StringComparer.Ordinal))
+                    {
+                        conditions.Add(macroCondition);
+                    }
+                }
             }
         }
         catch
@@ -206,17 +253,20 @@ public sealed class KeymapCatalog
         return new KeymapEntries(
             spells,
             units,
-            unitsBySpell.ToDictionary(kvp => kvp.Key, kvp => (IReadOnlyList<int>)kvp.Value, StringComparer.Ordinal));
+            unitsBySpell.ToDictionary(kvp => kvp.Key, kvp => (IReadOnlyList<int>)kvp.Value, StringComparer.Ordinal),
+            macroConditions.ToDictionary(kvp => kvp.Key, kvp => (IReadOnlyList<string>)kvp.Value));
     }
 
     private sealed record KeymapEntries(
         IReadOnlyList<string> Spells,
         IReadOnlyList<int> Units,
-        IReadOnlyDictionary<string, IReadOnlyList<int>> UnitsBySpell)
+        IReadOnlyDictionary<string, IReadOnlyList<int>> UnitsBySpell,
+        IReadOnlyDictionary<(string Spell, int Unit), IReadOnlyList<string>> MacroConditions)
     {
         public static readonly KeymapEntries Empty = new(
             [],
             [],
-            new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal));
+            new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal),
+            new Dictionary<(string Spell, int Unit), IReadOnlyList<string>>());
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Shigure;
 
-public sealed class StateBuilder
+public sealed class StateBuilder : IRuntimeStateBuilder
 {
     private readonly ConfigService _config;
 
@@ -11,12 +11,16 @@ public sealed class StateBuilder
         _config = config;
     }
 
-    public GameState Build(IReadOnlyDictionary<int, int> rowData, IReadOnlyDictionary<int, int> barData)
+    public GameState Build(
+        IReadOnlyDictionary<int, int> rowData,
+        IReadOnlyDictionary<int, int> barData,
+        IReadOnlyDictionary<int, int>? healAbsorbData = null)
     {
         var classId = rowData.TryGetValue(2, out var cid) ? cid : 0;
         var specId = rowData.TryGetValue(3, out var sid) ? sid : 0;
         var stateConfig = _config.BuildStateConfig(classId, specId);
         var result = new Dictionary<string, object?>();
+        healAbsorbData ??= new Dictionary<int, int>();
 
         foreach (var (key, node) in stateConfig)
         {
@@ -40,7 +44,7 @@ public sealed class StateBuilder
 
         if (JsonHelpers.Get(stateConfig, "group") is JsonObject groupConfig)
         {
-            var group = BuildGroup(groupConfig, rowData, barData);
+            var group = BuildGroup(groupConfig, rowData, barData, healAbsorbData);
             result["group"] = group;
         }
 
@@ -69,7 +73,8 @@ public sealed class StateBuilder
     private static Dictionary<string, IReadOnlyDictionary<string, object?>> BuildGroup(
         JsonObject groupConfig,
         IReadOnlyDictionary<int, int> rowData,
-        IReadOnlyDictionary<int, int> barData)
+        IReadOnlyDictionary<int, int> barData,
+        IReadOnlyDictionary<int, int> healAbsorbData)
     {
         var start = JsonHelpers.GetInt(JsonHelpers.Get(groupConfig, "start")) ?? 26;
         var numParams = JsonHelpers.GetInt(JsonHelpers.Get(groupConfig, "num")) ?? 5;
@@ -103,6 +108,15 @@ public sealed class StateBuilder
                 sub[fieldName] = ConvertRawValue(raw, JsonHelpers.GetString(JsonHelpers.Get(field, "type")));
             }
 
+            // 治疗吸收来自网格扫描：白块右侧像素的 B=单位编号，G-1=吸收值。
+            // 插件像素里的生命值含吸收盾，这里折算为真实生命：生命值 -= 治疗吸收。
+            var absorb = healAbsorbData.TryGetValue(i, out var absorbValue) ? absorbValue : 0;
+            sub["治疗吸收"] = absorb;
+            if (absorb != 0 && sub.TryGetValue("生命值", out var healthObj) && healthObj is int health)
+            {
+                sub["生命值"] = Math.Max(0, health - absorb);
+            }
+
             group[i.ToString()] = sub;
         }
 
@@ -132,4 +146,3 @@ public sealed class StateBuilder
         };
     }
 }
-
