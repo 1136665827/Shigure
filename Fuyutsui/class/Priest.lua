@@ -155,7 +155,7 @@ Fuyutsui.ClassBlocks = {
                 },
                 helpful = {
                     { name = "愈合祷言", spellId = 41635, },
-                    { name = "恢复", spellIds = 139, },
+                    { name = "恢复", spellId = 139, },
                 },
             },
             focus = {
@@ -165,7 +165,7 @@ Fuyutsui.ClassBlocks = {
                 },
                 helpful = {
                     { name = "愈合祷言", spellId = 41635, },
-                    { name = "恢复", spellIds = 139, },
+                    { name = "恢复", spellId = 139, },
                 },
             },
         },
@@ -260,19 +260,15 @@ Fuyutsui.ClassBlocks = {
                     { name = "精神鞭笞", spellId = 15407, },
                     { name = "惊魂幻象", spellId = 1243069, maxApps = 100, },
                 },
-                helpful = {
-                    { name = "愈合祷言", spellId = 41635, },
-                    { name = "恢复", spellIds = 139, },
-                },
+
             },
             focus = {
                 harmful = {
                     { name = "暗言术：痛", spellId = 589, },
-                    { name = "神圣之火", spellId = 14914, },
-                },
-                helpful = {
-                    { name = "愈合祷言", spellId = 41635, },
-                    { name = "恢复", spellIds = 139, },
+                    { name = "吸血鬼之触", spellId = 34914, },
+                    { name = "暗言术：癫", spellId = 335467, },
+                    { name = "精神鞭笞", spellId = 15407, },
+                    { name = "惊魂幻象", spellId = 1243069, maxApps = 100, },
                 },
             },
         },
