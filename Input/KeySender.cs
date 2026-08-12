@@ -1,139 +1,92 @@
 ﻿namespace Shigure;
 
-public sealed class KeySender
+public sealed class KeySender : IRuntimeKeyOutput
 {
-    private readonly string _windowTitle;
+    private readonly WowProcessLocator _processLocator;
 
-    private static readonly Dictionary<string, int> Vk = new(StringComparer.OrdinalIgnoreCase)
+    internal KeySender(WowProcessLocator processLocator)
     {
-        ["SHIFT"] = 0x10,
-        ["CONTROL"] = 0x11,
-        ["CTRL"] = 0x11,
-        ["MENU"] = 0x12,
-        ["ALT"] = 0x12,
-        ["XBUTTON1"] = 0x05,
-        ["X1"] = 0x05,
-        ["MOUSE4"] = 0x05,
-        ["XBUTTON2"] = 0x06,
-        ["X2"] = 0x06,
-        ["MOUSE5"] = 0x06,
-        ["F1"] = 0x70,
-        ["F2"] = 0x71,
-        ["F3"] = 0x72,
-        ["F4"] = 0x73,
-        ["F5"] = 0x74,
-        ["F6"] = 0x75,
-        ["F7"] = 0x76,
-        ["F8"] = 0x77,
-        ["F9"] = 0x78,
-        ["F10"] = 0x79,
-        ["F11"] = 0x7A,
-        ["F12"] = 0x7B,
-        ["NUMPAD0"] = 0x60,
-        ["NUMPAD1"] = 0x61,
-        ["NUMPAD2"] = 0x62,
-        ["NUMPAD3"] = 0x63,
-        ["NUMPAD4"] = 0x64,
-        ["NUMPAD5"] = 0x65,
-        ["NUMPAD6"] = 0x66,
-        ["NUMPAD7"] = 0x67,
-        ["NUMPAD8"] = 0x68,
-        ["NUMPAD9"] = 0x69,
-        ["NUMPADDECIMAL"] = 0x6E,
-        ["NUMPADPLUS"] = 0x6B,
-        ["NUMPADMINUS"] = 0x6D,
-        ["NUMPADMULTIPLY"] = 0x6A,
-        ["NUMPADDIVIDE"] = 0x6F
-    };
-
-    private static readonly Dictionary<string, int> CharVk = new()
-    {
-        [","] = 0xBC,
-        ["."] = 0xBE,
-        ["/"] = 0xBF,
-        [";"] = 0xBA,
-        ["'"] = 0xDE,
-        ["["] = 0xDB,
-        ["]"] = 0xDD,
-        ["="] = 0xBB,
-        ["-"] = 0xBD,
-        ["`"] = 0xC0,
-        ["\\"] = 0xDC
-    };
-
-    public KeySender(string windowTitle)
-    {
-        _windowTitle = windowTitle;
+        _processLocator = processLocator;
     }
 
+    public string? LastFailureReason { get; private set; }
+
     public bool Send(string hotkey)
+    {
+        var result = SendCore(hotkey, expectedWindow: 0);
+        LastFailureReason = result.FailureReason;
+        return result.Succeeded;
+    }
+
+    public static int? GetVk(string keyName) => WindowsVirtualKeyMap.Resolve(keyName);
+
+    KeySendResult IRuntimeKeyOutput.Send(string hotkey, nint expectedWindow)
+        => SendCore(hotkey, expectedWindow);
+
+    private KeySendResult SendCore(string hotkey, nint expectedWindow)
     {
         var (mods, mainKey) = ParseHotkey(hotkey);
         if (mainKey is null)
         {
-            return false;
+            return Fail($"无法解析按键“{hotkey}”");
         }
 
-        var vkMain = GetVk(mainKey);
+        var vkMain = WindowsVirtualKeyMap.Resolve(mainKey);
         if (vkMain is null)
         {
-            return false;
+            return Fail($"无法识别主键“{mainKey}”");
         }
 
-        var hwnd = NativeMethods.FindWindow(null, _windowTitle);
+        var hwnd = _processLocator.FindFrontmostWindow();
         if (hwnd == 0)
         {
-            return false;
+            return Fail($"未找到目标进程的可见窗口（wow_process.txt: {_processLocator.DescribeConfiguredProcesses()}）");
         }
 
-        // ParseHotkey 只产出去重后的 CTRL/ALT/SHIFT, 三者都在 Vk 表里且映射到互异 VK,
-        // 故 GetVk 不会为 null、结果天然去重。
-        var modVks = mods.Select(m => GetVk(m)!.Value).ToList();
+        if (expectedWindow != 0 && hwnd != expectedWindow)
+        {
+            return Fail("目标窗口已切换，等待重新扫描后再发送按键");
+        }
+
+        // ParseHotkey 只产出去重后的 CTRL/ALT/SHIFT, 三者都在虚拟键表里且映射到互异 VK,
+        // 故 Resolve 不会为 null、结果天然去重。
+        var modVks = mods.Select(m => WindowsVirtualKeyMap.Resolve(m)!.Value).ToList();
+
+        var succeeded = true;
+        var firstError = 0;
+        void SendMessage(int vk, bool keyUp)
+        {
+            if (!Post(hwnd, vk, keyUp, out var error))
+            {
+                succeeded = false;
+                if (firstError == 0)
+                {
+                    firstError = error;
+                }
+            }
+        }
 
         foreach (var vk in modVks)
         {
-            Post(hwnd, vk, keyUp: false);
+            SendMessage(vk, keyUp: false);
         }
 
-        Post(hwnd, vkMain.Value, keyUp: false);
-        Post(hwnd, vkMain.Value, keyUp: true);
+        SendMessage(vkMain.Value, keyUp: false);
+        SendMessage(vkMain.Value, keyUp: true);
 
         for (var i = modVks.Count - 1; i >= 0; i--)
         {
-            Post(hwnd, modVks[i], keyUp: true);
+            SendMessage(modVks[i], keyUp: true);
         }
 
-        return true;
-    }
-
-    public static int? GetVk(string keyName)
-    {
-        if (string.IsNullOrWhiteSpace(keyName))
+        if (succeeded)
         {
-            return null;
+            return KeySendResult.Success;
         }
 
-        var key = keyName.Trim();
-        if (Vk.TryGetValue(key, out var mapped))
-        {
-            return mapped;
-        }
-
-        if (key.Length == 1)
-        {
-            if (CharVk.TryGetValue(key, out var charMapped))
-            {
-                return charMapped;
-            }
-
-            var scan = NativeMethods.VkKeyScanW(key[0]);
-            if (scan != -1)
-            {
-                return scan & 0xFF;
-            }
-        }
-
-        return null;
+        return Fail(firstError == 5
+            ? "权限不足（Win32 错误码 5）：请确认 Shigure 与魔兽世界使用相同的管理员权限运行"
+            : $"向目标窗口发送按键失败，Win32 错误码: {firstError}");
     }
 
     private static (List<string> Mods, string? MainKey) ParseHotkey(string hotkey)
@@ -170,14 +123,28 @@ public sealed class KeySender
         return (mods, mainKey);
     }
 
-    private static void Post(nint hwnd, int keyCode, bool keyUp)
+    private static KeySendResult Fail(string reason) => KeySendResult.Failure(reason);
+
+    private static bool Post(nint hwnd, int keyCode, bool keyUp, out int error)
     {
-        nint lParam = keyUp ? unchecked((nint)(int)0xC0000001) : (nint)0x00000001;
-        NativeMethods.PostMessageW(
+        var scanCode = NativeMethods.MapVirtualKeyW((uint)keyCode, 0) & 0xFF;
+        var value = 1u | (scanCode << 16);
+        if (keyCode == 0x6F) // VK_DIVIDE 是扩展键。
+        {
+            value |= 1u << 24;
+        }
+
+        if (keyUp)
+        {
+            value |= (1u << 30) | (1u << 31);
+        }
+
+        var posted = NativeMethods.PostMessageW(
             hwnd,
             keyUp ? NativeMethods.WmKeyUp : NativeMethods.WmKeyDown,
             (nint)keyCode,
-            lParam);
+            unchecked((nint)(int)value));
+        error = posted ? 0 : System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+        return posted;
     }
 }
-

@@ -8,11 +8,16 @@ namespace Shigure;
 
 public sealed class ModuleDefinition
 {
+    internal const int CurrentUnitMappingVersion = 3;
+
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = "新模块";
     public string Author { get; set; } = string.Empty;
+    public string RecommendedTalent { get; set; } = string.Empty;
     // 保存时写入当时的 Shigure 版本(AppInfo.Version)。
     public string Version { get; set; } = string.Empty;
+    // v2: 31=玩家、32=目标、33=焦点、34=地面、35=鼠标；v3: 36/37 从目标迁移为引导/非引导宏条件。
+    public int? UnitMappingVersion { get; set; }
     public bool Enabled { get; set; } = true;
     public ModuleMatch Match { get; set; } = new();
     public List<ModuleUnit> Units { get; set; } = new();
@@ -30,7 +35,9 @@ public sealed class ModuleDefinition
             Id = Id,
             Name = Name,
             Author = Author,
+            RecommendedTalent = RecommendedTalent,
             Version = Version,
+            UnitMappingVersion = UnitMappingVersion,
             Enabled = Enabled,
             FilePath = FilePath,
             Match = Match.Clone(),
@@ -47,6 +54,7 @@ public sealed class ModuleDefinition
         {
             Id = ModuleStore.CreateModuleId(name),
             Name = name,
+            UnitMappingVersion = CurrentUnitMappingVersion,
             Enabled = true,
             Rules =
             [
@@ -182,9 +190,15 @@ public sealed class ModuleRule
 {
     public bool Enabled { get; set; } = true;
     public string Condition { get; set; } = string.Empty;
+    // 此规则命中后，两次实际发送之间的最小间隔（毫秒）；null/0 表示不限制。
+    public int? DelayMs { get; set; }
+    // 此规则实际发送按键后，暂停整个逻辑循环的时长（毫秒）；null/0 表示不暂停。
+    public int? LogicDelayMs { get; set; }
     public int? Unit { get; set; }
     public string? UnitName { get; set; }
     public string Spell { get; set; } = string.Empty;
+    // null 表示升级前的旧模块（运行时沿用原二元匹配）；空字符串表示明确选择无宏条件。
+    public string? MacroCondition { get; set; }
     public string Hotkey { get; set; } = string.Empty;
     public string Step { get; set; } = string.Empty;
 
@@ -199,9 +213,12 @@ public sealed class ModuleRule
         {
             Enabled = Enabled,
             Condition = Condition,
+            DelayMs = DelayMs,
+            LogicDelayMs = LogicDelayMs,
             Unit = Unit,
             UnitName = UnitName,
             Spell = Spell,
+            MacroCondition = MacroCondition,
             Hotkey = Hotkey,
             Step = Step,
             SubConditions = SubConditions is null ? null : new List<string>(SubConditions)
@@ -291,30 +308,30 @@ public sealed class ModuleStore
 
     public void Reload()
     {
-        Directory.CreateDirectory(ModuleDirectory);
-        var loaded = new List<ModuleDefinition>();
-        foreach (var file in Directory.EnumerateFiles(ModuleDirectory, "*.json", SearchOption.AllDirectories))
-        {
-            try
-            {
-                var module = JsonSerializer.Deserialize<ModuleDefinition>(File.ReadAllText(file), JsonOptions);
-                if (module is null)
-                {
-                    continue;
-                }
-
-                Normalize(module);
-                module.FilePath = file;
-                loaded.Add(module);
-            }
-            catch
-            {
-                // 单个模块损坏时跳过，避免影响其它模块加载。
-            }
-        }
-
         lock (_gate)
         {
+            Directory.CreateDirectory(ModuleDirectory);
+            var loaded = new List<ModuleDefinition>();
+            foreach (var file in Directory.EnumerateFiles(ModuleDirectory, "*.json", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    var module = JsonSerializer.Deserialize<ModuleDefinition>(File.ReadAllText(file), JsonOptions);
+                    if (module is null)
+                    {
+                        continue;
+                    }
+
+                    Normalize(module);
+                    module.FilePath = file;
+                    loaded.Add(module);
+                }
+                catch
+                {
+                    // 单个模块损坏时跳过，避免影响其它模块加载。
+                }
+            }
+
             _modules = SortModules(loaded).ToList();
         }
     }
@@ -361,47 +378,65 @@ public sealed class ModuleStore
             {
                 throw new InvalidOperationException($"模块名称“{module.Name}”已存在。");
             }
-        }
 
-        if (File.Exists(path)
-            && (string.IsNullOrWhiteSpace(oldPath) || !PathsEqual(oldPath, path)))
-        {
-            throw new InvalidOperationException($"模块文件“{Path.GetFileName(path)}”已存在，请使用其他名称。");
-        }
+            if (File.Exists(path)
+                && (string.IsNullOrWhiteSpace(oldPath) || !PathsEqual(oldPath, path)))
+            {
+                throw new InvalidOperationException($"模块文件“{Path.GetFileName(path)}”已存在，请使用其他名称。");
+            }
 
-        if (!string.IsNullOrWhiteSpace(oldPath)
-            && IsInsideModuleDirectory(oldPath)
-            && !PathsEqual(oldPath, path)
-            && File.Exists(oldPath))
-        {
-            File.Delete(oldPath);
-        }
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            WriteFileAtomically(path, JsonSerializer.Serialize(module, JsonOptions));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(module, JsonOptions));
-        module.FilePath = path;
+            if (!string.IsNullOrWhiteSpace(oldPath)
+                && IsInsideModuleDirectory(oldPath)
+                && !PathsEqual(oldPath, path)
+                && File.Exists(oldPath))
+            {
+                try
+                {
+                    File.Delete(oldPath);
+                }
+                catch (Exception deleteError)
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch (Exception rollbackError)
+                    {
+                        throw new AggregateException(
+                            "模块已写入新文件，但旧文件删除失败，且无法回滚新文件。",
+                            deleteError,
+                            rollbackError);
+                    }
 
-        lock (_gate)
-        {
+                    throw;
+                }
+            }
+
+            module.FilePath = path;
             _modules.RemoveAll(existing =>
                 string.Equals(existing.Id, module.Id, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(existing.FilePath, path, StringComparison.OrdinalIgnoreCase));
             _modules.Add(module.Clone());
             _modules = SortModules(_modules).ToList();
-        }
 
-        return module.Clone();
+            return module.Clone();
+        }
     }
 
     public void Delete(ModuleDefinition module)
     {
-        if (!string.IsNullOrWhiteSpace(module.FilePath) && IsInsideModuleDirectory(module.FilePath) && File.Exists(module.FilePath))
-        {
-            File.Delete(module.FilePath);
-        }
-
         lock (_gate)
         {
+            if (!string.IsNullOrWhiteSpace(module.FilePath)
+                && IsInsideModuleDirectory(module.FilePath)
+                && File.Exists(module.FilePath))
+            {
+                File.Delete(module.FilePath);
+            }
+
             _modules.RemoveAll(existing =>
                 string.Equals(existing.Id, module.Id, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(existing.FilePath, module.FilePath, StringComparison.OrdinalIgnoreCase));
@@ -425,6 +460,43 @@ public sealed class ModuleStore
                     return name;
                 }
             }
+        }
+    }
+
+    private static void WriteFileAtomically(string path, string content)
+    {
+        var directory = Path.GetDirectoryName(path)!;
+        var tempPath = Path.Combine(
+            directory,
+            $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            File.WriteAllText(tempPath, content);
+            if (File.Exists(path))
+            {
+                File.Move(tempPath, path, overwrite: true);
+            }
+            else
+            {
+                File.Move(tempPath, path);
+            }
+        }
+        catch
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch
+            {
+                // 保留原始写入异常；残留临时文件不会被模块扫描加载。
+            }
+
+            throw;
         }
     }
 
@@ -503,8 +575,45 @@ public sealed class ModuleStore
         }
 
         module.Rules ??= new List<ModuleRule>();
+        var unitMappingVersion = module.UnitMappingVersion.GetValueOrDefault();
+        if (unitMappingVersion < 2)
+        {
+            foreach (var rule in module.Rules)
+            {
+                rule.Unit = rule.Unit switch
+                {
+                    31 => ReservedUnit.Cursor,
+                    34 => ReservedUnit.Player,
+                    _ => rule.Unit
+                };
+            }
+
+        }
+
+        if (unitMappingVersion < 3)
+        {
+            foreach (var rule in module.Rules)
+            {
+                if (rule.Unit is 36 or 37)
+                {
+                    var normalizedMacro = MacroConditionText.NormalizeLegacyUnit(rule.Unit.Value, rule.MacroCondition);
+                    rule.Unit = normalizedMacro.Unit;
+                    rule.MacroCondition = normalizedMacro.Condition;
+                }
+            }
+        }
+
+        module.UnitMappingVersion = ModuleDefinition.CurrentUnitMappingVersion;
+
         foreach (var rule in module.Rules)
         {
+            rule.Spell = ModuleSpecialActions.NormalizeSpellAction(rule.Spell);
+            if (rule.MacroCondition is not null)
+            {
+                rule.MacroCondition = MacroConditionText.Normalize(rule.MacroCondition);
+            }
+            rule.DelayMs = rule.DelayMs is > 0 ? rule.DelayMs : null;
+            rule.LogicDelayMs = rule.LogicDelayMs is > 0 ? rule.LogicDelayMs : null;
             if (rule.SubConditions is null)
             {
                 continue;
@@ -585,19 +694,27 @@ public sealed class ModuleStore
 
 public static class ModuleLogic
 {
-    public static LogicDecision Run(ModuleDefinition module, GameState state, KeymapService keymap)
+    public static LogicDecision Run(ModuleDefinition module, GameState state, IKeymapResolver keymap)
     {
         var info = CreateInfo(module, state);
         var unitSlots = ResolveDynamicFields(module, state);
         var failedSpells = keymap.GetCurrentFailedSpells();
         var oneKeySpells = keymap.GetCurrentOneKeySpells();
 
-        foreach (var rule in module.Rules.Where(rule => rule.Enabled))
+        for (var ruleIndex = 0; ruleIndex < module.Rules.Count; ruleIndex++)
         {
+            var rule = module.Rules[ruleIndex];
+            var rateLimitKey = $"{module.Id}:{ruleIndex}";
+            if (!rule.Enabled)
+            {
+                continue;
+            }
+
             if (!ModuleConditionEvaluator.TryEvaluateRule(rule, state, out var conditionMatched, out var error, failedSpells))
             {
                 info["条件错误"] = error;
                 info["规则条件"] = rule.DescribeCondition();
+                AddRuleLogInfo(info, rule, ruleIndex, rateLimitKey, null);
                 return new LogicDecision(null, $"{module.Name}: 条件错误", info, module.Name);
             }
 
@@ -612,6 +729,7 @@ public static class ModuleLogic
                 info["动作技能"] = ModuleSpecialActions.PauseSpell;
                 info["动作按键"] = "-";
                 info["动作单位"] = "-";
+                AddRuleLogInfo(info, rule, ruleIndex, rateLimitKey, null);
                 return new LogicDecision(null, $"{module.Name}: 暂停", info, module.Name);
             }
 
@@ -629,6 +747,7 @@ public static class ModuleLogic
             }
 
             var actionSpell = rule.Spell;
+            var isOneKeySpell = false;
             if (ModuleSpecialActions.IsFailedSpell(actionSpell))
             {
                 actionSpell = ModuleSpecialActions.GetFailedSpell(state, failedSpells);
@@ -639,6 +758,7 @@ public static class ModuleLogic
             }
             else if (ModuleSpecialActions.IsOneKeySpell(actionSpell))
             {
+                isOneKeySpell = true;
                 actionSpell = ModuleSpecialActions.GetOneKeySpell(state, oneKeySpells);
                 if (string.IsNullOrWhiteSpace(actionSpell))
                 {
@@ -648,21 +768,60 @@ public static class ModuleLogic
                 resolvedUnit = 0;
             }
 
+            var resolvedMacroCondition = rule.MacroCondition;
             var hotkey = string.IsNullOrWhiteSpace(rule.Hotkey)
-                ? string.IsNullOrWhiteSpace(actionSpell) ? null : keymap.GetHotkey(resolvedUnit, actionSpell)
+                ? string.IsNullOrWhiteSpace(actionSpell) ? null : keymap.GetHotkey(resolvedUnit, actionSpell, resolvedMacroCondition)
                 : rule.Hotkey.Trim();
+            if (isOneKeySpell
+                && string.IsNullOrWhiteSpace(rule.Hotkey)
+                && string.IsNullOrWhiteSpace(hotkey)
+                && !string.IsNullOrWhiteSpace(actionSpell))
+            {
+                hotkey = keymap.GetHotkey(ReservedUnit.None, actionSpell, MacroConditionText.NoChanneling);
+                if (!string.IsNullOrWhiteSpace(hotkey))
+                {
+                    resolvedUnit = ReservedUnit.None;
+                    resolvedMacroCondition = MacroConditionText.NoChanneling;
+                }
+            }
+
             var step = BuildStep(module, rule, hotkey, actionSpell);
             info["命中条件"] = string.IsNullOrWhiteSpace(rule.Condition) ? "始终" : rule.Condition;
             info["动作技能"] = string.IsNullOrWhiteSpace(actionSpell) ? "-" : actionSpell;
+            info["宏条件"] = string.IsNullOrWhiteSpace(resolvedMacroCondition)
+                ? "-"
+                : MacroConditionText.ToDisplayText(resolvedMacroCondition);
             info["动作按键"] = string.IsNullOrWhiteSpace(hotkey) ? "-" : hotkey;
             info["动作单位"] = string.IsNullOrWhiteSpace(rule.UnitName)
                 ? resolvedUnit.GetValueOrDefault()
                 : $"{rule.UnitName} → {resolvedUnit.GetValueOrDefault()}";
-            return new LogicDecision(hotkey, step, info, module.Name);
+            AddRuleLogInfo(info, rule, ruleIndex, rateLimitKey, hotkey);
+            return new LogicDecision(
+                hotkey,
+                step,
+                info,
+                module.Name,
+                rule.DelayMs.GetValueOrDefault(),
+                rateLimitKey,
+                rule.LogicDelayMs.GetValueOrDefault());
         }
 
         info["命中条件"] = "-";
         return new LogicDecision(null, $"{module.Name}: 无匹配规则", info, module.Name);
+    }
+
+    private static void AddRuleLogInfo(
+        IDictionary<string, object?> info,
+        ModuleRule rule,
+        int ruleIndex,
+        string rateLimitKey,
+        string? hotkey)
+    {
+        info["动作按键"] = string.IsNullOrWhiteSpace(hotkey) ? "-" : hotkey;
+        info["动作延迟"] = rule.DelayMs is > 0 ? $"{rule.DelayMs.Value} ms" : "-";
+        info["逻辑延迟"] = rule.LogicDelayMs is > 0 ? $"{rule.LogicDelayMs.Value} ms" : "-";
+        info["规则编号"] = ruleIndex + 1;
+        info["限流键"] = rateLimitKey;
     }
 
     // 把模块定义的动态单位/数量各解析一次, 写入当前帧 state.Values 供条件求值与目标解析使用。
@@ -1185,11 +1344,6 @@ public static class ModuleConditionEvaluator
         if (key.StartsWith("aura.", StringComparison.OrdinalIgnoreCase))
         {
             return state.Auras.TryGetValue(key["aura.".Length..], out var value) ? value : null;
-        }
-
-        if (RecognizedAuraFields.TryGetLookupKey(key, out var recognizedAuraName))
-        {
-            return state.RecognizedAuras.TryGetValue(recognizedAuraName, out var value) ? value : 0;
         }
 
         if (ModuleSpecialActions.IsFailedSpell(key))

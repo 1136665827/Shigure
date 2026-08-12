@@ -59,6 +59,7 @@ internal sealed class UiCacheState
     public WindowLocation? MainWindowLocation { get; set; }
     public WindowBounds? MainWindowBounds { get; set; }
     public WindowBounds? SettingsWindowBounds { get; set; }
+    public string? SelectedSettingsPage { get; set; }
     public string? ToggleKey { get; set; }
     public string? SelectedModuleId { get; set; }
     public Dictionary<string, int>? ModuleRulesGridColumns { get; set; }

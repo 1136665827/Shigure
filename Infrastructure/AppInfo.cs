@@ -4,7 +4,7 @@ namespace Shigure;
 
 /// <summary>
 /// 应用版本信息的单一来源。优先取 csproj 的 &lt;Version&gt;(AssemblyInformationalVersion),
-/// 退化到 AssemblyVersion; 随机副本运行时同样从拷贝出的程序集读取, 版本属性保留。
+/// 退化到 AssemblyVersion。
 /// </summary>
 internal static class AppInfo
 {

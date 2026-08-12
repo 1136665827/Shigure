@@ -12,10 +12,18 @@ public enum ConditionFieldType
 public enum ConditionFieldCategory
 {
     State,
+    Shigure,
     Aura,
     Spell,
     DynamicUnit,
-    RecognizedAura
+    DynamicValue
+}
+
+public static class ShigureConditionFields
+{
+    // 仅供条件编辑器承载规则级配置，不会写入条件表达式参与状态求值。
+    public const string Delay = "$shigure.delay";
+    public const string LogicDelay = "$shigure.logicDelay";
 }
 
 public sealed record ConditionField(
@@ -69,7 +77,8 @@ public sealed class ConditionFieldCatalog
 
         foreach (var (key, node) in stateConfig)
         {
-            if (key is "group" or "spells" or "auras")
+            if (key is "group" or "spells" or "auras"
+                || key == "锚点")
             {
                 continue;
             }
@@ -102,7 +111,14 @@ public sealed class ConditionFieldCatalog
             }
         }
 
-        AddField(fields, seen, ModuleSpecialActions.FailedSpell, ModuleSpecialActions.FailedSpell, ConditionFieldType.String, ConditionFieldCategory.State);
+        // 原始“插入法术”按 config 中的 int 状态保留；转换为技能名的特殊字段单独置底。
+        AddField(
+            fields,
+            seen,
+            ModuleSpecialActions.FailedSpell,
+            ModuleSpecialActions.FailedSpell,
+            ConditionFieldType.String,
+            ConditionFieldCategory.State);
 
         return fields;
     }
@@ -137,6 +153,12 @@ public sealed class ConditionFieldCatalog
             {
                 fields.Add(new ConditionField(key, key, ReadType(field)));
             }
+        }
+
+        // 治疗吸收由网格扫描注入，不在 config 的 group 字段里声明。
+        if (seen.Add("治疗吸收"))
+        {
+            fields.Add(new ConditionField("治疗吸收", "治疗吸收", ConditionFieldType.Int));
         }
 
         return fields;
