@@ -8,7 +8,6 @@ public enum SendMode
 }
 
 public sealed record AppOptions(
-    string WindowTitle,
     string ToggleKey,
     SendMode Mode,
     string? ModuleId,
@@ -17,7 +16,6 @@ public sealed record AppOptions(
 {
     public static AppOptions FromArgs(string[] args)
     {
-        var windowTitle = "魔兽世界";
         var toggleKey = "XBUTTON2";
         var mode = SendMode.Switch;
         string? moduleId = null;
@@ -30,10 +28,6 @@ public sealed record AppOptions(
             var value = i + 1 < args.Length ? args[i + 1] : null;
             switch (arg)
             {
-                case "--window" when value is not null:
-                    windowTitle = value;
-                    i++;
-                    break;
                 case "--toggle" when value is not null:
                     toggleKey = value;
                     i++;
@@ -57,7 +51,7 @@ public sealed record AppOptions(
             }
         }
 
-        return new AppOptions(windowTitle, toggleKey, mode, moduleId, logicInterval, renderInterval);
+        return new AppOptions(toggleKey, mode, moduleId, logicInterval, renderInterval);
     }
 
     private static SendMode ParseMode(string value)

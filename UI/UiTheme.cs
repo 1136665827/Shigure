@@ -1,11 +1,17 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Shigure;
 
 internal static class UiTheme
 {
+    private static readonly Dictionary<int, Image?> ClassIcons = new();
+    private static readonly Dictionary<(int ClassId, int SpecId), Image?> SpecIcons = new();
+    private static readonly ConditionalWeakTable<ListView, ListColumnLayoutState> ListColumnLayouts = new();
+
     private const int DwmwaUseImmersiveDarkMode = 20;
     private const int DwmwaMicaEffect = 1029;
     private const int DwmwaSystemBackdropType = 38;
@@ -17,18 +23,35 @@ internal static class UiTheme
     private const int AccentEnableBlurBehind = 3;
     private const int AccentEnableAcrylicBlurBehind = 4;
 
-    public static readonly Color Background = Color.FromArgb(13, 15, 18);
-    public static readonly Color Surface = Color.FromArgb(22, 25, 31);
-    public static readonly Color SurfaceRaised = Color.FromArgb(27, 31, 38);
-    public static readonly Color Field = Color.FromArgb(31, 35, 42);
-    public static readonly Color Hover = Color.FromArgb(40, 45, 53);
-    public static readonly Color Pressed = Color.FromArgb(49, 56, 66);
-    public static readonly Color Border = Color.FromArgb(47, 54, 64);
-    public static readonly Color RowAlt = Color.FromArgb(25, 29, 35);
-    public static readonly Color Text = Color.FromArgb(225, 229, 235);
-    public static readonly Color Muted = Color.FromArgb(128, 136, 148);
-    public static readonly Color Accent = Color.FromArgb(0, 255, 255);
-    public static readonly Color Danger = Color.FromArgb(235, 108, 108);
+    public static readonly Color Background = Color.FromArgb(12, 15, 19);
+    public static readonly Color Surface = Color.FromArgb(23, 28, 35);
+    public static readonly Color SurfaceRaised = Color.FromArgb(28, 35, 43);
+    public static readonly Color Field = Color.FromArgb(34, 42, 51);
+    public static readonly Color Hover = Color.FromArgb(42, 53, 63);
+    public static readonly Color Pressed = Color.FromArgb(50, 63, 74);
+    public static readonly Color Border = Color.FromArgb(48, 58, 69);
+    public static readonly Color RowAlt = Color.FromArgb(26, 32, 39);
+    public static readonly Color Text = Color.FromArgb(231, 237, 243);
+    public static readonly Color Muted = Color.FromArgb(152, 164, 178);
+    public static readonly Color Accent = Color.FromArgb(82, 224, 209);
+    public static readonly Color AccentSoft = Color.FromArgb(24, 63, 64);
+    public static readonly Color Success = Color.FromArgb(103, 211, 145);
+    public static readonly Color Warning = Color.FromArgb(232, 196, 106);
+    public static readonly Color Danger = Color.FromArgb(240, 122, 122);
+
+    internal enum ButtonKind
+    {
+        Secondary,
+        Primary,
+        Danger
+    }
+
+    internal readonly record struct ListColumn(
+        string Text,
+        int MinimumWidth,
+        int MaximumWidth = 480,
+        bool FillRemaining = false,
+        bool FixedWidth = false);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(nint hwnd, int attribute, ref int value, int size);
@@ -199,9 +222,141 @@ internal static class UiTheme
         };
         button.FlatAppearance.BorderSize = 1;
         button.FlatAppearance.BorderColor = backColor == Accent ? Accent : Border;
-        button.FlatAppearance.MouseOverBackColor = backColor == Accent ? Color.FromArgb(134, 248, 231) : Hover;
-        button.FlatAppearance.MouseDownBackColor = backColor == Accent ? Color.FromArgb(82, 211, 195) : Pressed;
+        button.FlatAppearance.MouseOverBackColor = backColor == Accent ? Color.FromArgb(112, 234, 221) : Hover;
+        button.FlatAppearance.MouseDownBackColor = backColor == Accent ? Color.FromArgb(62, 194, 181) : Pressed;
+        ApplyControlRoundedRegion(button, 8);
         return button;
+    }
+
+    public static Button CreateButton(string text, ButtonKind kind)
+    {
+        var button = kind switch
+        {
+            ButtonKind.Primary => CreateButton(text, Accent, Color.FromArgb(10, 31, 31)),
+            ButtonKind.Danger => CreateButton(text, Field, Danger),
+            _ => CreateButton(text, Field, Text)
+        };
+        button.TabStop = true;
+        return button;
+    }
+
+    public static int Scale(Control control, int logicalPixels)
+        => Math.Max(1, (int)Math.Round(logicalPixels * control.DeviceDpi / 96F));
+
+    public static GraphicsPath CreateRoundedRectanglePath(Rectangle bounds, int radius)
+    {
+        var path = new GraphicsPath();
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            path.AddRectangle(bounds);
+            return path;
+        }
+
+        var diameter = Math.Max(2, Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height)));
+        var arc = new Rectangle(bounds.Location, new Size(diameter, diameter));
+        path.AddArc(arc, 180, 90);
+        arc.X = bounds.Right - diameter;
+        path.AddArc(arc, 270, 90);
+        arc.Y = bounds.Bottom - diameter;
+        path.AddArc(arc, 0, 90);
+        arc.X = bounds.Left;
+        path.AddArc(arc, 90, 90);
+        path.CloseFigure();
+        return path;
+    }
+
+    public static void DrawExternalLinkIcon(
+        Graphics graphics,
+        Rectangle clientBounds,
+        string text,
+        Font font,
+        Color color,
+        float scale)
+    {
+        var iconSize = 17F * scale;
+        var iconGap = 6F * scale;
+        var textSize = TextRenderer.MeasureText(
+            graphics,
+            text,
+            font,
+            Size.Empty,
+            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+        var groupWidth = textSize.Width + iconGap + iconSize;
+        var left = clientBounds.Left
+            + ((clientBounds.Width - groupWidth) / 2F)
+            + textSize.Width
+            + iconGap;
+        var top = clientBounds.Top + (clientBounds.Height - iconSize) / 2F;
+
+        var previousSmoothingMode = graphics.SmoothingMode;
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using var pen = new Pen(color, 1.8F * scale)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+
+        PointF Point(float x, float y) => new(left + (x * scale), top + (y * scale));
+
+        graphics.DrawLines(
+            pen,
+            [
+                Point(7, 2),
+                Point(4, 2),
+                Point(2, 4),
+                Point(2, 13),
+                Point(4, 15),
+                Point(13, 15),
+                Point(15, 13),
+                Point(15, 9)
+            ]);
+        graphics.DrawLine(pen, Point(8, 9), Point(15, 2));
+        graphics.DrawLines(pen, [Point(10, 2), Point(15, 2), Point(15, 7)]);
+        graphics.SmoothingMode = previousSmoothingMode;
+    }
+
+    public static void ApplyControlRoundedRegion(Control control, int logicalRadius = 8)
+    {
+        void UpdateRegion()
+        {
+            if (control.Width <= 0 || control.Height <= 0)
+            {
+                return;
+            }
+
+            var diameter = Math.Min(
+                Scale(control, logicalRadius) * 2,
+                Math.Min(control.Width, control.Height));
+            var regionHandle = CreateRoundRectRgn(0, 0, control.Width + 1, control.Height + 1, diameter, diameter);
+            if (regionHandle == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var previous = control.Region;
+                control.Region = Region.FromHrgn(regionHandle);
+                previous?.Dispose();
+            }
+            finally
+            {
+                _ = DeleteObject(regionHandle);
+            }
+        }
+
+        control.Resize -= OnRoundedRegionResize;
+        control.Resize += OnRoundedRegionResize;
+        control.HandleCreated -= OnRoundedRegionHandleCreated;
+        control.HandleCreated += OnRoundedRegionHandleCreated;
+        if (control.IsHandleCreated)
+        {
+            UpdateRegion();
+        }
+
+        void OnRoundedRegionResize(object? sender, EventArgs e) => UpdateRegion();
+        void OnRoundedRegionHandleCreated(object? sender, EventArgs e) => UpdateRegion();
     }
 
     public static void StyleTextBox(TextBox textBox)
@@ -225,7 +380,7 @@ internal static class UiTheme
         listBox.BorderStyle = BorderStyle.FixedSingle;
         listBox.CheckOnClick = true;
         listBox.IntegralHeight = false;
-        listBox.ItemHeight = 30;
+        listBox.ItemHeight = Math.Max(30, listBox.Font.Height + 14);
     }
 
     public static void StyleComboBox(ComboBox comboBox)
@@ -235,7 +390,7 @@ internal static class UiTheme
         comboBox.BackColor = Field;
         comboBox.ForeColor = Text;
         comboBox.DrawMode = DrawMode.OwnerDrawFixed;
-        comboBox.ItemHeight = 28;
+        comboBox.ItemHeight = Math.Max(28, comboBox.Font.Height + 12);
         comboBox.DropDownHeight = 320;
 
         comboBox.DrawItem += (_, e) =>
@@ -265,14 +420,25 @@ internal static class UiTheme
         };
     }
 
-    public static void StyleListBox(ListBox listBox, Font font)
+    public static void StyleListBox(
+        ListBox listBox,
+        Font font,
+        Func<int, (int? ClassId, int? SpecId)>? moduleMatchSelector = null,
+        bool showClassIconWithSpec = true,
+        int? logicalIconSize = null)
     {
+        var logicalItemHeight = logicalIconSize is { } requestedIconSize
+            ? Math.Max(40, Math.Clamp(requestedIconSize, 24, 64) + 16)
+            : 36;
         listBox.BackColor = Surface;
         listBox.ForeColor = Text;
         listBox.BorderStyle = BorderStyle.None;
         listBox.DrawMode = DrawMode.OwnerDrawFixed;
-        listBox.ItemHeight = 36;
+        listBox.ItemHeight = Math.Max(logicalItemHeight, font.Height + 14);
         listBox.IntegralHeight = false;
+        listBox.HandleCreated += (_, _) => listBox.ItemHeight = Math.Max(
+            Scale(listBox, logicalItemHeight),
+            font.Height + Scale(listBox, 14));
 
         listBox.DrawItem += (_, e) =>
         {
@@ -298,7 +464,53 @@ internal static class UiTheme
                 e.Graphics.FillRectangle(accent, e.Bounds.Left, e.Bounds.Top + 5, 3, e.Bounds.Height - 10);
             }
 
-            var textBounds = new Rectangle(e.Bounds.Left + 10, e.Bounds.Top, e.Bounds.Width - 14, e.Bounds.Height);
+            var textLeft = e.Bounds.Left + 10;
+            if (moduleMatchSelector is not null)
+            {
+                var (classId, specId) = moduleMatchSelector(e.Index);
+                Image?[] icons = showClassIconWithSpec
+                    ?
+                    [
+                        classId is { } matchedClassId ? GetClassIcon(matchedClassId) : null,
+                        classId is { } matchedSpecClassId && specId is { } matchedSpecId
+                            ? GetSpecIcon(matchedSpecClassId, matchedSpecId)
+                            : null
+                    ]
+                    :
+                    [
+                        classId is { } singleClassId
+                            ? specId is { } singleSpecId
+                                ? GetSpecIcon(singleClassId, singleSpecId)
+                                : GetClassIcon(singleClassId)
+                            : null
+                    ];
+                var iconSize = Math.Min(
+                    logicalIconSize is { } requestedSize
+                        ? Scale(listBox, Math.Clamp(requestedSize, 24, 64))
+                        : font.Height,
+                    e.Bounds.Height - Scale(listBox, 8));
+                foreach (var icon in icons)
+                {
+                    if (icon is null)
+                    {
+                        continue;
+                    }
+
+                    var iconBounds = new Rectangle(
+                        textLeft,
+                        e.Bounds.Top + (e.Bounds.Height - iconSize) / 2,
+                        iconSize,
+                        iconSize);
+                    e.Graphics.DrawImage(icon, iconBounds);
+                    textLeft = iconBounds.Right + 4;
+                }
+            }
+
+            var textBounds = new Rectangle(
+                textLeft,
+                e.Bounds.Top,
+                Math.Max(0, e.Bounds.Right - textLeft - 4),
+                e.Bounds.Height);
             TextRenderer.DrawText(
                 e.Graphics,
                 listBox.Items[e.Index]?.ToString() ?? string.Empty,
@@ -307,6 +519,283 @@ internal static class UiTheme
                 selected ? Text : Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         };
+    }
+
+    public static void StyleClassIconListBox(
+        ListBox listBox,
+        Func<object?, int?> classIdSelector,
+        int iconSize = 64)
+    {
+        var logicalIconSize = Math.Clamp(iconSize, 24, 64);
+        var logicalItemHeight = Math.Max(40, logicalIconSize + 16);
+        listBox.BackColor = Surface;
+        listBox.ForeColor = Text;
+        listBox.BorderStyle = BorderStyle.None;
+        listBox.DrawMode = DrawMode.OwnerDrawFixed;
+        listBox.ItemHeight = Math.Max(logicalItemHeight, listBox.Font.Height + 14);
+        listBox.IntegralHeight = false;
+        listBox.HandleCreated += (_, _) => listBox.ItemHeight = Math.Max(
+            Scale(listBox, logicalItemHeight),
+            listBox.Font.Height + Scale(listBox, 14));
+
+        var hoveredIndex = -1;
+        listBox.DrawItem += (_, e) =>
+        {
+            if (e.Index < 0)
+            {
+                return;
+            }
+
+            var selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            var hovered = e.Index == hoveredIndex;
+            var backgroundColor = selected
+                ? Hover
+                : e.Index % 2 == 0
+                    ? listBox.BackColor
+                    : RowAlt;
+            using (var background = new SolidBrush(backgroundColor))
+            {
+                e.Graphics.FillRectangle(background, e.Bounds);
+            }
+
+            if (selected || hovered)
+            {
+                using var indicator = new SolidBrush(selected ? Color.White : Muted);
+                var indicatorInset = Math.Max(6, (e.Bounds.Height - Scale(listBox, logicalIconSize)) / 2);
+                e.Graphics.FillRectangle(
+                    indicator,
+                    e.Bounds.Left,
+                    e.Bounds.Top + indicatorInset,
+                    4,
+                    e.Bounds.Height - (indicatorInset * 2));
+            }
+
+            var item = listBox.Items[e.Index];
+            var classId = classIdSelector(item);
+            var icon = classId is null ? null : GetClassIcon(classId.Value);
+            var iconSize = Math.Min(
+                Scale(listBox, logicalIconSize),
+                e.Bounds.Height - Scale(listBox, 8));
+            var visibleWidth = GetVisibleClientWidth(listBox);
+            var iconBounds = new Rectangle(
+                e.Bounds.Left + (visibleWidth - iconSize) / 2,
+                e.Bounds.Top + (e.Bounds.Height - iconSize) / 2,
+                iconSize,
+                iconSize);
+
+            if (icon is not null)
+            {
+                e.Graphics.DrawImage(icon, iconBounds);
+                using var border = new Pen(selected ? Accent : Border);
+                e.Graphics.DrawRectangle(border, iconBounds);
+            }
+            else
+            {
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    "?",
+                    listBox.Font,
+                    iconBounds,
+                    selected ? Text : Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+        };
+
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index == hoveredIndex)
+            {
+                return;
+            }
+
+            hoveredIndex = index;
+            listBox.Invalidate();
+        };
+        listBox.MouseLeave += (_, _) =>
+        {
+            hoveredIndex = -1;
+            listBox.Invalidate();
+        };
+    }
+
+    private static int GetVisibleClientWidth(Control control)
+    {
+        var visibleBounds = control.RectangleToScreen(control.ClientRectangle);
+        for (var parent = control.Parent; parent is not null; parent = parent.Parent)
+        {
+            visibleBounds = Rectangle.Intersect(
+                visibleBounds,
+                parent.RectangleToScreen(parent.ClientRectangle));
+        }
+
+        return Math.Max(0, visibleBounds.Width);
+    }
+
+    private static Image? GetClassIcon(int classId)
+    {
+        if (ClassIcons.TryGetValue(classId, out var cached))
+        {
+            return cached;
+        }
+
+        var fileName = ClassNames.GetConfigFileName(classId).ToLowerInvariant();
+        var resourceName = $"{typeof(UiTheme).Namespace}.Assets.Class.{fileName}.jpg";
+        using var stream = typeof(UiTheme).Assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            ClassIcons[classId] = null;
+            return null;
+        }
+
+        using var source = Image.FromStream(stream);
+        var icon = new Bitmap(source);
+        ClassIcons[classId] = icon;
+        return icon;
+    }
+
+    public static void StyleSpecIconListBox(
+        ListBox listBox,
+        Func<object?, (int ClassId, int SpecId)?> specIdSelector,
+        int iconSize = 56)
+    {
+        var logicalIconSize = Math.Clamp(iconSize, 24, 64);
+        var logicalItemHeight = Math.Max(40, logicalIconSize + 16);
+        listBox.BackColor = Surface;
+        listBox.ForeColor = Text;
+        listBox.BorderStyle = BorderStyle.None;
+        listBox.DrawMode = DrawMode.OwnerDrawFixed;
+        listBox.ItemHeight = Math.Max(logicalItemHeight, listBox.Font.Height + 14);
+        listBox.IntegralHeight = false;
+        listBox.HandleCreated += (_, _) => listBox.ItemHeight = Math.Max(
+            Scale(listBox, logicalItemHeight),
+            listBox.Font.Height + Scale(listBox, 14));
+
+        var hoveredIndex = -1;
+        listBox.DrawItem += (_, e) =>
+        {
+            if (e.Index < 0)
+            {
+                return;
+            }
+
+            var selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            var hovered = e.Index == hoveredIndex;
+            var backgroundColor = selected
+                ? Hover
+                : hovered
+                    ? SurfaceRaised
+                    : e.Index % 2 == 0
+                        ? listBox.BackColor
+                        : RowAlt;
+            using (var background = new SolidBrush(backgroundColor))
+            {
+                e.Graphics.FillRectangle(background, e.Bounds);
+            }
+
+            if (selected || hovered)
+            {
+                using var indicator = new SolidBrush(selected ? Accent : Muted);
+                var indicatorInset = Math.Max(6, (e.Bounds.Height - Scale(listBox, logicalIconSize)) / 2);
+                e.Graphics.FillRectangle(
+                    indicator,
+                    e.Bounds.Left,
+                    e.Bounds.Top + indicatorInset,
+                    4,
+                    e.Bounds.Height - (indicatorInset * 2));
+            }
+
+            var item = listBox.Items[e.Index];
+            var specIds = specIdSelector(item);
+            var icon = specIds is { } ids ? GetSpecIcon(ids.ClassId, ids.SpecId) : null;
+            var drawnIconSize = Math.Min(
+                Scale(listBox, logicalIconSize),
+                e.Bounds.Height - Scale(listBox, 12));
+            var iconBounds = new Rectangle(
+                e.Bounds.Left + 12,
+                e.Bounds.Top + (e.Bounds.Height - drawnIconSize) / 2,
+                drawnIconSize,
+                drawnIconSize);
+
+            if (icon is not null)
+            {
+                e.Graphics.DrawImage(icon, iconBounds);
+                using var border = new Pen(selected ? Accent : Border);
+                e.Graphics.DrawRectangle(border, iconBounds);
+            }
+            else
+            {
+                using var placeholder = new SolidBrush(Field);
+                e.Graphics.FillRectangle(placeholder, iconBounds);
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    "?",
+                    listBox.Font,
+                    iconBounds,
+                    selected ? Text : Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+
+            var textBounds = new Rectangle(
+                iconBounds.Right + 12,
+                e.Bounds.Top,
+                Math.Max(0, e.Bounds.Right - iconBounds.Right - 18),
+                e.Bounds.Height);
+            TextRenderer.DrawText(
+                e.Graphics,
+                item?.ToString() ?? string.Empty,
+                listBox.Font,
+                textBounds,
+                selected ? Text : Muted,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left |
+                TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine);
+        };
+
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index == hoveredIndex)
+            {
+                return;
+            }
+
+            hoveredIndex = index;
+            listBox.Invalidate();
+        };
+        listBox.MouseLeave += (_, _) =>
+        {
+            hoveredIndex = -1;
+            listBox.Invalidate();
+        };
+    }
+
+    private static Image? GetSpecIcon(int classId, int specId)
+    {
+        var key = (classId, specId);
+        if (SpecIcons.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var fileName = ClassNames.GetSpecIconFileName(classId, specId);
+        if (fileName is null)
+        {
+            SpecIcons[key] = null;
+            return null;
+        }
+
+        var resourceName = $"{typeof(UiTheme).Namespace}.Assets.Spec.{fileName}.jpg";
+        using var stream = typeof(UiTheme).Assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            SpecIcons[key] = null;
+            return null;
+        }
+
+        using var source = Image.FromStream(stream);
+        var icon = new Bitmap(source);
+        SpecIcons[key] = icon;
+        return icon;
     }
 
     public static void StyleListView(ListView listView, Font font)
@@ -322,7 +811,7 @@ internal static class UiTheme
         listView.BorderStyle = BorderStyle.None;
         listView.OwnerDraw = true;
         listView.ShowItemToolTips = true;
-        listView.SmallImageList = new ImageList { ImageSize = new Size(1, 32) };
+        ApplyListViewMetrics(listView, font);
         typeof(Control)
             .GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic)
             ?.SetValue(listView, true);
@@ -378,6 +867,8 @@ internal static class UiTheme
                 selected ? Text : e.ColumnIndex == 0 ? Muted : Text,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         };
+
+        listView.HandleCreated += (_, _) => ApplyListViewMetrics(listView, font);
     }
 
     public static void StyleDataGridView(DataGridView grid)
@@ -390,7 +881,7 @@ internal static class UiTheme
         grid.EnableHeadersVisualStyles = false;
         grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
         grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-        grid.ColumnHeadersHeight = 36;
+        grid.ColumnHeadersHeight = Math.Max(38, grid.Font.Height + 16);
         grid.ColumnHeadersDefaultCellStyle.BackColor = Field;
         grid.ColumnHeadersDefaultCellStyle.ForeColor = Muted;
         grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Field;
@@ -400,50 +891,205 @@ internal static class UiTheme
         grid.DefaultCellStyle.ForeColor = Text;
         grid.DefaultCellStyle.SelectionBackColor = Hover;
         grid.DefaultCellStyle.SelectionForeColor = Text;
-        grid.DefaultCellStyle.Padding = new Padding(8, 0, 8, 0);
+        grid.DefaultCellStyle.Padding = new Padding(8, 6, 8, 6);
+        grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+        grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         grid.AlternatingRowsDefaultCellStyle.BackColor = RowAlt;
         grid.AlternatingRowsDefaultCellStyle.ForeColor = Text;
-        grid.RowTemplate.Height = 38;
+        grid.RowTemplate.Height = Math.Max(40, grid.Font.Height + 16);
         grid.RowHeadersVisible = false;
         grid.AllowUserToResizeRows = false;
         grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-    }
+        grid.ShowCellToolTips = true;
 
-    public static ListView CreateListView(Font font, params (string Text, int Width)[] columns)
-    {
-        var listView = new ListView();
-        StyleListView(listView, font);
-
-        foreach (var (text, width) in columns)
+        void ApplyMetrics()
         {
-            listView.Columns.Add(text, width);
+            var verticalPadding = Scale(grid, 12);
+            grid.ColumnHeadersHeight = Math.Max(Scale(grid, 38), grid.Font.Height + verticalPadding);
+            grid.RowTemplate.Height = Math.Max(Scale(grid, 40), grid.Font.Height + verticalPadding);
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.Height = Math.Max(row.Height, grid.RowTemplate.Height);
+                }
+            }
+
+            EnsureGridColumnsReadable(grid);
         }
 
-        // 最后一列拉伸填满, 避免表头右侧露出系统默认的白色区域。
-        void StretchLastColumn()
+        grid.HandleCreated += (_, _) => ApplyMetrics();
+        grid.ColumnAdded += (_, _) => EnsureGridColumnsReadable(grid);
+        grid.CellFormatting += (_, e) =>
         {
-            if (listView.Columns.Count == 0)
+            if (e.RowIndex < 0 || e.ColumnIndex < 0 || e.Value is null)
             {
                 return;
             }
 
-            var othersWidth = 0;
-            for (var i = 0; i < listView.Columns.Count - 1; i++)
-            {
-                othersWidth += listView.Columns[i].Width;
-            }
+            grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText = e.Value.ToString();
+        };
+    }
 
-            var lastWidth = listView.ClientSize.Width - othersWidth;
-            if (lastWidth > 60)
+    public static ListView CreateListView(Font font, params (string Text, int Width)[] columns)
+    {
+        var layouts = columns
+            .Select((column, index) => new ListColumn(
+                column.Text,
+                column.Width,
+                Math.Max(column.Width, index == columns.Length - 1 ? 1200 : 420),
+                FillRemaining: index == columns.Length - 1,
+                FixedWidth: index == 0 && column.Text == "#"))
+            .ToArray();
+        return CreateListView(font, layouts);
+    }
+
+    public static ListView CreateListView(Font font, params ListColumn[] columns)
+    {
+        var listView = new ListView();
+        StyleListView(listView, font);
+
+        foreach (var column in columns)
+        {
+            listView.Columns.Add(column.Text, column.MinimumWidth);
+        }
+
+        ListColumnLayouts.Add(listView, new ListColumnLayoutState(columns));
+        listView.Resize += (_, _) => FitListViewColumns(listView);
+        listView.HandleCreated += (_, _) =>
+        {
+            // ListView 在 OnHandleCreated 内部会重建原生 item；此时 Items.Count 已更新，
+            // 但索引器可能短暂返回 null。延迟到本轮消息结束后再按内容测量列宽。
+            listView.BeginInvoke(() =>
             {
-                listView.Columns[^1].Width = lastWidth;
+                if (!listView.IsDisposed && listView.IsHandleCreated)
+                {
+                    FitListViewColumns(listView);
+                }
+            });
+        };
+        return listView;
+    }
+
+    public static void FitListViewColumns(ListView listView)
+    {
+        if (listView.IsDisposed
+            || !ListColumnLayouts.TryGetValue(listView, out var state)
+            || state.Columns.Count != listView.Columns.Count
+            || listView.Columns.Count == 0)
+        {
+            return;
+        }
+
+        var availableWidth = Math.Max(0, listView.ClientSize.Width - Scale(listView, 2));
+        var widths = new int[state.Columns.Count];
+        var fillIndexes = new List<int>();
+        var usedWidth = 0;
+
+        for (var columnIndex = 0; columnIndex < state.Columns.Count; columnIndex++)
+        {
+            var layout = state.Columns[columnIndex];
+            var minimum = Scale(listView, layout.MinimumWidth);
+            var maximum = Scale(listView, Math.Max(layout.MinimumWidth, layout.MaximumWidth));
+            var measured = MeasureListColumn(listView, columnIndex, layout.Text);
+            var width = layout.FixedWidth ? minimum : Math.Clamp(measured, minimum, maximum);
+            widths[columnIndex] = width;
+            if (layout.FillRemaining)
+            {
+                fillIndexes.Add(columnIndex);
+            }
+            else
+            {
+                usedWidth += width;
             }
         }
 
-        listView.Resize += (_, _) => StretchLastColumn();
-        listView.HandleCreated += (_, _) => StretchLastColumn();
+        if (fillIndexes.Count > 0)
+        {
+            var remaining = Math.Max(0, availableWidth - usedWidth);
+            var share = remaining / fillIndexes.Count;
+            foreach (var index in fillIndexes)
+            {
+                var layout = state.Columns[index];
+                widths[index] = Math.Clamp(
+                    share,
+                    Scale(listView, layout.MinimumWidth),
+                    Scale(listView, Math.Max(layout.MinimumWidth, layout.MaximumWidth)));
+            }
+        }
 
-        return listView;
+        for (var i = 0; i < widths.Length; i++)
+        {
+            listView.Columns[i].Width = widths[i];
+        }
+    }
+
+    private static void ApplyListViewMetrics(ListView listView, Font font)
+    {
+        var rowHeight = Math.Max(Scale(listView, 36), font.Height + Scale(listView, 14));
+        if (listView.SmallImageList is null)
+        {
+            listView.SmallImageList = new ImageList();
+        }
+
+        listView.SmallImageList.ImageSize = new Size(1, rowHeight);
+    }
+
+    private static int MeasureListColumn(ListView listView, int columnIndex, string header)
+    {
+        var width = TextRenderer.MeasureText(header, listView.Font).Width + Scale(listView, 24);
+        var sampleCount = Math.Min(listView.Items.Count, 100);
+        for (var rowIndex = 0; rowIndex < sampleCount; rowIndex++)
+        {
+            ListViewItem? item;
+            try
+            {
+                item = listView.Items[rowIndex];
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // 数据刷新和句柄重建都可能让采样数量在本轮测量中发生变化。
+                break;
+            }
+
+            if (item is null || columnIndex >= item.SubItems.Count)
+            {
+                continue;
+            }
+
+            var subItem = item.SubItems[columnIndex];
+            if (subItem is null)
+            {
+                continue;
+            }
+
+            width = Math.Max(
+                width,
+                TextRenderer.MeasureText(subItem.Text ?? string.Empty, listView.Font).Width + Scale(listView, 24));
+        }
+
+        return width;
+    }
+
+    private static void EnsureGridColumnsReadable(DataGridView grid)
+    {
+        foreach (DataGridViewColumn column in grid.Columns)
+        {
+            var headerWidth = TextRenderer.MeasureText(column.HeaderText ?? string.Empty, grid.Font).Width
+                + Scale(grid, 24);
+            var typeMinimum = column is DataGridViewButtonColumn
+                ? Scale(grid, 36)
+                : column is DataGridViewCheckBoxColumn
+                    ? Scale(grid, 56)
+                    : Scale(grid, 72);
+            column.MinimumWidth = Math.Max(column.MinimumWidth, Math.Max(headerWidth, typeMinimum));
+            column.Width = Math.Max(column.Width, column.MinimumWidth);
+        }
+    }
+
+    private sealed class ListColumnLayoutState(IReadOnlyList<ListColumn> columns)
+    {
+        public IReadOnlyList<ListColumn> Columns { get; } = columns;
     }
 
     public static string FormatValue(object? value)

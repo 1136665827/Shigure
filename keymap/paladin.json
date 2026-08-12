@@ -1,4 +1,4 @@
-{
+﻿{
   "1": {
     "unit": 1,
     "技能": "神圣震击",
@@ -920,7 +920,7 @@
     "热键": "ALT-SHIFT-."
   },
   "185": {
-    "unit": 0,
+    "unit": 35,
     "技能": "保护祝福",
     "热键": "ALT-SHIFT-/"
   },
@@ -955,7 +955,7 @@
     "热键": "ALT-SHIFT-7"
   },
   "192": {
-    "unit": 0,
+    "unit": 31,
     "技能": "自由祝福",
     "热键": "ALT-SHIFT-8"
   },
@@ -975,7 +975,7 @@
     "热键": "ALT-SHIFT-="
   },
   "196": {
-    "unit": 1,
+    "unit": 31,
     "技能": "圣洁鸣钟",
     "热键": "CTRL-SHIFT-NUMPAD1"
   },
@@ -996,7 +996,7 @@
   },
   "200": {
     "unit": 0,
-    "技能": "灰烬觉醒",
+    "技能": "圣洁鸣钟",
     "热键": "CTRL-SHIFT-NUMPAD5"
   },
   "201": {
@@ -1016,7 +1016,7 @@
   },
   "204": {
     "unit": 0,
-    "技能": "祝福之锤",
+    "技能": "十字军打击",
     "热键": "CTRL-SHIFT-NUMPAD9"
   },
   "205": {
@@ -1025,7 +1025,7 @@
     "热键": "CTRL-SHIFT-NUMPAD0"
   },
   "206": {
-    "unit": 0,
+    "unit": 35,
     "技能": "破咒祝福",
     "热键": "CTRL-SHIFT-NUMPADDECIMAL"
   },
@@ -1045,13 +1045,13 @@
     "热键": "CTRL-SHIFT-NUMPADMULTIPLY"
   },
   "210": {
-    "unit": 0,
+    "unit": 31,
     "技能": "荣耀圣令",
     "热键": "CTRL-SHIFT-NUMPADDIVIDE"
   },
   "211": {
     "unit": 0,
-    "技能": "美德道标",
+    "技能": "圣光道标",
     "热键": "CTRL-SHIFT-F1"
   },
   "212": {
@@ -1190,177 +1190,177 @@
     "热键": "ALT-CTRL-SHIFT-NUMPAD4"
   },
   "239": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPAD5"
   },
   "240": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPAD6"
   },
   "241": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPAD7"
   },
   "242": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPAD8"
   },
   "243": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPAD9"
   },
   "244": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPAD0"
   },
   "245": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPADDECIMAL"
   },
   "246": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPADPLUS"
   },
   "247": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPADMINUS"
   },
   "248": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPADMULTIPLY"
   },
   "249": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-NUMPADDIVIDE"
   },
   "250": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F1"
   },
   "251": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F2"
   },
   "252": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F3"
   },
   "253": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F5"
   },
   "254": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F6"
   },
   "255": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F7"
   },
   "256": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F8"
   },
   "257": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F9"
   },
   "258": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F10"
   },
   "259": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F11"
   },
   "260": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-F12"
   },
   "261": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-,"
   },
   "262": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-."
   },
   "263": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-/"
   },
   "264": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-;"
   },
   "265": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-'"
   },
   "266": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-["
   },
   "267": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-]"
   },
   "268": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-\\"
   },
   "269": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-7"
   },
   "270": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-8"
   },
   "271": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-9"
   },
   "272": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-0"
   },
   "273": {
-    "unit": null,
+    "unit": 0,
     "技能": "",
     "热键": "ALT-CTRL-SHIFT-="
   }

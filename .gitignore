@@ -20,7 +20,7 @@ cache/
 # Local notes
 提示词帮助.md
 
-#模块
+# 本地模块（不上传）
 module/
-
-__pycache__/
+# 说明文档
+docs/
