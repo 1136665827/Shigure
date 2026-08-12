@@ -69,6 +69,7 @@ function Fuyutsui:GetUnitInterruptiblePixel(unit, mode)
         if not channel then return 0 end
         local _, _, _, _, _, _, notInterruptible, _, _, _, castBarID = UnitChannelInfo(unit)
         if not castBarID then return nil end
+        ---@diagnostic disable-next-line: param-type-mismatch
         local interruptibleColor = EvaluateColorFromBoolean(notInterruptible, ColorValue0, ColorValue1)
         local _, _, interruptible = interruptibleColor:GetRGB()
         return interruptible
@@ -76,6 +77,7 @@ function Fuyutsui:GetUnitInterruptiblePixel(unit, mode)
 
     if not UnitCastingDuration(unit) then return 0 end
     local _, _, _, _, _, _, _, notInterruptible = UnitCastingInfo(unit)
+    ---@diagnostic disable-next-line: param-type-mismatch
     local interruptibleColor = EvaluateColorFromBoolean(notInterruptible, ColorValue0, ColorValue1)
     local _, _, interruptible = interruptibleColor:GetRGB()
     return interruptible
@@ -126,6 +128,7 @@ local stateBlockGetters = {
         ["符文"] = function() return GetRunePixel() end,
         ["姿态"] = function() return state.shapeshiftFormID or 0 end,
         ["天启骑士数量"] = function() return state.knightCount or 0 end,
+        ["自律"] = function() return state.forbearance or 0 end,
 
         ["爆发开关"] = function(self) return GetConfigPixel(self, "cooldowns") end,
         ["AOE开关"] = function(self) return GetConfigPixel(self, "aoeMode") end,

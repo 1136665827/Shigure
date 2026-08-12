@@ -1,11 +1,6 @@
 if UnitClassBase("player") ~= "PALADIN" then return end
 local addon, ns = ...
 
-local function isSpellKnown()
-    local known = C_SpellBook.IsSpellKnownOrInSpellBook(432459) or C_SpellBook.IsSpellKnownOrInSpellBook(432472)
-    return known
-end
-
 Fuyutsui.ClassBlocks = {
     [1] = {
         states = {
@@ -30,7 +25,8 @@ Fuyutsui.ClassBlocks = {
                 "难度",
                 "施法技能",
                 "施法目标",
-                "神圣军备"
+                "神圣军备",
+                "自律",
             },
             ["能量"] = {
                 "法力值",
@@ -93,7 +89,8 @@ Fuyutsui.ClassBlocks = {
             { spellId = 114165, name = "神圣棱镜" },
             { spellId = 31821, name = "光环掌握" },
             { spellId = 200025, name = "美德道标" },
-            { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 4 },
+            { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 2 },
+            { spellId = 391054, name = "代祷" },
         },
         group = {
             num = 6,
@@ -128,6 +125,7 @@ Fuyutsui.ClassBlocks = {
                 "队伍人数",
                 "首领战",
                 "难度",
+                "自律",
             },
             ["能量"] = {
                 "法力值",
@@ -209,6 +207,7 @@ Fuyutsui.ClassBlocks = {
                 "首领战",
                 "难度",
                 "敌人数量",
+                "自律",
             },
             ["能量"] = {
                 "法力值",
@@ -341,4 +340,7 @@ Fuyutsui.spellsList = {
     [200025]  = { index = 24, name = "美德道标" },
     [114165]  = { index = 25, name = "神圣棱镜" },
     [53595]   = { index = 26, name = "正义之锤" },
+    [6940]    = { index = 27, name = "牺牲祝福" },
+    [391054]  = { index = 28, name = "代祷" },
+    [633]     = { index = 29, name = "圣疗术" },
 }
