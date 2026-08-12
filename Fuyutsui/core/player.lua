@@ -419,3 +419,25 @@ function Fuyutsui:UpdateMountCasting(spellID, casting)
         end)
     end
 end
+
+local forbearanceTimer = nil
+
+function Fuyutsui:UpdatePlayerForbearance() -- 25771 自律
+    if forbearanceTimer then
+        forbearanceTimer:Cancel()
+        forbearanceTimer = nil
+    end
+
+    local remaining = 30
+    state.forbearance = remaining / 255
+    self:UpdateStateBlock("状态", "自律")
+
+    forbearanceTimer = C_Timer.NewTicker(1, function()
+        remaining = remaining - 1
+        state.forbearance = remaining > 0 and (remaining / 255) or 0
+        self:UpdateStateBlock("状态", "自律")
+        if remaining <= 0 then
+            forbearanceTimer = nil
+        end
+    end, 30)
+end

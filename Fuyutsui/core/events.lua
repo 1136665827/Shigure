@@ -187,15 +187,11 @@ function Fuyutsui:UNIT_SPELLCAST_SUCCEEDED(_, unitTarget, castGUID, spellID, cas
     end
 end
 
-local test = {}
 function Fuyutsui:SPELL_UPDATE_COOLDOWN(_, spellID, baseSpellID)
     if issecretvalue(spellID) then return end
-    if spellID and not test[spellID] then
-        test[spellID] = true
-        local spellLink = C_Spell.GetSpellLink(spellID)
-        if spellLink then
-            print(spellID, spellLink)
-        end
+
+    if spellID == 25771 then
+        self:UpdatePlayerForbearance()
     end
     self:UpdateKnightStatus(spellID)
 end
@@ -435,7 +431,7 @@ function Fuyutsui:OnUpdate(elapsed)
     end
 
     self.timeElapsed1 = self.timeElapsed1 + elapsed
-    if self.timeElapsed1 > 1 then
+    if self.timeElapsed1 >= 1 then
         self:UpdatePlayerCombatTime()
         self:UpdateKnightStatusCount()
         self.timeElapsed1 = 0
