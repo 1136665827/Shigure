@@ -52,7 +52,11 @@ TEXT_EXTENSIONS = {
 }
 
 NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
-NAME_REPLACEMENT_PATTERN = re.compile("|".join(re.escape(name) for name in OLD_NAMES))
+NAME_REPLACEMENT_PATTERN = re.compile(
+    "|".join(re.escape(name) for name in OLD_NAMES),
+    re.IGNORECASE,
+)
+SLASH_COMMAND_PATTERN = re.compile(r"/fu\b", re.IGNORECASE)
 
 
 def configure_console() -> None:
@@ -109,8 +113,34 @@ def read_text(path: Path) -> tuple[str, str] | None:
     return None
 
 
+def match_name_case(old_name: str, new_name: str) -> str:
+    if old_name.isupper():
+        return new_name.upper()
+    if old_name.islower():
+        return new_name.lower()
+    if old_name[:1].isupper() and old_name[1:].islower():
+        return new_name[:1].upper() + new_name[1:]
+    return new_name
+
+
 def replace_names(value: str, new_name: str) -> str:
-    return NAME_REPLACEMENT_PATTERN.sub(new_name, value)
+    return NAME_REPLACEMENT_PATTERN.sub(
+        lambda match: match_name_case(match.group(0), new_name),
+        value,
+    )
+
+
+def replace_text(value: str, new_name: str) -> str:
+    value = replace_names(value, new_name)
+    slash_command = f"/{new_name[:2].lower()}"
+    return SLASH_COMMAND_PATTERN.sub(slash_command, value)
+
+
+def contains_text_replacement(value: str) -> bool:
+    return bool(
+        NAME_REPLACEMENT_PATTERN.search(value)
+        or SLASH_COMMAND_PATTERN.search(value)
+    )
 
 
 def collect_replacements(root: Path, script_path: Path) -> dict[Path, tuple[str, str]]:
@@ -122,7 +152,7 @@ def collect_replacements(root: Path, script_path: Path) -> dict[Path, tuple[str,
             continue
 
         text, encoding = result
-        if any(old_name in text for old_name in OLD_NAMES):
+        if contains_text_replacement(text):
             backups[path] = (text, encoding)
 
     return backups
@@ -130,7 +160,7 @@ def collect_replacements(root: Path, script_path: Path) -> dict[Path, tuple[str,
 
 def apply_replacements(backups: dict[Path, tuple[str, str]], new_name: str) -> None:
     for path, (text, encoding) in backups.items():
-        path.write_text(replace_names(text, new_name), encoding=encoding, newline="")
+        path.write_text(replace_text(text, new_name), encoding=encoding, newline="")
 
 
 def map_path_through_renames(path: Path, completed_renames: list[tuple[Path, Path]]) -> Path:
@@ -166,14 +196,14 @@ def collect_path_renames(
 
         for dirname in dirnames:
             path = current_dir / dirname
-            if any(old_name in dirname for old_name in OLD_NAMES):
+            if NAME_REPLACEMENT_PATTERN.search(dirname):
                 paths.append(path)
 
         for filename in filenames:
             path = current_dir / filename
             if path == script_path:
                 continue
-            if any(old_name in filename for old_name in OLD_NAMES):
+            if NAME_REPLACEMENT_PATTERN.search(filename):
                 paths.append(path)
 
     paths.sort(key=lambda path: len(path.relative_to(root).parts), reverse=True)
@@ -274,8 +304,8 @@ def main() -> int:
 
         print()
         print(
-            f"将把文本和路径中的 {OLD_NAME}、{ADDON_OLD_NAME} "
-            f"区分大小写替换为 {new_name}。"
+            f"将把文本和路径中的 {OLD_NAME}、{ADDON_OLD_NAME} 按原文大小写形式 "
+            f"替换为 {new_name}，并把 /fu 替换为 /{new_name[:2].lower()}。"
         )
         print(f"预计临时修改 {len(preview_files)} 个文本文件，打包结束后会恢复。")
         for path in preview_files:
