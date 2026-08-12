@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 --[[
 Name: LibRangeCheck-3.0
 Author(s): mitch0, WoWUIDev Community
