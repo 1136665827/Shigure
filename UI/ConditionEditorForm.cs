@@ -161,6 +161,7 @@ public sealed class ConditionEditorForm : Form
     ];
 
     private readonly IReadOnlyList<ConditionField> _fields;
+    private readonly Func<IReadOnlyList<ConditionField>>? _conditionFieldsProvider;
     private readonly string _originalCondition;
     private readonly bool _allowSubConditions;
     private readonly bool _allowRuleSettings;
@@ -186,9 +187,12 @@ public sealed class ConditionEditorForm : Form
         bool allowSubConditions = false,
         int? delayMs = null,
         int? logicDelayMs = null,
-        bool allowRuleSettings = false)
+        bool allowRuleSettings = false,
+        Func<IReadOnlyList<ConditionField>>? conditionFieldsProvider = null)
     {
-        _fields = fields;
+        // 保存独立快照，避免父级字段集合后续刷新时影响当前弹窗；子弹窗则通过 provider 取得最新目录。
+        _fields = fields.ToArray();
+        _conditionFieldsProvider = conditionFieldsProvider;
         _originalCondition = condition ?? string.Empty;
         _allowSubConditions = allowSubConditions;
         _allowRuleSettings = allowRuleSettings;
@@ -426,7 +430,11 @@ public sealed class ConditionEditorForm : Form
     // 返回 null = 用户取消; 空串 = 用户清空了条件(编辑时表示删除)。
     private string? PromptSubCondition(string current)
     {
-        using var editor = new ConditionEditorForm(_fields, current);
+        var fields = _conditionFieldsProvider?.Invoke() ?? _fields;
+        using var editor = new ConditionEditorForm(
+            fields,
+            current,
+            conditionFieldsProvider: _conditionFieldsProvider);
         return editor.ShowDialog(this) == DialogResult.OK ? editor.ConditionText : null;
     }
 
