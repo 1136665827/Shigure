@@ -52,6 +52,8 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ModuleUnit> _units = new();
     private readonly List<ModuleCountField> _counts = new();
     private readonly List<ModuleValueAdjustment> _valueAdjustments = new();
+    private HashSet<string>? _availableConditionFields;
+    private HashSet<string>? _availableGroupConditionFields;
     // 程序化恢复列宽时置真, 避免 ColumnWidthChanged 把默认值回写覆盖用户保存的宽度。
     private bool _suppressColumnSave;
     private bool _suppressUnitsColumnResize;
@@ -1118,6 +1120,9 @@ public sealed class ModuleEditorControl : UserControl
                 EnsureComboItem(_adjustmentFieldColumn, row.Cells["Field"].Value);
             }
         }
+
+        // 动态数值也是可用于条件的字段；新增、改名或删除后立即刷新规则行的缺失字段提示。
+        InvalidateConditionFieldValidation();
     }
 
     // 按该行选中的"类型"重建"数值"单元格的可选项 = 该类别下的字段。
@@ -1243,6 +1248,11 @@ public sealed class ModuleEditorControl : UserControl
         if (_adjustmentsGrid.Columns[e.ColumnIndex].Name == "Type")
         {
             RebuildAdjustmentFieldCell(_adjustmentsGrid.Rows[e.RowIndex], null, keepCustom: false);
+        }
+
+        if (_adjustmentsGrid.Columns[e.ColumnIndex].Name == "Field")
+        {
+            InvalidateConditionFieldValidation();
         }
     }
 
@@ -1482,6 +1492,9 @@ public sealed class ModuleEditorControl : UserControl
                 UpdateUnitCellItems(row);
             }
         }
+
+        // 动态单位名、生命值名和数量名都会参与条件字段校验。
+        InvalidateConditionFieldValidation();
     }
 
     private IReadOnlyList<string> GetAuraFields()
@@ -1864,6 +1877,15 @@ public sealed class ModuleEditorControl : UserControl
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
         var row = _rulesGrid.Rows[e.RowIndex];
+        if (!row.IsNewRow && GetMissingConditionFields(row).Count > 0)
+        {
+            // 缺失字段会让条件静默不命中；用整行红色状态在保存前就提醒用户修复配置。
+            e.CellStyle.BackColor = UiTheme.DangerSoft;
+            e.CellStyle.ForeColor = UiTheme.Danger;
+            e.CellStyle.SelectionBackColor = UiTheme.Danger;
+            e.CellStyle.SelectionForeColor = UiTheme.Background;
+        }
+
         if (columnName == "RuleNumber")
         {
             e.Value = row.IsNewRow ? string.Empty : (e.RowIndex + 1).ToString();
@@ -1882,6 +1904,114 @@ public sealed class ModuleEditorControl : UserControl
                 metadata.LogicDelayMs);
             e.FormattingApplied = true;
         }
+    }
+
+    // 返回主条件和所有子条件中不属于当前职业/专精、动态单位或动态数值目录的字段。
+    private IReadOnlyList<string> GetMissingConditionFields(DataGridViewRow row)
+    {
+        EnsureConditionFieldValidationCatalog();
+        var available = _availableConditionFields!;
+        var groupFields = _availableGroupConditionFields!;
+
+        var missing = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var metadata = GetRuleMetadata(row);
+        foreach (var expression in new[] { CellText(row, "Condition") }.Concat(metadata.SubConditions))
+        {
+            foreach (var term in ConditionExpression.Parse(expression))
+            {
+                var original = term.Field.Trim();
+                var normalized = NormalizeConditionFieldName(original);
+                if (normalized.Length == 0 || available.Contains(normalized))
+                {
+                    continue;
+                }
+
+                // group.<槽位>.<字段> 是运行时支持的直接队伍引用；只需确认末段字段存在。
+                var groupParts = normalized.Split('.', 3);
+                if (groupParts.Length == 3
+                    && string.Equals(groupParts[0], "group", StringComparison.OrdinalIgnoreCase)
+                    && groupFields.Contains(groupParts[2]))
+                {
+                    continue;
+                }
+
+                if (seen.Add(original))
+                {
+                    missing.Add(original);
+                }
+            }
+        }
+
+        return missing;
+    }
+
+    // 字段目录的构造会读取职业配置和动态数值表；缓存后避免每个可见单元格重复做同一份工作。
+    private void EnsureConditionFieldValidationCatalog()
+    {
+        if (_availableConditionFields is not null && _availableGroupConditionFields is not null)
+        {
+            return;
+        }
+
+        _availableConditionFields = new HashSet<string>(
+            BuildConditionFields(includeRuleSettings: true)
+                .Select(field => NormalizeConditionFieldName(field.Name)),
+            StringComparer.Ordinal);
+
+        var classId = ReadMatchCombo(_classBox);
+        var specId = ReadMatchCombo(_specBox);
+        _availableGroupConditionFields = new HashSet<string>(
+            _fieldCatalog.GetGroupFields(classId, specId).Select(field => field.Name),
+            StringComparer.Ordinal);
+
+        // 运行时也支持“动态单位名.队伍字段”；编辑器目录未展开这些组合，这里仍应判定为有效。
+        foreach (var unit in _units.Where(unit => !string.IsNullOrWhiteSpace(unit.Name)))
+        {
+            foreach (var groupField in _availableGroupConditionFields)
+            {
+                _availableConditionFields.Add($"{unit.Name}.{groupField}");
+            }
+        }
+    }
+
+    private void InvalidateConditionFieldValidation()
+    {
+        _availableConditionFields = null;
+        _availableGroupConditionFields = null;
+        _rulesGrid.Invalidate();
+    }
+
+    // 运行时允许 state./spell./aura. 别名且前缀不区分大小写；校验时归一化为目录使用的名称。
+    private static string NormalizeConditionFieldName(string? fieldName)
+    {
+        var name = fieldName?.Trim() ?? string.Empty;
+        if (name.StartsWith("state.", StringComparison.OrdinalIgnoreCase))
+        {
+            return name["state.".Length..];
+        }
+
+        if (name.StartsWith("spells.", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"spells.{name["spells.".Length..]}";
+        }
+
+        if (name.StartsWith("spell.", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"spells.{name["spell.".Length..]}";
+        }
+
+        if (name.StartsWith("auras.", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"auras.{name["auras.".Length..]}";
+        }
+
+        if (name.StartsWith("aura.", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"auras.{name["aura.".Length..]}";
+        }
+
+        return name;
     }
 
     // 把主条件、子条件和规则延迟合成可读文本；仅改显示，不改变底层条件表达式。
@@ -1996,14 +2126,20 @@ public sealed class ModuleEditorControl : UserControl
     // 图标列沿用原提示; 条件/技能/目标/宏条件列在文本被列宽截断或可点击时给出悬停提示。
     private string GetRuleCellToolTip(string columnName, int rowIndex, int columnIndex)
     {
-        if (columnName is "MoveUp" or "MoveDown" or "Copy" or "InsertBlank" or "Delete")
-        {
-            return GetRuleIconToolTip(columnName, rowIndex);
-        }
-
         if (rowIndex >= _rulesGrid.Rows.Count || _rulesGrid.Rows[rowIndex].IsNewRow)
         {
             return string.Empty;
+        }
+
+        var missingFields = GetMissingConditionFields(_rulesGrid.Rows[rowIndex]);
+        if (missingFields.Count > 0)
+        {
+            return $"条件字段不存在：{string.Join("、", missingFields)}\n请先添加对应字段。";
+        }
+
+        if (columnName is "MoveUp" or "MoveDown" or "Copy" or "InsertBlank" or "Delete")
+        {
+            return GetRuleIconToolTip(columnName, rowIndex);
         }
 
         if (columnName == "Drag")
@@ -2231,6 +2367,7 @@ public sealed class ModuleEditorControl : UserControl
             if (!row.IsNewRow)
             {
                 _adjustmentsGrid.Rows.RemoveAt(e.RowIndex);
+                RefreshAdjustmentFieldColumn();
             }
 
             return;
@@ -2340,7 +2477,10 @@ public sealed class ModuleEditorControl : UserControl
         var row = _adjustmentsGrid.Rows[rowIndex];
         var current = row.IsNewRow ? string.Empty : CellText(row, "Condition");
 
-        using var editor = new ConditionEditorForm(BuildConditionFields(), current);
+        using var editor = new ConditionEditorForm(
+            RefreshAndBuildConditionFields(),
+            current,
+            conditionFieldsProvider: () => RefreshAndBuildConditionFields());
         if (editor.ShowDialog(FindForm()) != DialogResult.OK)
         {
             return;
@@ -2689,7 +2829,7 @@ public sealed class ModuleEditorControl : UserControl
         var row = _rulesGrid.Rows[rowIndex];
         var current = row.IsNewRow ? string.Empty : CellText(row, "Condition");
         var currentMetadata = row.IsNewRow ? new RuleRowMetadata() : GetRuleMetadata(row);
-        var fields = BuildConditionFields(includeRuleSettings: true);
+        var fields = RefreshAndBuildConditionFields(includeRuleSettings: true);
 
         using var editor = new ConditionEditorForm(
             fields,
@@ -2698,7 +2838,8 @@ public sealed class ModuleEditorControl : UserControl
             allowSubConditions: true,
             delayMs: currentMetadata.DelayMs,
             logicDelayMs: currentMetadata.LogicDelayMs,
-            allowRuleSettings: true);
+            allowRuleSettings: true,
+            conditionFieldsProvider: () => RefreshAndBuildConditionFields(includeRuleSettings: true));
         if (editor.ShowDialog(FindForm()) != DialogResult.OK)
         {
             return;
@@ -2730,6 +2871,14 @@ public sealed class ModuleEditorControl : UserControl
     }
 
     // 条件字段 = 状态/技能字段 + 每个动态单位的裸名(存在)和值名称 + 动态数值。
+    private IReadOnlyList<ConditionField> RefreshAndBuildConditionFields(bool includeRuleSettings = false)
+    {
+        // 配置可能由“更新配置”或外部文件同步在当前编辑会话中被重建；每次打开条件弹窗都读取最新目录。
+        _fieldCatalog = ConditionFieldCatalog.Load(_baseDirectory);
+        InvalidateConditionFieldValidation();
+        return BuildConditionFields(includeRuleSettings);
+    }
+
     private IReadOnlyList<ConditionField> BuildConditionFields(bool includeRuleSettings = false)
     {
         var classId = ReadMatchCombo(_classBox);

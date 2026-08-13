@@ -38,6 +38,7 @@ internal static class UiTheme
     public static readonly Color Success = Color.FromArgb(103, 211, 145);
     public static readonly Color Warning = Color.FromArgb(232, 196, 106);
     public static readonly Color Danger = Color.FromArgb(240, 122, 122);
+    public static readonly Color DangerSoft = Color.FromArgb(64, 30, 35);
 
     internal enum ButtonKind
     {
