@@ -28,6 +28,7 @@ function Fuyutsui:PLAYER_ENTERING_WORLD()
     self:UpdateHolyArmaments(375576)
     self:UpdateHeroTalent()
     self:GetMountsInfo()
+    self:UpdateChargedComboPoints()
     C_Timer.After(5, function()
         self:UpdateGroup()
     end)
@@ -36,6 +37,7 @@ end
 function Fuyutsui:PLAYER_TALENT_UPDATE()
     self:UpdatePlayerSpecInfo()
     self:UpdateGroup()
+    self:UpdateChargedComboPoints()
 end
 
 function Fuyutsui:RefreshPlayerDeathValid()
@@ -265,6 +267,18 @@ end
 function Fuyutsui:UNIT_POWER_UPDATE(_, unit, powerType)
     if unit ~= "player" then return end
     self:UpdatePlayerPower(powerType)
+    if powerType == "COMBO_POINTS" then
+        C_Timer.After(0, function()
+            self:UpdateChargedComboPoints()
+        end)
+    end
+end
+
+function Fuyutsui:UNIT_POWER_POINT_CHARGE(_, unit)
+    if unit ~= "player" then return end
+    C_Timer.After(0, function()
+        self:UpdateChargedComboPoints()
+    end)
 end
 
 function Fuyutsui:SPELL_UPDATE_USES(_, spellID, baseSpellID)
