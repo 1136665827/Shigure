@@ -126,7 +126,6 @@ Fuyutsui.ClassBlocks = {
             { spellId = 207407, name = "灵魂切削" },
             { spellId = 204596, name = "烈焰咒符" },
             { spellId = 390163, name = "怨念咒符" },
-            { spellId = 228447, name = "灵魂裂劈" },
             { spellId = 263642, name = "破裂", charge = true, maxCharge = 2 },
             { spellId = 212084, name = "邪能毁灭" },
             { spellId = 202137, name = "沉默咒符" },

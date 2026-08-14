@@ -601,8 +601,8 @@ internal sealed class ModuleDependencyService
             : FuyutsuiKeymapConverter.ParseStaticMacro(text, comment);
         var spell = parsed.Spell.Trim();
         return spell.Length > 0
-            ? new MacroIdentity(parsed.Unit, spell, parsed.Condition)
-            : new MacroIdentity(parsed.Unit, NormalizeMacroText(text), parsed.Condition);
+            ? new MacroIdentity(isSpecial, parsed.Unit, spell, parsed.Condition)
+            : new MacroIdentity(isSpecial, parsed.Unit, NormalizeMacroText(text), parsed.Condition);
     }
 
     private static string NormalizeMacroText(string value)
@@ -699,7 +699,9 @@ internal sealed class ModuleDependencyService
         public List<string> Conflicts { get; } = new();
     }
 
-    private readonly record struct MacroIdentity(int Unit, string Spell, string Condition);
+    // 静态宏和特殊宏可以解析成相同的目标/技能/条件，但仍是两个独立槽位。
+    // 例如“恶魔变形”和“/castsequence reset=0.5 恶魔变形,x”必须分别去重。
+    private readonly record struct MacroIdentity(bool IsSpecial, int Unit, string Spell, string Condition);
 }
 
 internal sealed class ModuleDependencyImportResult
