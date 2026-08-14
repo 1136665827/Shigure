@@ -88,7 +88,7 @@ verified_at: 2026-08-10
 - 保存时只替换源文件中该 table literal，表外文本保留；表内部按 Store 支持的 schema 重新序列化，不承诺保留未知字段或原始格式。
 - 保存是直接写回源 Lua，不是临时文件原子替换，也不自动备份。
 - 旧稀疏专精会返回空编辑数据；若整个文档不是 modern，Store 拒绝保存。混合 modern/legacy 文件尤其危险：全局可被判 modern，但 legacy 专精仍为空，保存可能造成数据损失。
-- `spellsList` 在 ClassBlocks UI 中只读。
+- `spellsList` 在 ClassBlocks UI 中可编辑索引 1–100 的法术 ID、索引和名称；保存时原位更新对应 Lua 条目，保留未显示的索引 101+ 条目与表内注释。
 
 ## ClassBlocks → config
 

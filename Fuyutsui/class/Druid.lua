@@ -117,8 +117,6 @@ Fuyutsui.ClassBlocks = {
                 "移动",
                 "施法",
                 "引导",
-                "蓄力",
-                "蓄力层数",
                 "生命值",
                 "队伍人数",
                 "首领战",
@@ -127,7 +125,7 @@ Fuyutsui.ClassBlocks = {
                 "姿态",
             },
             ["能量"] = {
-                "能量值",
+                "怒气值",
             },
             ["目标"] = {
                 "类型",
@@ -144,12 +142,20 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
-        -- TODO spellId: 塞纳留斯的梦境
-        -- TODO spellId: 塞纳留斯的梦境层数
-        -- TODO spellId: 铁鬃
-        -- TODO spellId: 狂暴回复
-        -- TODO spellId: 星河守护者
-        -- TODO spellId: 淤血
+        auras = {
+            player = {
+                { name = "铁鬓", spellId = 192081, maxApps = 5, },
+                { name = "化身：乌索克的守护者", spellId = 102558, },
+                { name = "星河守护者", spellId = 213708, },
+            },
+            target = {
+                harmful = {
+                    { name = "月火术", spellId = 164812, },
+                    { name = "痛击", spellId = 192090, maxApps = 5, },
+                    { name = "月光普照", spellId = 1270292, },
+                },
+            },
+        },
         spells = {
             { spellId = 22812, name = "树皮术" },
             { spellId = 132469, name = "台风" },
@@ -201,8 +207,6 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
             },
         },
-        -- TODO spellId: 节能施法
-        -- TODO spellId: 丛林之魂
         spells = {
             { spellId = 22812, name = "树皮术" },
             { spellId = 132469, name = "台风" },

@@ -101,6 +101,14 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
+        auras = {
+            player = {
+                { name = "恶魔尖刺", spellId = 203819, },
+                { name = "烈火烙印", spellId = 207771, },
+                { name = "沸腾怒意", spellId = 1270547, maxApps = 20, },
+                { name = "无羁邪怒", spellId = 1270476, },
+            },
+        },
         spells = {
             { spellId = 196718, name = "黑暗" },
             { spellId = 198793, name = "复仇回避" },
