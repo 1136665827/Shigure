@@ -10,6 +10,8 @@ public sealed class ModuleEditorControl : UserControl
 
     private readonly ModuleStore _moduleStore;
     private readonly Func<Task> _runtimeRestartRequested;
+    private readonly Func<ModuleDefinition, string?> _captureDependencies;
+    private readonly Func<Task> _modulesReloadRequested;
     private readonly string _baseDirectory;
     private ConditionFieldCatalog _fieldCatalog;
     private KeymapCatalog _keymapCatalog;
@@ -90,10 +92,17 @@ public sealed class ModuleEditorControl : UserControl
         ("动态数值", ConditionFieldCategory.DynamicValue)
     ];
 
-    public ModuleEditorControl(ModuleStore moduleStore, Func<Task> runtimeRestartRequested, string baseDirectory)
+    public ModuleEditorControl(
+        ModuleStore moduleStore,
+        Func<Task> runtimeRestartRequested,
+        Func<ModuleDefinition, string?> captureDependencies,
+        Func<Task> modulesReloadRequested,
+        string baseDirectory)
     {
         _moduleStore = moduleStore;
         _runtimeRestartRequested = runtimeRestartRequested;
+        _captureDependencies = captureDependencies;
+        _modulesReloadRequested = modulesReloadRequested;
         _baseDirectory = baseDirectory;
         _fieldCatalog = ConditionFieldCatalog.Load(baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(baseDirectory);
@@ -185,7 +194,7 @@ public sealed class ModuleEditorControl : UserControl
         var reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
         StyleModuleFooterButton(reloadButton);
         reloadButton.Dock = DockStyle.Fill;
-        reloadButton.Click += (_, _) => LoadModules();
+        reloadButton.Click += async (_, _) => await RunModuleCommandAsync(_modulesReloadRequested);
 
         var getModulesButton = UiTheme.CreateButton(
             "获取模块",
@@ -3071,9 +3080,14 @@ public sealed class ModuleEditorControl : UserControl
     private static void StyleModuleActionButton(Button button)
         => StyleModuleFooterButton(button);
 
-    private void LoadModules()
+    public void ReloadModulesFromStore(bool reloadStore = true) => LoadModules(reloadStore);
+
+    private void LoadModules(bool reloadStore = true)
     {
-        _moduleStore.Reload();
+        if (reloadStore)
+        {
+            _moduleStore.Reload();
+        }
         _modules = _moduleStore.GetModules().ToList();
         _moduleList.Items.Clear();
         foreach (var module in _modules)
@@ -3247,7 +3261,7 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        LoadModules();
+        LoadModules(reloadStore: false);
         var index = _modules.FindIndex(existing => string.Equals(existing.Id, module.Id, StringComparison.OrdinalIgnoreCase));
         if (index >= 0)
         {
@@ -3270,8 +3284,10 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         ModuleDefinition saved;
+        string? dependencyWarning;
         try
         {
+            dependencyWarning = _captureDependencies(module);
             saved = _moduleStore.Save(module);
         }
         catch (InvalidOperationException ex)
@@ -3280,11 +3296,16 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        LoadModules();
+        LoadModules(reloadStore: false);
         var index = _modules.FindIndex(existing => string.Equals(existing.Id, saved.Id, StringComparison.OrdinalIgnoreCase));
         if (index >= 0)
         {
             _moduleList.SelectedIndex = index;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dependencyWarning))
+        {
+            MessageBox.Show(dependencyWarning, "模块已保存", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         await _runtimeRestartRequested();
@@ -3308,7 +3329,7 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         _moduleStore.Delete(_selectedModule);
-        LoadModules();
+        LoadModules(reloadStore: false);
         await _runtimeRestartRequested();
     }
 

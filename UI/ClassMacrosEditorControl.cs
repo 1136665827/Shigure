@@ -35,6 +35,7 @@ public sealed class ClassMacrosEditorControl : UserControl
     private bool _dirty;
 
     internal event Action<bool>? DirtyStateChanged;
+    internal bool HasUnsavedChanges => _dirty;
 
     public ClassMacrosEditorControl(
         Func<string?> resolveClassMacrosPath,

@@ -195,7 +195,7 @@ internal static class ClassBlocksStore
         updated = updated[..classBlocksStart]
             + serialized
             + updated[classBlocksEnd..];
-        File.WriteAllText(document.FilePath, updated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        AtomicFile.WriteAllText(document.FilePath, updated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         if (!TryExtractAssignedTable(updated, AssignmentName, out _, out var start, out var end))
         {

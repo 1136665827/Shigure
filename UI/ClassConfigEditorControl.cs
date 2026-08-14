@@ -47,6 +47,7 @@ public sealed class ClassConfigEditorControl : UserControl
     private bool _dirty;
 
     internal event Action<bool>? DirtyStateChanged;
+    internal bool HasUnsavedChanges => _dirty;
     private string _selectedStateCategory = ClassStateCatalog.CategoryState;
     private string _lastStateCategory = ClassStateCatalog.CategoryState;
     private string _lastAuraBucket = "player";
