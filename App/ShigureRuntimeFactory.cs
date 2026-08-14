@@ -29,7 +29,8 @@ internal sealed class ShigureRuntimeFactory : IShigureRuntimeFactory
 
     public ShigureRuntime Create(AppOptions options)
     {
-        _moduleStore.Reload();
+        // 模块目录由启动/刷新时的依赖导入流程统一重载并过滤；这里直接使用已验证快照，
+        // 避免把因宏容量超限而拒绝的磁盘模块重新带回运行时。
         var config = ConfigService.LoadFromBaseDirectory(_baseDirectory);
         var keymap = new KeymapService(_baseDirectory, config);
 
