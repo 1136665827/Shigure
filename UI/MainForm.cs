@@ -56,6 +56,7 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly ITriggerKeyState _triggerKeyState;
     private readonly WowProcessLocator _processLocator;
     private readonly FuyutsuiAddonSyncService _addonSyncService;
+    private readonly ModuleDependencyService _moduleDependencyService;
     private readonly RuntimeSessionCoordinator _runtimeSession;
     private readonly ModuleEditorControl _moduleEditor;
     private readonly ClassConfigEditorControl _classConfigEditor;
@@ -71,6 +72,7 @@ public sealed class MainForm : Form, IMessageFilter
     private string? _lastLoggedModule;
     private bool? _lastLoggedEnabled;
     private readonly object _configUpdateSync = new();
+    private readonly SemaphoreSlim _moduleImportGate = new(1, 1);
     private Task _configUpdateTail = Task.CompletedTask;
     private long _runtimeRequestVersion;
     private bool _shutdownStarted;
@@ -96,6 +98,7 @@ public sealed class MainForm : Form, IMessageFilter
         _processLocator = processLocator;
         var localAddonRoot = Path.Combine(_baseDirectory, "Fuyutsui");
         _addonSyncService = new FuyutsuiAddonSyncService(localAddonRoot, _processLocator);
+        _moduleDependencyService = new ModuleDependencyService(_baseDirectory);
         _runtimeSession = runtimeSession;
         _uiCache = UiCacheStore.Load();
         _statusForm = new StatusForm();
@@ -114,7 +117,12 @@ public sealed class MainForm : Form, IMessageFilter
         Application.AddMessageFilter(this);
         InitializeComponent();
         _statusForm.AttachSettingsPanel(BuildSettingsPanel());
-        _moduleEditor = new ModuleEditorControl(_moduleStore, RestartRuntimeFromEditorAsync, _baseDirectory);
+        _moduleEditor = new ModuleEditorControl(
+            _moduleStore,
+            RestartRuntimeFromEditorAsync,
+            _moduleDependencyService.Capture,
+            ReloadModulesWithDependenciesAsync,
+            _baseDirectory);
         _statusForm.AttachModuleEditor(_moduleEditor);
         _classConfigEditor = new ClassConfigEditorControl(
             () => Path.Combine(_addonSyncService.SourceRoot, "class"),
@@ -153,8 +161,126 @@ public sealed class MainForm : Form, IMessageFilter
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        await SynchronizeAddonAtStartupAsync();
+        var dependenciesUpdated = await ImportModuleDependenciesAsync(reloadStore: true, showFeedback: true);
+        if (!dependenciesUpdated)
+        {
+            await SynchronizeAddonAtStartupAsync();
+        }
         await StartRuntimeAsync();
+    }
+
+    private Task ReloadModulesWithDependenciesAsync()
+        => ImportModuleDependenciesAsync(reloadStore: true, showFeedback: true);
+
+    private async Task<bool> ImportModuleDependenciesAsync(bool reloadStore, bool showFeedback)
+    {
+        await _moduleImportGate.WaitAsync();
+        try
+        {
+            return await ImportModuleDependenciesCoreAsync(reloadStore, showFeedback);
+        }
+        finally
+        {
+            _moduleImportGate.Release();
+        }
+    }
+
+    private async Task<bool> ImportModuleDependenciesCoreAsync(bool reloadStore, bool showFeedback)
+    {
+        if (_classConfigEditor.HasUnsavedChanges || _classMacrosEditor.HasUnsavedChanges)
+        {
+            if (showFeedback)
+            {
+                MessageBox.Show(
+                    "配置或宏页面存在未保存修改。请先保存或放弃修改，再刷新模块。",
+                    "模块依赖未导入",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+            return false;
+        }
+
+        if (reloadStore)
+        {
+            _moduleStore.Reload();
+        }
+
+        ModuleDependencyImportResult result;
+        try
+        {
+            // 合并阶段保持在 UI 线程，避免配置/宏编辑器在检查脏状态后又并发写同一 Lua。
+            result = _moduleDependencyService.Import(_moduleStore.GetModules());
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"模块依赖导入失败: {ex.Message}");
+            if (showFeedback)
+            {
+                MessageBox.Show(ex.Message, "模块依赖导入失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            return false;
+        }
+
+        _moduleStore.RejectModules(result.Rejected.Select(item => item.ModuleId));
+        _moduleEditor.ReloadModulesFromStore(reloadStore: false);
+        RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
+
+        foreach (var rejected in result.Rejected)
+        {
+            AppendLog($"模块“{rejected.ModuleName}”未导入: {rejected.Reason}");
+        }
+        foreach (var conflict in result.Conflicts.Take(50))
+        {
+            AppendLog($"模块依赖冲突: {conflict}");
+        }
+
+        string? postUpdateError = null;
+        if (result.HasChanges)
+        {
+            AppendLog(
+                $"已从模块补充本地依赖: 配置 {result.ConfigAdded} 项，宏 {result.MacrosAdded} 项；模块 {string.Join("、", result.ChangedModules)}");
+            _classConfigEditor.ReloadFromAddon();
+            _classMacrosEditor.ReloadFromAddon();
+            try
+            {
+                await QueueProjectConfigUpdateAsync(savedAddonFilePath: null);
+            }
+            catch (Exception ex)
+            {
+                postUpdateError = ex.Message;
+                AppendLog($"模块依赖已写入，但后续配置更新失败: {ex.Message}");
+            }
+        }
+
+        if (showFeedback && (result.HasChanges || result.Rejected.Count > 0 || result.Conflicts.Count > 0))
+        {
+            var lines = new List<string>();
+            if (result.HasChanges)
+            {
+                lines.Add($"成功补充配置 {result.ConfigAdded} 项、宏 {result.MacrosAdded} 项。");
+            }
+            if (result.Rejected.Count > 0)
+            {
+                lines.Add("未导入模块：");
+                lines.AddRange(result.Rejected.Select(item => $"- {item.ModuleName}: {item.Reason}"));
+            }
+            if (result.Conflicts.Count > 0)
+            {
+                lines.Add($"发现 {result.Conflicts.Count} 项冲突，均已保留本地内容；详情见日志。");
+            }
+            if (!string.IsNullOrWhiteSpace(postUpdateError))
+            {
+                lines.Add($"本地依赖已写入，但 config/keymap 或游戏同步更新失败：{postUpdateError}");
+            }
+            var hasWarning = result.Rejected.Count > 0 || postUpdateError is not null;
+            MessageBox.Show(
+                string.Join(Environment.NewLine, lines),
+                hasWarning ? "模块导入完成（有警告）" : "模块导入完成",
+                MessageBoxButtons.OK,
+                hasWarning ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+        }
+
+        return result.HasChanges;
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -604,7 +730,11 @@ public sealed class MainForm : Form, IMessageFilter
         refreshModulesButton.AutoSize = false;
         refreshModulesButton.Dock = DockStyle.Fill;
         refreshModulesButton.Margin = new Padding(0);
-        refreshModulesButton.Click += (_, _) => RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        refreshModulesButton.Click += async (_, _) =>
+        {
+            await ReloadModulesWithDependenciesAsync();
+            RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
+        };
         moduleCard.Controls.Add(refreshModulesButton, 1, 2);
         var moduleInfoText = new FlowLayoutPanel
         {
@@ -1052,7 +1182,7 @@ public sealed class MainForm : Form, IMessageFilter
             SendMode.Hold => 2,
             _ => 0
         };
-        RefreshModuleSelector(_lastSnapshot, reloadModules: false);
+        RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
     }
 
     private void WireSettingEvents()
@@ -1173,10 +1303,9 @@ public sealed class MainForm : Form, IMessageFilter
 
     private async Task RestartRuntimeFromEditorAsync()
     {
-        RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
         if (!_runtimeSession.HasSession)
         {
-            _moduleStore.Reload();
             return;
         }
 
@@ -1258,21 +1387,16 @@ public sealed class MainForm : Form, IMessageFilter
         UpdateLogicStatusLabel(snapshot.Enabled);
         _enableButton.Text = snapshot.Enabled ? "关闭" : "开启";
 
-        RefreshModuleSelector(snapshot, reloadModules: false);
+        RefreshModuleSelector(snapshot, forceRefresh: false);
         _statusForm.ApplySnapshot(snapshot);
         WriteSnapshotLog(snapshot);
     }
 
-    private void RefreshModuleSelector(RenderSnapshot? snapshot, bool reloadModules)
+    private void RefreshModuleSelector(RenderSnapshot? snapshot, bool forceRefresh)
     {
         if (_moduleComboBox is null)
         {
             return;
-        }
-
-        if (reloadModules)
-        {
-            _moduleStore.Reload();
         }
 
         var hasValidState = snapshot?.State?.GetBool("有效性") == true;
@@ -1287,7 +1411,7 @@ public sealed class MainForm : Form, IMessageFilter
             partyType,
             heroTalent,
             modules);
-        if (!reloadModules && signature == _lastModuleSelectorSignature)
+        if (!forceRefresh && signature == _lastModuleSelectorSignature)
         {
             return;
         }
@@ -1693,7 +1817,7 @@ public sealed class MainForm : Form, IMessageFilter
 
     private void ShowSettingsView()
     {
-        RefreshModuleSelector(_lastSnapshot, reloadModules: true);
+        RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
         _statusForm.ShowSettings(_lastSnapshot);
     }
 
