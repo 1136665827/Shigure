@@ -95,7 +95,7 @@ verified_at: 2026-08-10
 - 模块编辑器覆盖模块、Match、规则、动态单位、数量和数值调整，并支持排序。
 - 模块执行器支持规则 `Hotkey` 和 `Step`，但 `ModuleEditorControl.ReadRules` 保存时强制把二者写成空字符串。手工 JSON 中的非空值经 UI 打开再保存会丢失。
 - 模块根级 `Enabled` 可被 UI/JSON保存，但运行时忽略它；见模块页。
-- ClassBlocks 编辑器恢复前三个固定状态名为锚点/职业/专精；`spellsList` 只读。
+- ClassBlocks 编辑器恢复前三个固定状态名为锚点/职业/专精；`spellsList` 可编辑索引 1–100 的条目并原位回写 Lua。
 - 旧稀疏 ClassBlocks 不是可靠的只读预览：旧专精可显示为空，Store 会拒绝非 modern 文档保存；混合格式需特别谨慎。
 - ClassMacros 和 ClassBlocks 保存都会 canonical 重写目标表内部，未知字段/排版不保证保留。
 - 条件编辑器只能表达当前简单 AND/OR 语言，不支持括号；动态名称禁止空、`.`、`$`、纯数字和冲突名称。

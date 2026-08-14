@@ -126,6 +126,12 @@ function Fuyutsui:UpdatePlayerPower(powerType)
     self:UpdateBareStateBlock(powerName, { "能量", "状态" })
 end
 
+function Fuyutsui:UpdateChargedComboPoints()
+    local chargedPoints = GetUnitChargedPowerPoints("player")
+    state.chargedComboPoints = (chargedPoints and #chargedPoints or 0) / 255
+    self:UpdateStateBlock("能量", "增压层数")
+end
+
 function Fuyutsui:UpdatePlayerPowerType()
     state.power = {}
     for powerType in pairs(EnumPowerType) do

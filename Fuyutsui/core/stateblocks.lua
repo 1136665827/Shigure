@@ -214,6 +214,7 @@ local stateBlockGetters = {
     },
     ["能量"] = {
         ["符文"] = function() return GetRunePixel() end,
+        ["增压层数"] = function() return state.chargedComboPoints or 0 end,
     },
     ["物品"] = {
         ["治疗药水"] = function(self) return GetItemCooldownPixel(self, "HealthPotionCount", 241304) end,

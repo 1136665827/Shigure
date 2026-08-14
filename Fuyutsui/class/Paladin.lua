@@ -46,7 +46,6 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
             },
         },
-
         auras = {
             player = {
                 { name = "神圣壁垒", spellId = 432502, },
@@ -58,20 +57,19 @@ Fuyutsui.ClassBlocks = {
                 { name = "晨光-恢复", spellId = 431831, maxApps = 3, },
                 { name = "神性之手", spellId = 414273, maxApps = 2, },
                 { name = "复仇之怒", spellId = 31884, maxApps = 2, },
+                { name = "觉醒", spellId = 414193, },
             },
             target = {
                 harmful = {
                     { name = "失格者", spellId = 414022, },
                     { name = "奉献", spellId = 204242, },
                 },
-                helpful = {},
             },
             focus = {
                 harmful = {
                     { name = "失格者", spellId = 414022, },
                     { name = "奉献", spellId = 204242, },
                 },
-                helpful = {},
             },
         },
         spells = {
@@ -82,7 +80,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 1044, name = "自由祝福" },
             { spellId = 1022, name = "保护祝福" },
             { spellId = 633, name = "圣疗术" },
-            { spellId = 20473, name = "神圣震击", charge = true, maxCharge = 2, },
+            { spellId = 20473, name = "神圣震击", charge = true, maxCharge = 2 },
             { spellId = 4987, name = "清洁术" },
             { spellId = 275773, name = "审判" },
             { spellId = 375576, name = "圣洁鸣钟" },
@@ -152,15 +150,6 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
-        -- TODO spellId: 神圣意志
-        -- TODO spellId: 神圣壁垒
-        -- TODO spellId: 圣洁武器
-        -- TODO spellId: 闪耀之光
-        -- TODO spellId: 闪光层数
-        -- TODO spellId: 神圣军备
-        -- TODO spellId: 奉献
-        -- TODO spellId: 复仇之怒
-        -- TODO spellId: 圣光之锤
         spells = {
             { spellId = 115750, name = "盲目之光" },
             { spellId = 853, name = "制裁之锤" },
@@ -237,10 +226,6 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
-        -- TODO spellId: 神圣意志
-        -- TODO spellId: 复仇之怒
-        -- TODO spellId: 处决宣判
-        -- TODO spellId: 圣光之锤
         spells = {
             { spellId = 115750, name = "盲目之光" },
             { spellId = 853, name = "制裁之锤" },
