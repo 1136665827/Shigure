@@ -150,23 +150,40 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
+        auras = {
+            player = {
+                { name = "闪耀之光", spellId = 327510, maxApps = 2 },
+                { name = "正义盾击", spellId = 132403 },
+                { name = "奉献", spellId = 188370, },
+
+            },
+            target = {
+                harmful = {
+                    -- { name = "血之疫病", spellId = 55078, },
+                },
+            },
+        },
         spells = {
-            { spellId = 115750, name = "盲目之光" },
-            { spellId = 853, name = "制裁之锤" },
-            { spellId = 642, name = "圣盾术" },
-            { spellId = 6940, name = "牺牲祝福" },
-            { spellId = 1044, name = "自由祝福" },
-            { spellId = 1022, name = "保护祝福" },
-            { spellId = 633, name = "圣疗术" },
-            { spellId = 432459, name = "神圣壁垒", charge = true },
+
+            { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 2 },
             { spellId = 213644, name = "清毒术" },
-            { spellId = 275779, name = "审判" },
+            { spellId = 275779, name = "审判", charge = true, maxCharge = 2 },
             { spellId = 375576, name = "圣洁鸣钟" },
             { spellId = 31935, name = "复仇者之盾" },
             { spellId = 26573, name = "奉献" },
             { spellId = 53600, name = "正义盾击" },
-            { spellId = 204019, name = "祝福之锤" },
-            { spellId = 24275, name = "正义之锤" },
+            { spellId = 85673, name = "荣耀圣令" },
+            { spellId = 96231, name = "责难" },
+            { spellId = 204019, name = "祝福之锤", charge = true, maxCharge = 3 },
+            -- 下面的暂时没用
+            -- { spellId = 115750, name = "盲目之光" },
+            -- { spellId = 853, name = "制裁之锤" },
+            -- { spellId = 642, name = "圣盾术" },
+            -- { spellId = 6940, name = "牺牲祝福" },
+            -- { spellId = 1044, name = "自由祝福" },
+            -- { spellId = 1022, name = "保护祝福" },
+            -- { spellId = 633, name = "圣疗术" },
+            -- { spellId = 24275, name = "正义之锤" },
         },
         group = {
             num = 3,
