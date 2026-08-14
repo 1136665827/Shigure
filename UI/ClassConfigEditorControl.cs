@@ -5,7 +5,7 @@ namespace Shigure;
 
 /// <summary>
 /// 图形化编辑 Fuyutsui class/*.lua 的 ClassBlocks（states / auras / spells / group），
-/// 并展示同文件中的 spellsList。
+/// 并编辑同文件中的 spellsList。
 /// </summary>
 public sealed class ClassConfigEditorControl : UserControl
 {
@@ -25,6 +25,8 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly DataGridView _aurasGrid = new();
     private readonly DataGridView _spellsGrid = new();
     private readonly DataGridView _spellsListGrid = new();
+    private readonly TextBox _newSpellIdBox = new();
+    private readonly TextBox _newSpellNameBox = new();
     private readonly NumericUpDown _groupNumBox = new();
     private readonly NumericUpDown _groupHealthBox = new();
     private readonly NumericUpDown _groupRoleBox = new();
@@ -594,20 +596,92 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 2,
-            BackColor = UiTheme.SurfaceRaised
+            RowCount = 3,
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
         };
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var hint = CreateFieldCaption("来自当前职业 Lua 的 Fuyutsui.spellsList，仅显示索引 1–100（只读）。");
+        var addCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 4,
+            RowCount = 1,
+            Margin = new Padding(0, 0, 0, 10),
+            Padding = new Padding(12, 8, 12, 8)
+        };
+        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
+        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
+        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
+        addCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        addCard.Controls.Add(new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = "添加技能",
+            ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
+            Font = new Font(Font.FontFamily, 9F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0),
+            Padding = new Padding(8, 0, 0, 0)
+        }, 0, 0);
+
+        UiTheme.StyleTextBox(_newSpellIdBox);
+        _newSpellIdBox.Dock = DockStyle.None;
+        _newSpellIdBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _newSpellIdBox.Margin = new Padding(0, 0, 8, 0);
+        _newSpellIdBox.Height = 30;
+        _newSpellIdBox.PlaceholderText = "spellId";
+        _newSpellIdBox.MaxLength = 20;
+        addCard.Controls.Add(_newSpellIdBox, 1, 0);
+
+        UiTheme.StyleTextBox(_newSpellNameBox);
+        _newSpellNameBox.Dock = DockStyle.None;
+        _newSpellNameBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _newSpellNameBox.Margin = new Padding(0, 0, 8, 0);
+        _newSpellNameBox.Height = 30;
+        _newSpellNameBox.PlaceholderText = "名称";
+        addCard.Controls.Add(_newSpellNameBox, 2, 0);
+
+        var addControl = new UiPillTab("添加")
+        {
+            Selected = true,
+            Dock = DockStyle.None,
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            Margin = new Padding(0),
+            Height = 30,
+            MinimumSize = new Size(88, 30)
+        };
+        addControl.Click += (_, _) => AddSpellsListEntry();
+        addCard.Controls.Add(addControl, 3, 0);
+
+        void HandleAddOnEnter(object? _, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Enter)
+            {
+                return;
+            }
+
+            e.SuppressKeyPress = true;
+            AddSpellsListEntry();
+        }
+
+        _newSpellIdBox.KeyDown += HandleAddOnEnter;
+        _newSpellNameBox.KeyDown += HandleAddOnEnter;
+        panel.Controls.Add(addCard, 0, 0);
+
+        var hint = CreateFieldCaption("来自当前职业 Lua 的 Fuyutsui.spellsList，仅编辑索引 1–100；保存后同步修改 Lua 对应条目。");
         hint.Padding = new Padding(8, 0, 0, 0);
-        panel.Controls.Add(hint, 0, 0);
+        panel.Controls.Add(hint, 0, 1);
 
         ConfigureGrid(_spellsListGrid);
         _spellsListGrid.AllowUserToAddRows = false;
-        _spellsListGrid.ReadOnly = true;
-        _spellsListGrid.EditMode = DataGridViewEditMode.EditProgrammatically;
+        _spellsListGrid.CellValueChanged += (_, _) => MarkDirty();
         _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "SpellId",
@@ -629,7 +703,7 @@ public sealed class ClassConfigEditorControl : UserControl
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
             SortMode = DataGridViewColumnSortMode.NotSortable
         });
-        panel.Controls.Add(_spellsListGrid, 0, 1);
+        panel.Controls.Add(_spellsListGrid, 0, 2);
         return panel;
     }
 
@@ -1127,6 +1201,15 @@ public sealed class ClassConfigEditorControl : UserControl
         }
 
         SelectSpec(_specList.SelectedItem as SpecOption);
+        _suppressUi = true;
+        try
+        {
+            FillSpellsListGrid();
+        }
+        finally
+        {
+            _suppressUi = false;
+        }
     }
 
     private void RebuildSpecList(IReadOnlyList<SpecOption> options)
@@ -1186,7 +1269,6 @@ public sealed class ClassConfigEditorControl : UserControl
             FillAurasGrid();
             FillSpellsGrid();
             FillGroupEditors();
-            FillSpellsListGrid();
         }
         finally
         {
@@ -1390,6 +1472,8 @@ public sealed class ClassConfigEditorControl : UserControl
     private void FillSpellsListGrid()
     {
         _spellsListGrid.Rows.Clear();
+        _newSpellIdBox.Clear();
+        _newSpellNameBox.Clear();
         if (_currentDocument is null)
         {
             return;
@@ -1397,10 +1481,11 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var spell in _currentDocument.SpellsList.Where(spell => spell.Index is >= 1 and <= 100))
         {
-            _spellsListGrid.Rows.Add(
+            var rowIndex = _spellsListGrid.Rows.Add(
                 spell.SpellId.ToString(CultureInfo.InvariantCulture),
                 spell.Index.ToString(CultureInfo.InvariantCulture),
                 spell.Name);
+            _spellsListGrid.Rows[rowIndex].Tag = spell;
         }
     }
 
@@ -1489,6 +1574,173 @@ public sealed class ClassConfigEditorControl : UserControl
         WriteBackAuras(_lastAuraBucket);
         WriteBackSpells();
         WriteBackGroup();
+    }
+
+    private void WriteBackSpellsList()
+    {
+        if (_currentDocument is null)
+        {
+            return;
+        }
+
+        foreach (DataGridViewRow row in _spellsListGrid.Rows)
+        {
+            if (row.Tag is not ClassBlocksStore.SpellsListEntry entry)
+            {
+                continue;
+            }
+
+            entry.SpellId = long.Parse(
+                row.Cells["SpellId"].Value?.ToString()?.Trim() ?? "",
+                NumberStyles.None,
+                CultureInfo.InvariantCulture);
+            entry.Index = int.Parse(
+                row.Cells["Index"].Value?.ToString()?.Trim() ?? "",
+                NumberStyles.None,
+                CultureInfo.InvariantCulture);
+            entry.Name = row.Cells["Name"].Value?.ToString()?.Trim() ?? "";
+        }
+    }
+
+    private void AddSpellsListEntry()
+    {
+        if (_currentDocument is null)
+        {
+            MessageBox.Show("请先选择一个职业文件。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (!_currentDocument.IsModernFormat)
+        {
+            MessageBox.Show("旧版稀疏索引格式暂不支持添加技能。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        _spellsListGrid.EndEdit();
+        if (!TryValidateSpellsList(out var validationError))
+        {
+            MessageBox.Show(validationError, "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        if (!long.TryParse(_newSpellIdBox.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var spellId)
+            || spellId <= 0)
+        {
+            MessageBox.Show("spellId 必须是正整数。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            _newSpellIdBox.Focus();
+            return;
+        }
+
+        var name = _newSpellNameBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            MessageBox.Show("名称不能为空。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            _newSpellNameBox.Focus();
+            return;
+        }
+
+        if (_currentDocument.SpellsList.Any(entry => entry.SpellId == spellId)
+            || _spellsListGrid.Rows.Cast<DataGridViewRow>().Any(row =>
+                long.TryParse(row.Cells["SpellId"].Value?.ToString(), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out var existingSpellId)
+                && existingSpellId == spellId))
+        {
+            MessageBox.Show($"法术 ID {spellId} 已存在。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            _newSpellIdBox.Focus();
+            return;
+        }
+
+        var usedIndices = _spellsListGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Select(row => int.TryParse(row.Cells["Index"].Value?.ToString(), NumberStyles.None,
+                CultureInfo.InvariantCulture, out var value) ? value : 0)
+            .Where(value => value is >= 1 and <= 100)
+            .ToHashSet();
+        var nextIndex = Enumerable.Range(1, 100).FirstOrDefault(index => !usedIndices.Contains(index));
+        if (nextIndex == 0)
+        {
+            MessageBox.Show("索引 1–100 已全部使用，无法继续添加技能。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var entry = new ClassBlocksStore.SpellsListEntry
+        {
+            SpellId = spellId,
+            Index = nextIndex,
+            Name = name
+        };
+        _currentDocument.SpellsList.Add(entry);
+
+        var rowIndex = _spellsListGrid.Rows.Add(
+            spellId.ToString(CultureInfo.InvariantCulture),
+            nextIndex.ToString(CultureInfo.InvariantCulture),
+            name);
+        var row = _spellsListGrid.Rows[rowIndex];
+        row.Tag = entry;
+        _spellsListGrid.ClearSelection();
+        row.Selected = true;
+        _spellsListGrid.CurrentCell = row.Cells["SpellId"];
+        _spellsListGrid.FirstDisplayedScrollingRowIndex = rowIndex;
+
+        _newSpellIdBox.Clear();
+        _newSpellNameBox.Clear();
+        _newSpellIdBox.Focus();
+        MarkDirty();
+    }
+
+    private bool TryValidateSpellsList(out string error)
+    {
+        error = string.Empty;
+        if (_currentDocument is null)
+        {
+            return true;
+        }
+
+        var editedIds = new HashSet<long>();
+        foreach (DataGridViewRow row in _spellsListGrid.Rows)
+        {
+            var rowNumber = row.Index + 1;
+            if (!long.TryParse(row.Cells["SpellId"].Value?.ToString()?.Trim(), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out var spellId)
+                || spellId <= 0)
+            {
+                error = $"技能列表第 {rowNumber} 行的法术 ID 必须是正整数。";
+                return false;
+            }
+
+            if (!int.TryParse(row.Cells["Index"].Value?.ToString()?.Trim(), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out var index)
+                || index is < 1 or > 100)
+            {
+                error = $"技能列表第 {rowNumber} 行的索引必须是 1–100 的整数。";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(row.Cells["Name"].Value?.ToString()))
+            {
+                error = $"技能列表第 {rowNumber} 行的名称不能为空。";
+                return false;
+            }
+
+            if (!editedIds.Add(spellId))
+            {
+                error = $"技能列表中的法术 ID {spellId} 重复。";
+                return false;
+            }
+        }
+
+        var hiddenIds = _currentDocument.SpellsList
+            .Where(entry => entry.Index is < 1 or > 100)
+            .Select(entry => entry.SpellId)
+            .ToHashSet();
+        var conflictId = editedIds.FirstOrDefault(hiddenIds.Contains);
+        if (conflictId != 0)
+        {
+            error = $"法术 ID {conflictId} 已被技能列表中索引 101+ 的条目使用。";
+            return false;
+        }
+
+        return true;
     }
 
     private void WriteBackStatesCategory(string category)
@@ -1705,8 +1957,17 @@ public sealed class ClassConfigEditorControl : UserControl
         var localSaved = false;
         try
         {
+            _spellsListGrid.EndEdit();
+            if (!TryValidateSpellsList(out var validationError))
+            {
+                MessageBox.Show(validationError, "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _statusLabel.Text = validationError;
+                return;
+            }
+
             // 切换分类前把当前状态表写回。
             CommitCurrentSpecFromUi();
+            WriteBackSpellsList();
             ClassBlocksStore.Save(_currentDocument);
             localSaved = true;
             SetDirty(false);
