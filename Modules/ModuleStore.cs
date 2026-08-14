@@ -24,6 +24,7 @@ public sealed class ModuleDefinition
     public List<ModuleCountField> Counts { get; set; } = new();
     public List<ModuleValueAdjustment> ValueAdjustments { get; set; } = new();
     public List<ModuleRule> Rules { get; set; } = new();
+    public ModuleDependencySnapshot? Dependencies { get; set; }
 
     [JsonIgnore]
     public string? FilePath { get; set; }
@@ -44,7 +45,8 @@ public sealed class ModuleDefinition
             Units = Units.Select(unit => unit.Clone()).ToList(),
             Counts = Counts.Select(count => count.Clone()).ToList(),
             ValueAdjustments = ValueAdjustments.Select(adjustment => adjustment.Clone()).ToList(),
-            Rules = Rules.Select(rule => rule.Clone()).ToList()
+            Rules = Rules.Select(rule => rule.Clone()).ToList(),
+            Dependencies = Dependencies?.Clone()
         };
     }
 
@@ -303,6 +305,20 @@ public sealed class ModuleStore
         lock (_gate)
         {
             return _modules.Select(module => module.Clone()).ToList();
+        }
+    }
+
+    public void RejectModules(IEnumerable<string> moduleIds)
+    {
+        var rejected = new HashSet<string>(moduleIds, StringComparer.OrdinalIgnoreCase);
+        if (rejected.Count == 0)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            _modules.RemoveAll(module => rejected.Contains(module.Id));
         }
     }
 
