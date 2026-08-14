@@ -10,7 +10,10 @@ from pathlib import Path
 OLD_NAME = "Shigure"
 ADDON_OLD_NAME = "Fuyutsui"
 OLD_NAMES = (OLD_NAME, ADDON_OLD_NAME)
-PROTECTED_TEXTS = ("https://www.shigure.club",)
+PROTECTED_TEXTS = (
+    "https://www.shigure.club",
+    "访问 Shigure 官网，浏览并获取可用模块",
+)
 
 SKIP_DIRS = {
     ".git",
