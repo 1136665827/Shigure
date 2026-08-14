@@ -43,9 +43,11 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
-        -- TODO spellId: 疗伤珠
-        -- TODO spellId: 活力苏醒
-        -- TODO spellId: 清空地窖
+        auras = {
+            player = {
+                { name = "清空酒窖", spellId = 1262768, },
+            },
+        },
         spells = {
             { spellId = 121253, name = "醉酿投", charge = true },
             { spellId = 119582, name = "活血酒", charge = true },
@@ -106,12 +108,6 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
             },
         },
-        -- TODO spellId: 生生不息1
-        -- TODO spellId: 生生不息2
-        -- TODO spellId: 灵泉
-        -- TODO spellId: 玄牛之力
-        -- TODO spellId: 青龙之心
-        -- TODO spellId: 活力苏醒
         spells = {
             { spellId = 116680, name = "雷光聚神茶", charge = true },
             { spellId = 115151, name = "复苏之雾", charge = true },

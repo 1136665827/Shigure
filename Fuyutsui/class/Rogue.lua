@@ -25,7 +25,6 @@ Fuyutsui.ClassBlocks = {
             },
             ["能量"] = {
                 "能量值",
-                "增压层数",
             },
             ["目标"] = {
                 "类型",
@@ -85,10 +84,17 @@ Fuyutsui.ClassBlocks = {
                 "队伍人数",
                 "首领战",
                 "难度",
+                "敌人数量",
             },
             ["能量"] = {
                 "能量值",
+                "连击点",
                 "增压层数",
+            },
+            ["配置开关"] = {
+                "爆发开关",
+                "AOE开关",
+                "爆发药水开关",
             },
             ["目标"] = {
                 "类型",
@@ -102,6 +108,19 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+            },
+        },
+        auras = {
+            player = {
+                { name = "切割", spellId = 315496, },
+                { name = "剑刃乱舞", spellId = 13877, },
+                { name = "冲动", spellId = 13750, },
+                { name = "灌铅骰子", spellId = 256171, },
+                { name = "可乘之机", spellId = 195627, maxApps = 6, },
+                { name = "独一无二", spellId = 1214933, },
+                { name = "双重麻烦", spellId = 1214934, },
+                { name = "三重威胁", spellId = 1214935, },
+                { name = "头奖", spellId = 1214937, },
             },
         },
         spells = {
@@ -127,6 +146,8 @@ Fuyutsui.ClassBlocks = {
             { spellId = 13877, name = "剑刃乱舞" },
             { spellId = 195475, name = "抓钩", charge = true },
             { spellId = 1214909, name = "命运骨骰" },
+            { spellId = 381989, name = "时运继延" },
+            { spellId = 1277933, name = "伺机待发" },
         },
     },
     [3] = {
@@ -153,7 +174,12 @@ Fuyutsui.ClassBlocks = {
             },
             ["能量"] = {
                 "能量值",
-                "增压层数",
+            },
+            ["配置开关"] = {
+                "爆发开关",
+                "小爆发开关",
+                "AOE开关",
+                "爆发药水开关",
             },
             ["目标"] = {
                 "类型",
