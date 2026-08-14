@@ -1,12 +1,13 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using static Shigure.LuaLiteParser;
 
 namespace Shigure;
 
 /// <summary>
 /// 读写 Fuyutsui class/*.lua 中的 ClassBlocks（states/auras/spells/group），
-/// 同时读取 spellsList 供界面展示；保存时只替换 ClassBlocks 表字面量，保留文件其余内容。
+/// 同时读写 spellsList；保存时替换 ClassBlocks 表字面量，并原位更新 spellsList 中已编辑的条目。
 /// </summary>
 internal static class ClassBlocksStore
 {
@@ -38,6 +39,9 @@ internal static class ClassBlocksStore
         public long SpellId { get; set; }
         public int Index { get; set; }
         public string Name { get; set; } = string.Empty;
+        public long OriginalSpellId { get; set; }
+        public int OriginalIndex { get; set; }
+        public string OriginalName { get; set; } = string.Empty;
     }
 
     public sealed class SpecBlocks
@@ -164,7 +168,10 @@ internal static class ClassBlocksStore
             {
                 SpellId = spellId,
                 Index = (int)indexValue.Value,
-                Name = name
+                Name = name,
+                OriginalSpellId = spellId,
+                OriginalIndex = (int)indexValue.Value,
+                OriginalName = name
             });
         }
 
@@ -178,10 +185,16 @@ internal static class ClassBlocksStore
             throw new InvalidOperationException("当前文件仍是旧版稀疏索引 ClassBlocks，无法用图形编辑器保存。");
         }
 
+        var updated = UpdateSpellsListEntries(document.SourceText, document.SpellsList);
+        if (!TryExtractAssignedTable(updated, AssignmentName, out _, out var classBlocksStart, out var classBlocksEnd))
+        {
+            throw new InvalidOperationException("保存前无法重新定位 ClassBlocks 表。");
+        }
+
         var serialized = SerializeClassBlocks(document.Specs);
-        var updated = document.SourceText[..document.TableStart]
+        updated = updated[..classBlocksStart]
             + serialized
-            + document.SourceText[document.TableEndExclusive..];
+            + updated[classBlocksEnd..];
         File.WriteAllText(document.FilePath, updated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         if (!TryExtractAssignedTable(updated, AssignmentName, out _, out var start, out var end))
@@ -192,6 +205,108 @@ internal static class ClassBlocksStore
         document.SourceText = updated;
         document.TableStart = start;
         document.TableEndExclusive = end;
+        foreach (var spell in document.SpellsList)
+        {
+            spell.OriginalSpellId = spell.SpellId;
+            spell.OriginalIndex = spell.Index;
+            spell.OriginalName = spell.Name;
+        }
+    }
+
+    private static string UpdateSpellsListEntries(string source, IReadOnlyList<SpellsListEntry> entries)
+    {
+        var newEntries = entries.Where(entry => entry.OriginalSpellId == 0).ToArray();
+        var changedEntries = entries
+            .Where(entry => entry.OriginalSpellId != 0
+                && (entry.SpellId != entry.OriginalSpellId
+                || entry.Index != entry.OriginalIndex
+                || !string.Equals(entry.Name, entry.OriginalName, StringComparison.Ordinal)))
+            .ToDictionary(entry => entry.OriginalSpellId);
+        if (changedEntries.Count == 0 && newEntries.Length == 0)
+        {
+            return source;
+        }
+
+        if (!TryExtractAssignedTable(source, SpellsListAssignmentName, out _, out var tableStart, out var tableEnd))
+        {
+            throw new InvalidOperationException($"当前文件中未找到 {SpellsListAssignmentName}，无法保存技能列表。");
+        }
+
+        var tableText = source[tableStart..tableEnd];
+        var updatedOriginalIds = new HashSet<long>();
+        var pattern = new Regex(
+            """^(?<prefix>[ \t]*\[[ \t]*)(?<spellId>\d+)(?<beforeIndex>[ \t]*\][ \t]*=[ \t]*\{[ \t]*index[ \t]*=[ \t]*)(?<index>\d+)(?<beforeName>[ \t]*,[ \t]*name[ \t]*=[ \t]*)(?<name>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')(?<suffix>[^\n]*)$""",
+            RegexOptions.Multiline | RegexOptions.CultureInvariant);
+
+        var updatedTable = pattern.Replace(tableText, match =>
+        {
+            if (!long.TryParse(match.Groups["spellId"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var originalSpellId)
+                || !changedEntries.TryGetValue(originalSpellId, out var entry))
+            {
+                return match.Value;
+            }
+
+            updatedOriginalIds.Add(originalSpellId);
+            var quotedName = match.Groups["name"].Value;
+            var quote = quotedName[0];
+            return match.Groups["prefix"].Value
+                + entry.SpellId.ToString(CultureInfo.InvariantCulture)
+                + match.Groups["beforeIndex"].Value
+                + entry.Index.ToString(CultureInfo.InvariantCulture)
+                + match.Groups["beforeName"].Value
+                + quote
+                + EscapeLuaString(entry.Name, quote)
+                + quote
+                + match.Groups["suffix"].Value;
+        });
+
+        var missing = changedEntries.Keys.Where(id => !updatedOriginalIds.Contains(id)).ToArray();
+        if (missing.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"无法在 {SpellsListAssignmentName} 中定位法术 ID {string.Join(", ", missing)} 的原始条目。");
+        }
+
+        if (newEntries.Length > 0)
+        {
+            var newline = source.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            var closingBraceIndex = updatedTable.Length - 1;
+            var closingLineBreak = updatedTable.LastIndexOf('\n', Math.Max(0, closingBraceIndex - 1));
+            var insertionIndex = closingLineBreak >= 0 ? closingLineBreak + 1 : closingBraceIndex;
+            var insertion = new StringBuilder();
+            if (closingLineBreak < 0)
+            {
+                insertion.Append(newline);
+            }
+
+            foreach (var entry in newEntries.OrderBy(entry => entry.Index))
+            {
+                insertion.Append("    [")
+                    .Append(entry.SpellId.ToString(CultureInfo.InvariantCulture))
+                    .Append("] = { index = ")
+                    .Append(entry.Index.ToString(CultureInfo.InvariantCulture))
+                    .Append(", name = \"")
+                    .Append(EscapeLuaString(entry.Name, '"'))
+                    .Append("\" },")
+                    .Append(newline);
+            }
+
+            updatedTable = updatedTable.Insert(insertionIndex, insertion.ToString());
+        }
+
+        return source[..tableStart] + updatedTable + source[tableEnd..];
+    }
+
+    private static string EscapeLuaString(string value, char quote)
+    {
+        var escaped = value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal)
+            .Replace("\t", "\\t", StringComparison.Ordinal);
+        return quote == '\''
+            ? escaped.Replace("'", "\\'", StringComparison.Ordinal)
+            : escaped.Replace("\"", "\\\"", StringComparison.Ordinal);
     }
 
     private static SpecBlocks ParseSpec(TableValue spec, out bool isModern)
