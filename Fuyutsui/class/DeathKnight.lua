@@ -32,6 +32,9 @@ Fuyutsui.ClassBlocks = {
                 "符文能量",
                 "符文",
             },
+            ["配置开关"] = {
+                "爆发开关",
+            },
             ["目标"] = {
                 "类型",
                 "生命值",
@@ -59,6 +62,8 @@ Fuyutsui.ClassBlocks = {
                 { name = "沸点", spellId = 1265968, },
                 { name = "赤色天灾", spellId = 81136, },
                 { name = "鲜血护盾", spellId = 77535, maxApps = 50, },
+                { name = "鲜血禁闭", spellId = 273947, maxApps = 5, },
+                { name = "鲜血女王的精华", spellId = 433925, maxApps = 7, },
             },
             target = {
                 harmful = {
@@ -83,6 +88,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 1263824, name = "吞噬" },
             { spellId = 50842, name = "血液沸腾", charge = true, maxCharge = 2 },
             { spellId = 43265, name = "枯萎凋零", charge = true, maxCharge = 2 },
+            { spellId = 49028, name = "符文刃舞" },
         },
     },
     [2] = {

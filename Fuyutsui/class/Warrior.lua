@@ -23,6 +23,15 @@ Fuyutsui.ClassBlocks = {
             ["能量"] = {
                 "怒气值",
             },
+            ["物品"] = {
+                "鲁莽药水",
+            },
+            ["配置开关"] = {
+                "爆发开关",
+                "输出模式",
+                "AOE开关",
+                "爆发药水开关",
+            },
             ["目标"] = {
                 "类型",
                 "生命值",
@@ -37,44 +46,34 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
             },
-            ["配置开关"] = {
-                "爆发开关",
-                "输出模式",
-                "AOE开关",
-                "爆发药水开关",
-            },
-            ["物品"] = {
-                "鲁莽药水",
-            },
         },
         auras = {
             player = {
                 { name = "天神下凡", spellId = 107574, },
-                { name = "猝死", spellId = 52437 },
-                { name = "破坏者", spellId = 228920 },
-                { name = "间接伤害", spellId = 334783 },
-                { name = "巨人神力", spellId = 440989, maxApps = 10 },
-                { name = "侩子手的精准", spellId = 386633, maxApps = 2 },
-                { name = "英勇之力", spellId = 1292058, maxApps = 5 },
-                { name = "战争大师", spellId = 1269394, maxApps = 5 },
-                { name = "横扫攻击", spellId = 260708, maxApps = 12 },
-                { name = "粉碎连击", spellId = 1261189, maxApps = 2 },
+                { name = "猝死", spellId = 52437, },
+                { name = "破坏者", spellId = 228920, },
+                { name = "间接伤害", spellId = 334783, },
+                { name = "巨人神力", spellId = 440989, maxApps = 10, },
+                { name = "侩子手的精准", spellId = 386633, maxApps = 2, },
+                { name = "英勇之力", spellId = 1292058, maxApps = 5, },
+                { name = "战争大师", spellId = 1269394, maxApps = 5, },
+                { name = "横扫攻击", spellId = 260708, maxApps = 12, },
+                { name = "粉碎连击", spellId = 1261189, maxApps = 2, },
             },
             target = {
                 harmful = {
                     { name = "撕裂", spellId = 388539, },
                     { name = "巨人打击", spellId = 208086, },
                     { name = "重伤", spellId = 262115, },
-                    { name = "崩毁", spellId = 447513, maxApps = 10 },
+                    { name = "崩毁", spellId = 447513, maxApps = 10, },
                 },
-
             },
             focus = {
                 harmful = {
                     { name = "撕裂", spellId = 388539, },
                     { name = "巨人打击", spellId = 208086, },
                     { name = "重伤", spellId = 262115, },
-                    { name = "崩毁", spellId = 447513, maxApps = 10 },
+                    { name = "崩毁", spellId = 447513, maxApps = 10, },
                 },
             },
         },
@@ -186,7 +185,12 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
-        -- TODO spellId: 盾牌格挡
+        auras = {
+            player = {
+                { name = "盾牌格挡", spellId = 132404, },
+                { name = "无视苦痛", spellId = 190456, },
+            },
+        },
         spells = {
             { spellId = 202168, name = "胜利在望" },
             { spellId = 376079, name = "勇士之矛" },
