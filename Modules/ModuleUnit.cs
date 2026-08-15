@@ -48,6 +48,16 @@ public enum UnitSelectorKind
     HighestHealingAbsorbWithAuraCount
 }
 
+/// <summary>最低生命值选择器使用的职责筛选方式。</summary>
+public enum UnitRoleFilterKind
+{
+    /// <summary>只包含指定职责。</summary>
+    Include,
+
+    /// <summary>排除指定职责。</summary>
+    Exclude
+}
+
 /// <summary>
 /// 模块内定义的命名动态单位。运行时由 <see cref="UnitSelector"/> 解析为 group 槽位("1".."30")。
 /// 单光环类用 AuraNames[0]; WithAnyAura 用整个列表。
@@ -65,6 +75,7 @@ public sealed class ModuleUnit
     public UnitSelectorKind Kind { get; set; } = UnitSelectorKind.LowestHealth;
     public int? HealthThreshold { get; set; }
     public string? HealthThresholdField { get; set; }
+    public UnitRoleFilterKind? RoleFilter { get; set; }
     public int? Role { get; set; }
     public bool Reverse { get; set; }
     public List<string>? AuraNames { get; set; }
@@ -80,6 +91,7 @@ public sealed class ModuleUnit
             Kind = Kind,
             HealthThreshold = HealthThreshold,
             HealthThresholdField = HealthThresholdField,
+            RoleFilter = RoleFilter,
             Role = Role,
             Reverse = Reverse,
             AuraNames = AuraNames is null ? null : new List<string>(AuraNames),

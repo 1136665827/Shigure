@@ -36,6 +36,13 @@ public sealed class UnitEditorForm : Form
         new("某光环值等于", LowestHealthAuraFilterKind.WithAuraCount)
     ];
 
+    private static readonly LowestHealthRoleFilterItem[] LowestHealthRoleFilterOptions =
+    [
+        new("不筛选职责", null),
+        new("包含某职责", UnitRoleFilterKind.Include),
+        new("不含某职责", UnitRoleFilterKind.Exclude)
+    ];
+
     private static readonly SelectorItem[] UnitSelectors =
     [
         new("生命值最低", UnitSelectorKind.LowestHealth),
@@ -73,6 +80,7 @@ public sealed class UnitEditorForm : Form
     private readonly ComboBox _categoryBox = new();
     private readonly ComboBox _selectorBox = new();
     private readonly ComboBox _lowestHealthAuraFilterBox = new();
+    private readonly ComboBox _lowestHealthRoleFilterBox = new();
     private readonly FlowLayoutPanel _paramPanel = new();
     private readonly Label _previewLabel = new();
     private readonly ToolTip _toolTip = new();
@@ -92,6 +100,7 @@ public sealed class UnitEditorForm : Form
     private Label _thresholdLabel = null!;
     private Panel _thresholdFieldRow = null!;
     private Panel _lowestHealthAuraFilterRow = null!;
+    private Panel _lowestHealthRoleFilterRow = null!;
     private Panel _roleRow = null!;
     private Panel _reverseRow = null!;
     private Panel _auraRow = null!;
@@ -238,6 +247,12 @@ public sealed class UnitEditorForm : Form
         _lowestHealthAuraFilterBox.SelectedIndex = 0;
         _lowestHealthAuraFilterBox.SelectedIndexChanged += (_, _) => UpdateParamVisibility();
 
+        UiTheme.StyleComboBox(_lowestHealthRoleFilterBox);
+        _lowestHealthRoleFilterBox.DropDownWidth = 220;
+        _lowestHealthRoleFilterBox.Items.AddRange(LowestHealthRoleFilterOptions.Cast<object>().ToArray());
+        _lowestHealthRoleFilterBox.SelectedIndex = 0;
+        _lowestHealthRoleFilterBox.SelectedIndexChanged += (_, _) => UpdateParamVisibility();
+
         UiTheme.StyleComboBox(_roleBox);
         _roleBox.DropDownWidth = 160;
         _roleBox.Items.AddRange(RoleOptions.Cast<object>().ToArray());
@@ -300,6 +315,7 @@ public sealed class UnitEditorForm : Form
         _thresholdLabel = _thresholdRow.Controls.OfType<Label>().Single();
         _thresholdFieldRow = BuildLabeledRow("动态阈值", _thresholdFieldBox);
         _lowestHealthAuraFilterRow = BuildLabeledRow("光环筛选", _lowestHealthAuraFilterBox);
+        _lowestHealthRoleFilterRow = BuildLabeledRow("职责筛选", _lowestHealthRoleFilterBox);
         _roleRow = BuildLabeledRow("职责", _roleBox);
         _reverseRow = BuildLabeledRow("顺序", _reverseBox);
         _auraRow = BuildLabeledRow("光环", _auraBox);
@@ -307,7 +323,7 @@ public sealed class UnitEditorForm : Form
         _auraCountRow = BuildLabeledRow("光环值", _auraCountBox);
         _dispelRow = BuildLabeledRow("驱散类型", _dispelTypeBox);
 
-        _paramPanel.Controls.AddRange([_thresholdModeRow, _thresholdRow, _thresholdFieldRow, _lowestHealthAuraFilterRow, _roleRow, _reverseRow, _auraRow, _aurasRow, _auraCountRow, _dispelRow]);
+        _paramPanel.Controls.AddRange([_thresholdModeRow, _thresholdRow, _thresholdFieldRow, _lowestHealthAuraFilterRow, _lowestHealthRoleFilterRow, _roleRow, _reverseRow, _auraRow, _aurasRow, _auraCountRow, _dispelRow]);
     }
 
     private Control BuildActionRow()
@@ -373,7 +389,7 @@ public sealed class UnitEditorForm : Form
 
     private void UpdateParamVisibility()
     {
-        bool threshold = false, lowestHealthAuraFilter = false, role = false, reverse = false, auraSingle = false, auraMulti = false, auraCount = false, dispel = false;
+        bool threshold = false, lowestHealthAuraFilter = false, lowestHealthRoleFilter = false, role = false, reverse = false, auraSingle = false, auraMulti = false, auraCount = false, dispel = false;
 
         if (IsCountCategory)
         {
@@ -405,6 +421,24 @@ public sealed class UnitEditorForm : Form
             switch ((_selectorBox.SelectedItem as SelectorItem)?.Kind)
             {
                 case UnitSelectorKind.LowestHealth:
+                    threshold = lowestHealthAuraFilter = true;
+                    lowestHealthRoleFilter = true;
+                    role = SelectedLowestHealthRoleFilter() is not null;
+                    switch (SelectedLowestHealthAuraFilter())
+                    {
+                        case LowestHealthAuraFilterKind.WithAnyAura:
+                            auraMulti = true;
+                            break;
+                        case LowestHealthAuraFilterKind.WithoutAura:
+                        case LowestHealthAuraFilterKind.WithAura:
+                            auraSingle = true;
+                            break;
+                        case LowestHealthAuraFilterKind.WithAuraCount:
+                            auraSingle = auraCount = true;
+                            break;
+                    }
+
+                    break;
                 case UnitSelectorKind.HighestHealingAbsorb:
                     threshold = lowestHealthAuraFilter = true;
                     switch (SelectedLowestHealthAuraFilter())
@@ -461,6 +495,7 @@ public sealed class UnitEditorForm : Form
         _thresholdRow.Visible = threshold && !dynamicThreshold;
         _thresholdFieldRow.Visible = threshold && dynamicThreshold;
         _lowestHealthAuraFilterRow.Visible = lowestHealthAuraFilter;
+        _lowestHealthRoleFilterRow.Visible = lowestHealthRoleFilter;
         _roleRow.Visible = role;
         _reverseRow.Visible = reverse;
         _auraRow.Visible = auraSingle;
@@ -495,6 +530,7 @@ public sealed class UnitEditorForm : Form
         {
             Name = _nameBox.Text.Trim(),
             Kind = ResolveSelectedUnitKind(),
+            RoleFilter = SelectedLowestHealthRoleFilter(),
             Role = SelectedRole(),
             Reverse = _reverseBox.Checked,
             AuraCount = (int)_auraCountBox.Value,
@@ -574,6 +610,7 @@ public sealed class UnitEditorForm : Form
             PopulateSelectors();
             SelectSelector(DisplaySelectorKind(unit.Kind));
             SelectLowestHealthAuraFilter(unit.Kind);
+            SelectLowestHealthRoleFilter(unit.RoleFilter);
             if (unit.HealthThreshold is { } th)
             {
                 _thresholdBox.Value = Clamp(th, _thresholdBox);
@@ -682,6 +719,12 @@ public sealed class UnitEditorForm : Form
                 }
 
                 var healingAbsorb = selectorKind == UnitSelectorKind.HighestHealingAbsorb;
+                if (!healingAbsorb && SelectedLowestHealthRoleFilter() is { } roleFilter)
+                {
+                    moduleUnit.RoleFilter = roleFilter;
+                    moduleUnit.Role = SelectedRole();
+                }
+
                 switch (SelectedLowestHealthAuraFilter())
                 {
                     case LowestHealthAuraFilterKind.WithAnyAura:
@@ -943,6 +986,9 @@ public sealed class UnitEditorForm : Form
         => (_lowestHealthAuraFilterBox.SelectedItem as LowestHealthAuraFilterItem)?.Kind
             ?? LowestHealthAuraFilterKind.None;
 
+    private UnitRoleFilterKind? SelectedLowestHealthRoleFilter()
+        => (_lowestHealthRoleFilterBox.SelectedItem as LowestHealthRoleFilterItem)?.Kind;
+
     private List<string> SingleAuraList()
     {
         var aura = SelectedAura();
@@ -1005,6 +1051,20 @@ public sealed class UnitEditorForm : Form
         }
 
         _lowestHealthAuraFilterBox.SelectedIndex = 0;
+    }
+
+    private void SelectLowestHealthRoleFilter(UnitRoleFilterKind? kind)
+    {
+        for (var i = 0; i < _lowestHealthRoleFilterBox.Items.Count; i++)
+        {
+            if (_lowestHealthRoleFilterBox.Items[i] is LowestHealthRoleFilterItem item && item.Kind == kind)
+            {
+                _lowestHealthRoleFilterBox.SelectedIndex = i;
+                return;
+            }
+        }
+
+        _lowestHealthRoleFilterBox.SelectedIndex = 0;
     }
 
     private void SelectSelector(UnitSelectorKind kind)
@@ -1217,6 +1277,11 @@ public sealed class UnitEditorForm : Form
     }
 
     private sealed record LowestHealthAuraFilterItem(string Text, LowestHealthAuraFilterKind Kind)
+    {
+        public override string ToString() => Text;
+    }
+
+    private sealed record LowestHealthRoleFilterItem(string Text, UnitRoleFilterKind? Kind)
     {
         public override string ToString() => Text;
     }
