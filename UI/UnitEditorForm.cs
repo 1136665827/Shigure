@@ -22,8 +22,8 @@ public sealed class UnitEditorForm : Form
     private static readonly DispelTypeOption[] DispelTypeOptions =
     [
         new("1: 魔法", 1),
-        new("2: 疾病", 2),
-        new("3: 诅咒", 3),
+        new("2: 诅咒", 2),
+        new("3: 疾病", 3),
         new("4: 中毒", 4)
     ];
 
