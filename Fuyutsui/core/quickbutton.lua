@@ -15,6 +15,22 @@ function Fuyutsui:UpdateQuickToggleVisibility()
     end
 end
 
+function Fuyutsui:HideQuickToggleButton()
+    local c = self:GetCharConfig()
+    if not c then return end
+    c.quickButtonShow = false
+    self:UpdateQuickToggleVisibility()
+    print("|cff00ff00[Fuyutsui]|r 快捷控件已隐藏。")
+end
+
+function Fuyutsui:ShowQuickToggleButton()
+    local c = self:GetCharConfig()
+    if not c then return end
+    c.quickButtonShow = true
+    self:UpdateQuickToggleVisibility()
+    print("|cff00ff00[Fuyutsui]|r 快捷控件已显示。")
+end
+
 function Fuyutsui:RefreshQuickToggleAppearance()
     local f = self.quickToggleFrame
     if not f then return end

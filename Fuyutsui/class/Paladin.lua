@@ -89,6 +89,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 200025, name = "美德道标" },
             { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 2 },
             { spellId = 391054, name = "代祷" },
+            -- { spellId = 432472, name = "圣洁武器", charge = true, maxCharge = 2 },
         },
         group = {
             num = 6,
@@ -131,9 +132,16 @@ Fuyutsui.ClassBlocks = {
             },
             ["物品"] = {
                 "治疗药水",
+                "治疗石",
+                "鲁莽药水",
+                "圣光潜力",
             },
             ["配置开关"] = {
                 "延迟",
+                "爆发开关",
+                "输出模式",
+                "AOE开关",
+                "爆发药水开关",
             },
             ["目标"] = {
                 "类型",
@@ -148,13 +156,17 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                "距离",
             },
         },
         auras = {
             player = {
                 { name = "闪耀之光", spellId = 327510, maxApps = 2 },
+                { name = "小闪耀之光", spellId = 182104, maxApps = 3 },
                 { name = "正义盾击", spellId = 132403 },
                 { name = "奉献", spellId = 188370, },
+                { name = "圣言祭礼", spellId = 433550, },
+                { name = "虔诚光环", spellId = 135893, },
 
             },
             target = {
@@ -165,16 +177,19 @@ Fuyutsui.ClassBlocks = {
         },
         spells = {
 
+            { spellId = 432472, name = "圣洁武器", charge = true, maxCharge = 2 },
             { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 2 },
             { spellId = 213644, name = "清毒术" },
             { spellId = 275779, name = "审判", charge = true, maxCharge = 2 },
-            { spellId = 375576, name = "圣洁鸣钟" },
             { spellId = 31935, name = "复仇者之盾" },
             { spellId = 26573, name = "奉献" },
             { spellId = 53600, name = "正义盾击" },
             { spellId = 85673, name = "荣耀圣令" },
             { spellId = 96231, name = "责难" },
             { spellId = 204019, name = "祝福之锤", charge = true, maxCharge = 3 },
+            { spellId = 389539, name = "戒卫" },
+            { spellId = 375576, name = "圣洁鸣钟" },
+            -- ↓用的较少的
             { spellId = 115750, name = "盲目之光" },
             { spellId = 853, name = "制裁之锤" },
             { spellId = 642, name = "圣盾术" },

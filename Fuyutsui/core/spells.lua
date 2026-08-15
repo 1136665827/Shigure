@@ -46,15 +46,19 @@ local overrideSpells = {
     [432459] = 1289728, -- 神圣壁垒
     [432472] = 1289728, -- 圣洁武器
     [444995] = 455630,  -- 涌动图腾
-    [1242173] = 228260,  -- 虚空齐射
+    [1242173] = 228260, -- 虚空齐射
 }
 
 function Fuyutsui:IsSpellKnown(spellID)
+    local isKnown = IsSpellKnown(spellID)
+    if isKnown then
+        return isKnown
+    end
     local overrideSpellID = overrideSpells[spellID]
     if overrideSpellID then
-        return IsSpellKnown(overrideSpellID)
+        isKnown = IsSpellKnown(overrideSpellID)
     end
-    return IsSpellKnown(spellID)
+    return isKnown
 end
 
 function Fuyutsui:ClearInsertSpell()
