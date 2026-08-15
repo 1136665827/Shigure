@@ -56,7 +56,7 @@ verified_at: 2026-08-10
 | `MainForm` 浮条 | 启停、打开设置/状态、关闭、拖动 | 会话状态、UI 缓存 | `SetEnabled`、重启/停止、窗口偏好 |
 | 通用设置 | 触发键、模式、模块选择、配置生成与插件部署 | `AppOptions`、模块目录、项目 Fuyutsui | 缓存/设置、会话重启、同步队列 |
 | `StatusForm` | 九个状态/诊断页 | `RenderSnapshot`、日志 | 不拥有运行状态 |
-| 模块编辑器 | 匹配、规则、动态单位、数量、调整/公式、排序 | 模块快照 | `module/*.json` |
+| 模块编辑器 | 匹配、规则、动态单位、数量、调整/公式、排序 | 模块快照 | `~/.config/Shigure/module` |
 | ClassBlocks 编辑器 | 职业/专精状态块编辑 | `Fuyutsui/class/*.lua` 项目源 | ClassBlocks table、config、当前 Lua 游戏部署 |
 | ClassMacros 编辑器 | common/spec/static/special 宏编辑 | `Fuyutsui/core/classmacros.lua` 项目源 | ClassMacros table、keymap、当前 Lua 游戏部署 |
 | 条件/单位对话框 | 构造受限条件和动态定义 | 当前草稿 | 返回编辑器内存模型 |

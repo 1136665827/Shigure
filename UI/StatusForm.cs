@@ -737,7 +737,7 @@ public sealed class StatusForm : Form
         AddAboutRow(details, "类型", "冲锋枪");
         AddAboutRow(details, "介绍", "它一分钟打出去的子弹比荒坂偷的税还要多。");
         AddAboutRow(details, "用途", "有时人们只想把子弹全打出去，在硝烟过后品味眼前的一片狼藉。");
-        var modulePath = ModuleStore.ResolveModuleDirectory(AppPaths.BaseDirectory);
+        var modulePath = ModuleStore.ResolveModuleDirectory();
         var configPath = ConfigService.ResolveConfigPath(AppPaths.BaseDirectory);
         AddAboutRow(details, "模块目录", FormatAboutPath(modulePath), modulePath);
         AddAboutRow(details, "配置目录", FormatAboutPath(configPath), configPath);
@@ -862,6 +862,13 @@ public sealed class StatusForm : Form
             var baseDirectory = Path.GetFullPath(AppPaths.BaseDirectory);
             var fullPath = Path.GetFullPath(path);
             var relativePath = Path.GetRelativePath(baseDirectory, fullPath);
+            // 路径位于 exe 目录之外时直接显示完整路径，避免冗长的 ..\..\ 相对路径文本。
+            if (relativePath == ".."
+                || relativePath.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                return fullPath;
+            }
+
             return string.IsNullOrWhiteSpace(relativePath) ? "." : relativePath;
         }
         catch

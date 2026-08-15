@@ -3,11 +3,14 @@ using System.Reflection;
 namespace Shigure;
 
 /// <summary>
-/// 应用版本信息的单一来源。优先取 csproj 的 &lt;Version&gt;(AssemblyInformationalVersion),
-/// 退化到 AssemblyVersion。
+/// 应用名称与版本信息的单一来源：AppName 取自程序集名，
+/// Version 优先取 csproj 的 &lt;Version&gt;(AssemblyInformationalVersion)，退化到 AssemblyVersion。
 /// </summary>
 internal static class AppInfo
 {
+    // 取自程序集名（重命名程序集时自动跟随），与 Version 从程序集读取的惯例一致。
+    public static string AppName { get; } = Assembly.GetExecutingAssembly().GetName().Name ?? "Shigure";
+
     public static string Version { get; } = ResolveVersion();
 
     private static string ResolveVersion()

@@ -20,7 +20,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - **没有测试项目**：验证 = 能编译 + 实际运行点开「设置」走查。`dotnet build` 干净通过（0 警告 0 错误）是基线要求。
 - 启动参数见 [README.md](README.md#运行)（`--toggle/--mode/--logic-ms/--render-ms`），解析在 [App/AppOptions.cs](App/AppOptions.cs)。目标进程名来自 `wow_process.txt`。
 
-程序直接从当前 EXE 所在目录运行；`AppPaths.BaseDirectory` 即 `AppContext.BaseDirectory`，配置、按键映射、模块和插件源码均从该目录读取。
+程序直接从当前 EXE 所在目录运行；`AppPaths.BaseDirectory` 即 `AppContext.BaseDirectory`，配置、按键映射和插件源码均从该目录读取；模块从用户配置目录读取（`ModuleStore.ResolveModuleDirectory()`，见下）。
 
 ## 架构与数据流
 
@@ -53,13 +53,14 @@ Input/          keymap 读取、按键发送、Win32 API
 Infrastructure/ 配置读取(ConfigService)、JSON 辅助、UI 缓存、路径、Fuyutsui 插件文件读写
 UI/             WinForms 界面、编辑器、主题
 Fuyutsui/       内置插件权威源；构建/发布时完整复制，运行时部署到游戏 AddOns
-config/ keymap/ module/   运行时 JSON 数据(构建时复制到输出, 见 .csproj 的 None+CopyToOutputDirectory)
+config/ keymap/   运行时 JSON 数据(构建时复制到输出, 见 .csproj 的 None+CopyToOutputDirectory)
+module   运行时模块数据位于用户配置目录 ~/.config/Shigure/module(启动时自动创建, 不随构建复制)
 wow_process.txt 目标游戏进程名列表；构建时复制，运行期间每次定位都会重新读取
 ```
 
 ## 模块解析（改逻辑前必读）
 
-- 模块以 `module/模块名.json` 平铺保存，**文件名取自模块名，故模块名不可重复**；加载递归扫描子目录。模型在 [Modules/ModuleStore.cs](Modules/ModuleStore.cs)（`ModuleDefinition`/`ModuleMatch`/`ModuleRule`/`ModuleUnit`/`ModuleCountField`/`ModuleValueAdjustment`）。`RecommendedTalent` 是 `ModuleDefinition` 上的纯展示字段，不参与匹配（`ModuleMatch.Specificity` 不计入）。
+- 模块以 `~/.config/Shigure/module/模块名.json` 平铺保存（`ModuleStore.ResolveModuleDirectory()` 返回用户配置目录，`{UserProfile}/.config/{程序集名}/module`），**文件名取自模块名，故模块名不可重复**；加载递归扫描子目录。模型在 [Modules/ModuleStore.cs](Modules/ModuleStore.cs)（`ModuleDefinition`/`ModuleMatch`/`ModuleRule`/`ModuleUnit`/`ModuleCountField`/`ModuleValueAdjustment`）。`RecommendedTalent` 是 `ModuleDefinition` 上的纯展示字段，不参与匹配（`ModuleMatch.Specificity` 不计入）。
 - `ModuleStore` 的 `Reload`/`Save`/`Delete` 会在同一个门锁内串行完整文件事务与内存快照更新；`Save` 通过同目录临时文件提交，重命名失败会回滚新文件。编辑器写入不要绕过它，避免运行时读到半次操作。运行时工厂不再自行 `Reload`：启动和模块刷新先由 `ModuleDependencyService` 导入依赖、拒绝宏容量超限模块，再把已验证的内存快照交给运行时。
 - 职业/专精明确的模块保存时会写入 `Dependencies` 快照。`ModuleDependencyService` 以本地为优先追加缺失的 ClassBlocks/spellsList/ClassMacros，按动态宏 30 槽、其它宏 1 槽检查所有受影响专精；任一专精超过 keymap 容量就拒绝整个模块且不写 Lua。依赖提交失败会恢复配置和宏原文。
 - 选择优先级：`ModuleStore.FindSelectedOrBestMatch` —— 先用 UI/参数选定的 `ModuleId`；否则取 `Match` 命中字段最多者（`ModuleMatch.Specificity` 越大越优先），并列按名称。`Match` 字段留空 = 任意。`PartyType` 数字会归一化为 `"1-40"`。
