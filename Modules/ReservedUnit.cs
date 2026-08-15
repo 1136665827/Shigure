@@ -46,7 +46,7 @@ internal static class ReservedUnit
     }
 }
 
-/// <summary>宏条件在 keymap/模块内保存原始标识，在界面使用中文名称。</summary>
+/// <summary>宏条件在 keymap、模块和界面中统一使用原始标识。</summary>
 internal static class MacroConditionText
 {
     private const int LegacyChannelingUnit = 36;
@@ -70,12 +70,21 @@ internal static class MacroConditionText
 
     public static string Normalize(string? text)
     {
-        return Transform(text, toDisplay: false);
+        var parts = (text ?? string.Empty)
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.ToLowerInvariant() switch
+            {
+                // 只兼容读取旧版中文值；新数据及界面统一保留 WoW 宏条件名称。
+                "channeling" or "引导中" => Channeling,
+                "nochanneling" or "非引导" => NoChanneling,
+                _ => part
+            });
+        return string.Join(", ", parts);
     }
 
     public static string ToDisplayText(string? text)
     {
-        return Transform(text, toDisplay: true);
+        return Normalize(text);
     }
 
     public static string ParseDisplayText(string? text)
@@ -83,16 +92,4 @@ internal static class MacroConditionText
         return Normalize(text);
     }
 
-    private static string Transform(string? text, bool toDisplay)
-    {
-        var parts = (text ?? string.Empty)
-            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => part.ToLowerInvariant() switch
-            {
-                "channeling" or "引导中" => toDisplay ? "引导中" : Channeling,
-                "nochanneling" or "非引导" => toDisplay ? "非引导" : NoChanneling,
-                _ => part
-            });
-        return string.Join(", ", parts);
-    }
 }
