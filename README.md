@@ -2,7 +2,7 @@
 
 Shigure 是荒坂公司（Arasaka Corporation）开发的冲锋枪。有时人们只想把子弹全打出去，在硝烟过后品味眼前的一片狼藉。
 
-### 仓库已内置冬月电子（Fuyutsuki Electronics）的 [Fuyutsui](https://github.com/waynebian01/Fuyutsui) 插件源码，无需另行下载或手动安装。
+### 仓库已内置冬月电子（Fuyutsuki Electronics）的  Fuyutsui 插件源码，无需另行下载或手动安装。
 
 # 免责声明 (Disclaimer)
 
@@ -53,7 +53,7 @@ Shigure 是一个 Windows WinForms 桌面程序。它从目标窗口读取 Fuyut
 - `日志`：记录启动、停止、职业识别、模块匹配、逻辑状态、施放步骤、配置同步和异常。
 - `关于`：显示产品、公司、版本、模块目录和配置目录。
 
-触发键、发送模式、模块选择、模块保存以及配置同步都会按需重启运行循环。窗口位置、大小、模块选择和表格列宽等 UI 状态保存在 `cache/window-state.json`；模块保存在我的文档目录 `{MyDocuments}/Shigure/module`。`cache/` 与模块数据都是本地数据，默认不提交到 Git。
+触发键、发送模式、模块选择、模块保存以及配置同步都会按需重启运行循环。窗口位置、大小、模块选择和表格列宽等 UI 状态保存在我的文档目录 `{MyDocuments}/Shigure/cache/window-state.json`；模块保存在 `{MyDocuments}/Shigure/module`。`cache/` 与模块数据都是本地数据，默认不提交到 Git。
 
 ## 环境要求
 
@@ -87,7 +87,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - `click`：每次按下只执行一轮逻辑。
 - `hold`：按住时运行，松开后停止。
 
-程序会直接从当前 EXE 所在目录运行，并从该目录读取 `Fuyutsui/`、`config/`、`keymap/` 和 `wow_process.txt`；模块从我的文档目录 `{MyDocuments}/Shigure/module` 读取。
+程序会直接从当前 EXE 所在目录运行，并从该目录读取 `Fuyutsui/`、`config/`、`keymap/` 和 `wow_process.txt`；模块从我的文档目录 `{MyDocuments}/Shigure/module` 读取，UI 缓存写入 `{MyDocuments}/Shigure/cache`。
 
 ## 构建
 

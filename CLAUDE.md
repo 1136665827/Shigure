@@ -20,7 +20,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - **没有测试项目**：验证 = 能编译 + 实际运行点开「设置」走查。`dotnet build` 干净通过（0 警告 0 错误）是基线要求。
 - 启动参数见 [README.md](README.md#运行)（`--toggle/--mode/--logic-ms/--render-ms`），解析在 [App/AppOptions.cs](App/AppOptions.cs)。目标进程名来自 `wow_process.txt`。
 
-程序直接从当前 EXE 所在目录运行；`AppPaths.BaseDirectory` 即 `AppContext.BaseDirectory`，配置、按键映射和插件源码均从该目录读取；模块从我的文档目录读取（`ModuleStore.ResolveModuleDirectory()`，见下）。
+程序直接从当前 EXE 所在目录运行；`AppPaths.BaseDirectory` 即 `AppContext.BaseDirectory`，配置、按键映射和插件源码均从该目录读取；模块与 UI 缓存位于 `AppPaths.UserDataDirectory`（`{MyDocuments}/{程序名}`）下。
 
 ## 架构与数据流
 
@@ -55,6 +55,7 @@ UI/             WinForms 界面、编辑器、主题
 Fuyutsui/       内置插件权威源；构建/发布时完整复制，运行时部署到游戏 AddOns
 config/ keymap/   运行时 JSON 数据(构建时复制到输出, 见 .csproj 的 None+CopyToOutputDirectory)
 module   运行时模块数据位于我的文档目录 {MyDocuments}/Shigure/module(启动时自动创建, 不随构建复制)
+cache    UI 缓存位于我的文档目录 {MyDocuments}/Shigure/cache(首次写入时自动创建)
 wow_process.txt 目标游戏进程名列表；构建时复制，运行期间每次定位都会重新读取
 ```
 

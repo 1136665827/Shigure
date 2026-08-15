@@ -291,10 +291,7 @@ public sealed class ModuleStore
 
     public static string ResolveModuleDirectory()
     {
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            AppInfo.AppName,
-            "module");
+        return Path.Combine(AppPaths.UserDataDirectory, "module");
     }
 
     public IReadOnlyList<ModuleDefinition> GetModules()
