@@ -44,6 +44,7 @@ TEXT_EXTENSIONS = {
     ".ps1",
     ".py",
     ".resx",
+    ".manifest",
     ".sln",
     ".slnx",
     ".targets",
