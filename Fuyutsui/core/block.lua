@@ -583,12 +583,13 @@ local function AnchorAuraPixelButton(button, index)
     button:SetPoint("TOPLEFT", UIParent, "TOPLEFT", AuraBlockXOffset(index), 0)
 end
 
---- 对齐 CreateTexture(i, b)：绿通道编码索引，蓝通道随剩余秒数 0..255 从 0→1
+--- 对齐 CreateTexture(i, b)：绿通道编码索引，蓝通道将不足 1 秒钳为 1，其余编码到 255
 local function MakeDurationColorCurve(index)
     local curve = C_CurveUtil.CreateColorCurve()
     curve:SetType(Enum.LuaCurveType.Linear)
     local r, g = EncodeBlockChannels(index)
-    curve:AddPoint(0, CreateColor(r, g, 0, 1))
+    curve:AddPoint(0, CreateColor(r, g, 1 / 255, 1))
+    curve:AddPoint(1, CreateColor(r, g, 1 / 255, 1))
     curve:AddPoint(255, CreateColor(r, g, 1, 1))
     return curve
 end

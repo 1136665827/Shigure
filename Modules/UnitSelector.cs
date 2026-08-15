@@ -25,19 +25,35 @@ public static class UnitSelector
 
         return unit.Kind switch
         {
-            UnitSelectorKind.LowestHealth => LowestHealth(group, threshold, _ => true),
+            UnitSelectorKind.LowestHealth => LowestHealth(
+                group,
+                threshold,
+                data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role)),
             UnitSelectorKind.LowestHealthWithAnyAura => unit.AuraNames is { Count: > 0 } names
-                ? LowestHealth(group, threshold, data => HasAnyAura(data, names))
+                ? LowestHealth(
+                    group,
+                    threshold,
+                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && HasAnyAura(data, names))
                 : null,
             UnitSelectorKind.LowestHealthWithoutAura => aura is null
                 ? null
-                : LowestHealth(group, threshold, data => !HasAura(data, aura)),
+                : LowestHealth(
+                    group,
+                    threshold,
+                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && !HasAura(data, aura)),
             UnitSelectorKind.LowestHealthWithAura => aura is null
                 ? null
-                : LowestHealth(group, threshold, data => HasAura(data, aura)),
+                : LowestHealth(
+                    group,
+                    threshold,
+                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && HasAura(data, aura)),
             UnitSelectorKind.LowestHealthWithAuraCount => aura is null || unit.AuraCount is null
                 ? null
-                : LowestHealth(group, threshold, data => AuraEquals(data, aura, unit.AuraCount.Value)),
+                : LowestHealth(
+                    group,
+                    threshold,
+                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role)
+                        && AuraEquals(data, aura, unit.AuraCount.Value)),
             UnitSelectorKind.UnitWithRole => unit.Role is null
                 ? null
                 : UnitWithRole(group, unit.Role.Value, unit.Reverse, _ => true),
@@ -312,6 +328,26 @@ public static class UnitSelector
     private static bool AuraEquals(IReadOnlyDictionary<string, object?> data, string auraName, int target)
     {
         return TryInt(GetField(data, auraName), out var val) && val == target;
+    }
+
+    private static bool MatchesRoleFilter(
+        IReadOnlyDictionary<string, object?> data,
+        UnitRoleFilterKind? filter,
+        int? role)
+    {
+        if (filter is null)
+        {
+            return true;
+        }
+
+        if (role is null || !TryInt(GetField(data, "职责"), out var actualRole))
+        {
+            return false;
+        }
+
+        return filter == UnitRoleFilterKind.Include
+            ? actualRole == role.Value
+            : actualRole != role.Value;
     }
 
     // 职责为 None/无法解析时视为不跳过(返回 true), 与 utils.py 的 _role_not_zero 一致。
