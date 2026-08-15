@@ -235,6 +235,10 @@ function Fuyutsui:SlashCommand(input, editbox)
         if not c then return end
         c.potion = 0
         self:SwitchPotion()
+    elseif command == "hide" then
+        self:HideQuickToggleButton()
+    elseif command == "show" then
+        self:ShowQuickToggleButton()
     elseif command:match("^delay") then
         if not c then return end
         local secStr = command:match("^delay%s+(.+)$")
@@ -288,6 +292,8 @@ function Fuyutsui:SlashCommand(input, editbox)
         print("爆发药水开关: /fu potion")
         print("|cff00ff00开启|r药水: /fu potion on")
         print("|cffff0000关闭|r药水: /fu potion off")
+        print("隐藏快捷控件: /fu hide")
+        print("显示快捷控件: /fu show")
         print("临时 delay 标志（db.char.delay 置 1 持续 x 秒后归零）: /fu delay [秒]，省略秒数则为 1 秒")
         print("插入法术: /fu i 技能名称 [单位]")
         print("帮助: /fu help")
