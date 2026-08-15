@@ -289,15 +289,13 @@ public sealed class ModuleStore
 
     public string ModuleDirectory { get; }
 
-    public static string ResolveModuleDirectory(string baseDirectory)
+    public static string ResolveModuleDirectory()
     {
-        var currentModuleDirectory = Path.Combine(baseDirectory, "module");
-        if (Directory.Exists(currentModuleDirectory) || File.Exists(Path.Combine(baseDirectory, "Shigure.csproj")))
-        {
-            return currentModuleDirectory;
-        }
-
-        return Path.Combine(baseDirectory, "module");
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".config",
+            AppInfo.AppName,
+            "module");
     }
 
     public IReadOnlyList<ModuleDefinition> GetModules()

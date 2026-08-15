@@ -3031,7 +3031,7 @@ public sealed class ModuleEditorControl : UserControl
 
     private void OpenModuleFolder()
     {
-        var moduleDirectory = ModuleStore.ResolveModuleDirectory(_baseDirectory);
+        var moduleDirectory = ModuleStore.ResolveModuleDirectory();
         var filePath = _selectedModule?.FilePath;
         try
         {
