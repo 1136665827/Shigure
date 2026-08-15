@@ -10,17 +10,17 @@ local BLOCK_FIX_COUNT = 510        -- 总色块数量
 local BLOCK_FIRST_SCHEME_MAX = 255 -- 第一套索引方案上限（其后用 r=1/255）
 local BLOCK_HEIGHT = 1             -- 色块高度
 local BLOCK_SPACING = 0            -- 色块间距
-local COLOR_BARS_STRATA = "BACKGROUND"
-local COLOR_BARS_LEVEL = 5001
+local COLOR_BARS_STRATA = "TOOLTIP"
+local COLOR_BARS_LEVEL = 9001
 
 -- 横向条（FuyutsuiCountBars：计数条 + 光环层数条，BAR_END_COLOR 收尾）
 local BAR_UNIT_COUNT = 500  -- 横向单元数
 local BAR_HEIGHT = 2        -- 条高度
 local BAR_FRAME_HEIGHT = 20 -- 容器高度
 local BAR_START_INDEX = 2   -- 首条占用起始单元
-local BAR_STRATA = "BACKGROUND"
+local BAR_STRATA = "TOOLTIP"
 local BAR_LEVEL = 1
-local BAR_STATUS_LEVEL = 4999                                -- StatusBar 层级
+local BAR_STATUS_LEVEL = 8999                                -- StatusBar 层级
 local BAR_END_COLOR = { 200 / 255, 200 / 255, 200 / 255, 1 } -- 全部条之后的终点色块
 
 -- AuraContainer 计时色块（█）
@@ -28,11 +28,11 @@ local AURA_BLOCK_HEIGHT = BLOCK_HEIGHT -- 高单独设置；宽与主色块一�
 local AURA_DURATION_CHAR = "█"
 local AURA_ENABLE_MOUSE = false        -- false = 关闭悬停提示
 local AURA_DURATION_STRATA = "TOOLTIP"
-local AURA_DURATION_LEVEL = 5003
+local AURA_DURATION_LEVEL = 9003
 
 -- AuraContainer 层数条
 local AURA_BAR_STRATA = "TOOLTIP"
-local AURA_BAR_LEVEL = 5004
+local AURA_BAR_LEVEL = 9004
 
 -- 队伍治疗吸收条（FuyutsuiHealAbsorbBars）
 local HEAL_ABSORB_MAX_SLOTS = 30  -- 最大槽位数
@@ -100,7 +100,7 @@ local function createTextureByIndex(i)
         local tex = colorBars:CreateTexture(nil, "OVERLAY")
         tex:SetSize(BLOCK_FIX_CONFIG.blockWidth, BLOCK_FIX_CONFIG.blockHeight)
         tex:SetPoint("TOPLEFT", colorBars, "TOPLEFT",
-            GetXOffset(i - 1, BLOCK_FIX_CONFIG.blockWidth, BLOCK_FIX_CONFIG.blockSpacing), 0)
+                     GetXOffset(i - 1, BLOCK_FIX_CONFIG.blockWidth, BLOCK_FIX_CONFIG.blockSpacing), 0)
         pixelTextures[i] = tex
     end
     return pixelTextures[i]
@@ -967,7 +967,7 @@ function Fuyutsui:LayoutAuraApplicationBars()
 
         if not barSlots then
             barSlots = CreateFrame("AuraContainer", "FuyutsuiPlayerAuraBarSlots", countBars,
-                "CustomAuraContainerTemplate")
+                                   "CustomAuraContainerTemplate")
             barSlots:SetPoint("TOPLEFT", countBars, "TOPLEFT", 0, 0)
             barSlots:SetUnit("player")
             barSlots:SetEnabled(true)
@@ -1077,7 +1077,7 @@ local function CreateGroupMemberAuraContainer(memberIndex, groups, auraDefs, inc
     EnsureAuraContainerLoaded()
 
     local container = CreateFrame("AuraContainer", "FuyutsuiGroupAuraSlots_" .. memberIndex, UIParent,
-        "CustomAuraContainerTemplate")
+                                  "CustomAuraContainerTemplate")
     container:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
     container:SetEnabled(true)
     container:SetFrameStrata(AURA_DURATION_STRATA)
