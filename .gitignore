@@ -25,3 +25,6 @@ module/
 # 说明文档
 docs/
 __pycache__/
+/.prompt
+/.mean
+/.plan
