@@ -13,6 +13,13 @@
     <AssemblyVersion>1.2.1.2</AssemblyVersion>
     <FileVersion>1.2.1.2</FileVersion>
     <ApplicationIcon>Assets\arasaka-icon.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <!-- 提权清单只在 Release（打包）构建生效：Debug 构建（含默认 dotnet run）不要求提权，
+       便于开发调试；Release 产物仍通过 app.manifest 要求管理员权限启动。 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
