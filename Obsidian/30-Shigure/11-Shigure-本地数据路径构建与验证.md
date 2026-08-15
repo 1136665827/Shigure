@@ -41,7 +41,7 @@ verified_at: 2026-08-10
 # Shigure 本地数据、路径、构建与验证
 
 > [!abstract] AI 快速摘要
-> Shigure 的业务根目录通常是正式 EXE 所在目录；随机副本子进程通过环境变量仍指回该目录。程序从这里读取内置 `Fuyutsui/`、`config`、`keymap`、`module`、`cache` 和 `wow_process.txt`。项目插件是权威源，目标游戏中的 Fuyutsui 只是由部署服务维护的运行副本。项目是无第三方 NuGet 引用的 `net10.0-windows` WinForms WinExe，仓库没有测试项目。
+> Shigure 的业务根目录通常是正式 EXE 所在目录；随机副本子进程通过环境变量仍指回该目录。程序从这里读取内置 `Fuyutsui/`、`config`、`keymap`、`cache` 和 `wow_process.txt`；模块从我的文档目录 `{MyDocuments}/Shigure/module` 读取。项目插件是权威源，目标游戏中的 Fuyutsui 只是由部署服务维护的运行副本。项目是无第三方 NuGet 引用的 `net10.0-windows` WinForms WinExe，仓库没有测试项目。
 
 ## 图谱位置
 
@@ -65,7 +65,7 @@ verified_at: 2026-08-10
   AppContext.BaseDirectory = 随机临时目录（仅运行依赖）
 ```
 
-这使随机 EXE 可以加载临时目录 DLL，同时配置和用户数据仍落在正式安装目录。环境变量属于信任边界：若外部预先设置/篡改，可能改变业务数据根目录。
+这使随机 EXE 可以加载临时目录 DLL，同时配置、Keymap 和缓存等数据仍落在正式安装目录；模块则在我的文档目录（子进程与父进程同属一个 Windows 用户，解析结果一致）。环境变量属于信任边界：若外部预先设置/篡改，可能改变业务数据根目录。
 
 ## 本地数据地图
 
@@ -74,7 +74,7 @@ verified_at: 2026-08-10
 | `config/common.json` | 协议固定字段 | `ConfigService` | 打包内容/人工维护 |
 | `config/<class>.json` | 13 职业和专精步骤映射、法术元数据 | `ConfigService`, `StateBuilder` | `FuyutsuiConfigConverter` |
 | `keymap/*.json` | unit/spell/macroCondition→hotkey | `KeymapService`, `KeymapCatalog` | `FuyutsuiKeymapConverter` |
-| `module/**/*.json` | 匹配、规则、动态值和公式 | `ModuleStore` | 模块编辑器/人工 |
+| `{MyDocuments}/Shigure/module/**/*.json` | 匹配、规则、动态值和公式 | `ModuleStore` | 模块编辑器/人工 |
 | `cache/` | 窗口和 UI 偏好 | UI 基础设施 | MainForm/各 UI |
 | `Fuyutsui/class/*.lua` | 内置 ClassBlocks 权威源 | ClassBlocks Store/转换器 | ClassBlocks 编辑器/人工 |
 | `Fuyutsui/core/classmacros.lua` | 内置宏权威源 | ClassMacros Store/转换器 | 宏编辑器/人工 |
@@ -99,7 +99,7 @@ verified_at: 2026-08-10
 - 开启 nullable 与 implicit usings。
 - 应用版本在项目文件中为 1.2.1，并被模块编辑器保存到模块元数据。
 - 项目没有 `PackageReference`；核心只依赖 .NET/WinForms/System.Drawing 和 Win32 P/Invoke。
-- 项目文件声明嵌入 UI assets，并把 `Fuyutsui/**`、配置、Keymap、模块和 `wow_process.txt` 按规则复制到输出；Fuyutsui 同时明确复制到 publish。
+- 项目文件声明嵌入 UI assets，并把 `Fuyutsui/**`、配置、Keymap 和 `wow_process.txt` 按规则复制到输出；Fuyutsui 同时明确复制到 publish。模块不随构建/发布复制，由我的文档目录 `{MyDocuments}/Shigure/module` 提供。
 - 实际打包策略还应对照 `打包说明.md`；随机启动器只复制正式输出目录**顶层**运行依赖到临时目录。
 
 ## 当前验证能力

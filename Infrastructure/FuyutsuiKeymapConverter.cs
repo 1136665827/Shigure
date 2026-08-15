@@ -375,8 +375,9 @@ internal static partial class FuyutsuiKeymapConverter
 
         return normalized switch
         {
-            "player" => 1,
-            "玩家" or "31" => ReservedUnit.Player,
+            // "player" => 1,
+            // "玩家" or "31" => ReservedUnit.Player,
+            "player" or "玩家" or "31" => ReservedUnit.Player,
             "target" or "目标" or "32" => ReservedUnit.Target,
             "focus" or "焦点" or "33" => ReservedUnit.Focus,
             "cursor" or "地面" or "34" => ReservedUnit.Cursor,
