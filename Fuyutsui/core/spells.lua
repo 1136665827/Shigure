@@ -42,18 +42,29 @@ end
 Fuyutsui.DebugPrintNewSpellEntry = DebugPrintNewSpellEntry
 Fuyutsui.DebugPrintSpellBlockLine = DebugPrintSpellBlockLine
 
-local overrideSpells = {
-    [432459] = 1289728, -- 神圣壁垒
-    [432472] = 1289728, -- 圣洁武器
-    [444995] = 455630,  -- 涌动图腾
-    [1242173] = 228260,  -- 虚空齐射
-}
+-- local overrideSpells = {
+--     [432459] = 1289728, -- 神圣壁垒
+--     [432472] = 1289728, -- 圣洁武器
+--     [444995] = 455630,  -- 涌动图腾
+--     [1242173] = 228260, -- 虚空齐射
+-- }
 
 function Fuyutsui:IsSpellKnown(spellID)
-    local overrideSpellID = overrideSpells[spellID]
-    if overrideSpellID then
-        return IsSpellKnown(overrideSpellID)
+    local currentSpec = GetSpecialization()
+    if (currentSpec == 1) then                                     -- 奶骑、
+        if spellID == 432459 then return IsSpellKnown(1289728) end -- 奶骑的[神圣壁垒]替换为1289728
+        if spellID == 432472 then return IsSpellKnown(1289728) end -- 奶骑的[圣洁武器]替换为1289728
     end
+
+    if (currentSpec == 2) then                                    -- 防骑、
+        if spellID == 432472 then return IsSpellKnown(432459) end -- 防骑的[圣洁武器]替换为432459
+    end
+
+    if (currentSpec == 3) then                                     -- 惩戒、暗牧、奶萨
+        if spellID == 1242173 then return IsSpellKnown(228260) end -- 暗牧的[虚空齐射]替换为228260
+        if spellID == 444995 then return IsSpellKnown(228260) end  -- 奶萨的[涌动图腾]替换为228260
+    end
+
     return IsSpellKnown(spellID)
 end
 
