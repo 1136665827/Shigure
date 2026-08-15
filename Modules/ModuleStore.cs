@@ -292,8 +292,7 @@ public sealed class ModuleStore
     public static string ResolveModuleDirectory()
     {
         return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".config",
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             AppInfo.AppName,
             "module");
     }

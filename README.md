@@ -53,7 +53,7 @@ Shigure 是一个 Windows WinForms 桌面程序。它从目标窗口读取 Fuyut
 - `日志`：记录启动、停止、职业识别、模块匹配、逻辑状态、施放步骤、配置同步和异常。
 - `关于`：显示产品、公司、版本、模块目录和配置目录。
 
-触发键、发送模式、模块选择、模块保存以及配置同步都会按需重启运行循环。窗口位置、大小、模块选择和表格列宽等 UI 状态保存在 `cache/window-state.json`；模块保存在用户配置目录 `~/.config/Shigure/module`。`cache/` 与模块数据都是本地数据，默认不提交到 Git。
+触发键、发送模式、模块选择、模块保存以及配置同步都会按需重启运行循环。窗口位置、大小、模块选择和表格列宽等 UI 状态保存在 `cache/window-state.json`；模块保存在我的文档目录 `{MyDocuments}/Shigure/module`。`cache/` 与模块数据都是本地数据，默认不提交到 Git。
 
 ## 环境要求
 
@@ -87,7 +87,7 @@ dotnet run --project .\Shigure.csproj -- --toggle XBUTTON2 --mode switch --logic
 - `click`：每次按下只执行一轮逻辑。
 - `hold`：按住时运行，松开后停止。
 
-程序会直接从当前 EXE 所在目录运行，并从该目录读取 `Fuyutsui/`、`config/`、`keymap/` 和 `wow_process.txt`；模块从用户配置目录 `~/.config/Shigure/module` 读取。
+程序会直接从当前 EXE 所在目录运行，并从该目录读取 `Fuyutsui/`、`config/`、`keymap/` 和 `wow_process.txt`；模块从我的文档目录 `{MyDocuments}/Shigure/module` 读取。
 
 ## 构建
 
@@ -111,7 +111,7 @@ Assets\                 应用图标、品牌资源、职业图和专精图
 Fuyutsui\               权威插件源码、配置/宏编辑源及游戏部署源
 config\                 由 Fuyutsui 职业配置生成的扫描映射
 keymap\                 由 Fuyutsui 职业宏生成的按键映射
-module\                 模块示例模板（运行时模块保存在用户配置目录 `~/.config/Shigure/module`）
+module\                 模块示例模板（运行时模块保存在我的文档目录 `{MyDocuments}/Shigure/module`）
 Tools\                  辅助脚本
 ```
 
@@ -159,7 +159,7 @@ Tools\                  辅助脚本
 
 ## 模块系统
 
-模块以 `模块名.json` 保存在用户配置目录 `~/.config/Shigure/module`。名称不能重复；加载时会递归扫描子目录，以兼容旧版布局。模块页保存时会写入当前 Shigure 版本。职业和专精均已指定时，模块还会携带该专精的 `ClassBlocks`、职业 `spellsList`，以及该职业的通用/专精动态宏、静态宏和特殊宏；旧模块没有这些依赖信息时仍可正常使用。
+模块以 `模块名.json` 保存在我的文档目录 `{MyDocuments}/Shigure/module`。名称不能重复；加载时会递归扫描子目录，以兼容旧版布局。模块页保存时会写入当前 Shigure 版本。职业和专精均已指定时，模块还会携带该专精的 `ClassBlocks`、职业 `spellsList`，以及该职业的通用/专精动态宏、静态宏和特殊宏；旧模块没有这些依赖信息时仍可正常使用。
 
 启动和“刷新模块”会把模块携带而本地缺少的配置与宏追加到项目 `Fuyutsui/`，不会覆盖或删除本地已有条目。发生新增后会自动重建 `config/keymap`、同步游戏插件并按需重启运行。导入前会按每项动态宏 30 个槽位、静态/特殊宏各 1 个槽位检查该职业所有受影响专精；合并结果超过 273 个槽位时，整个模块不会进入模块列表或运行时，本地 Lua 也不会被修改。模块文件仍保留在模块目录，清理宏后可刷新重试。
 
