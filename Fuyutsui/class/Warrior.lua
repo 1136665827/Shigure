@@ -134,6 +134,24 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
+        auras = {
+            player = {
+                { name = "狂暴", spellId = 184362, },
+                { name = "猝死", spellId = 52437, maxApps = 2, },
+                { name = "强化旋风斩", spellId = 85739, maxApps = 4, },
+                { name = "激怒", spellId = 184362, },
+                { name = "鲁莽", spellId = 1719, },
+                { name = "天神下凡", spellId = 107574, },
+                { name = "劈斩", spellId = 383873, },
+                { name = "能量爆发", spellId = 437121, },
+                { name = "雷霆轰击", spellId = 435615, maxApps = 2, },
+            },
+            target = {
+                harmful = {
+                    { name = "撕裂", spellId = 772, },
+                },
+            },
+        },
         spells = {
             { spellId = 202168, name = "胜利在望" },
             { spellId = 376079, name = "勇士之矛" },
@@ -146,6 +164,18 @@ Fuyutsui.ClassBlocks = {
             { spellId = 5246, name = "破胆怒吼" },
             { spellId = 1719, name = "鲁莽" },
             { spellId = 6552, name = "拳击" },
+            { spellId = 23881, name = "嗜血" },
+            { spellId = 85288, name = "怒击", charge = true, maxCharge = 2 },
+            { spellId = 184367, name = "暴怒" },
+            { spellId = 385059, name = "奥丁之怒" },
+            { spellId = 227847, name = "剑刃风暴" },
+            { spellId = 107574, name = "天神下凡" },
+            { spellId = 435607, name = "雷霆轰击", charge = true, maxCharge = 2 },
+            { spellId = 6343, name = "雷霆一击" },
+            { spellId = 190411, name = "旋风斩" },
+            { spellId = 335096, name = "浴血奋战" },
+            { spellId = 335097, name = "碎甲猛击", charge = true, maxCharge = 2 },
+            { spellId = 5308, name = "斩杀" },
         },
     },
     [3] = {
