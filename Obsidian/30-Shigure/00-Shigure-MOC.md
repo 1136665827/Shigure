@@ -89,7 +89,7 @@ Program.Main
 | 状态步骤映射 | ClassBlocks Lua，经转换器生成 | `ConfigService` / `StateBuilder` | `config/*.json` |
 | 法术宏到键位 | ClassMacros Lua，经转换器生成 | `KeymapService` | `keymap/*.json` |
 | 游戏插件副本 | 项目内置 `Fuyutsui/` | WoW AddOn 加载器 | `Interface/AddOns/Fuyutsui` |
-| 行为规则 | 模块编辑器或手工 JSON | `ModuleStore` / `ModuleLogic` | `~/.config/Shigure/module` |
+| 行为规则 | 模块编辑器或手工 JSON | `ModuleStore` / `ModuleLogic` | `{MyDocuments}/Shigure/module` |
 | UI 缓存与偏好 | WinForms 界面 | WinForms 界面 | `cache/` |
 | 运行状态 | `ShigureRuntime` 单循环 | `StatusForm` | `RenderSnapshot`，不持久化 |
 

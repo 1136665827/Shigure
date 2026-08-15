@@ -73,7 +73,7 @@ verified_at: 2026-08-10
 
 ## 核心数据与不变量
 
-- 随机子进程**不复制业务数据目录**；`config`、`keymap`、`cache` 仍由原始根目录提供，模块由用户配置目录 `~/.config/Shigure/module` 提供。
+- 随机子进程**不复制业务数据目录**；`config`、`keymap`、`cache` 仍由原始根目录提供，模块由我的文档目录 `{MyDocuments}/Shigure/module` 提供。
 - `SHIGURE_RANDOMIZED_PROCESS=1` 是防递归开关。外部若伪造相关环境变量，也会改变启动和路径行为。
 - 清理范围是按源 EXE 路径哈希隔离的专属临时根目录；清理会递归删除其所有子项并吞掉 IO/权限异常。
 - 每次会话构造新的 `ConfigService`、`KeymapService`、`PixelScanner`、`StateBuilder`、`KeySender` 和 `LogicRegistry`；`ModuleStore` 与触发键读取器跨会话共享。

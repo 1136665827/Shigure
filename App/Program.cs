@@ -35,7 +35,7 @@ internal static class Program
             runtimeSession));
     }
 
-    // 模块目录迁移提示：旧目录(baseDirectory/module)存在且有内容、且新目录(用户配置目录)尚无模块文件时，
+    // 模块目录迁移提示：旧目录(baseDirectory/module)存在且有内容、且新目录(我的文档目录)尚无模块文件时，
     // 弹一次纯文案提示，引导用户手动移动模块；条件不满足或检测异常时静默，不影响启动。
     private static void ShowModuleMigrationHint(string baseDirectory, ModuleStore moduleStore)
     {
@@ -55,7 +55,7 @@ internal static class Program
             }
 
             MessageBox.Show(
-                $"模块目录已迁移到用户配置目录。\n\n" +
+                $"模块目录已迁移到我的文档目录。\n\n" +
                 $"新的模块目录：\n{moduleStore.ModuleDirectory}\n\n" +
                 $"请将旧目录 {oldDirectory} 中的模块文件手动移动到新目录。",
                 "Shigure",
