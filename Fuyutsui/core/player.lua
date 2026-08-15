@@ -117,13 +117,19 @@ function Fuyutsui:UpdatePlayerPower(powerType)
     local blocks = self.blocks
     if not blocks then return end
     local powerName = self.powerNameMap[powerType]
+    local power = UnitPower("player", EnumPowerType[powerType])
     if not powerName then return end
-    if not self.powerCurves[powerType] then self:CreatePowerCurve(powerType) end
-    local powerPercent = UnitPowerPercent("player", EnumPowerType[powerType], nil, self.powerCurves[powerType])
-    ---@diagnostic disable-next-line: param-type-mismatch
-    local _, _, b = powerPercent:GetRGB()
-    state.power[powerType] = b
-    self:UpdateBareStateBlock(powerName, { "能量", "状态" })
+    if issecretvalue(power) then
+        if not self.powerCurves[powerType] then self:CreatePowerCurve(powerType) end
+        local powerPercent = UnitPowerPercent("player", EnumPowerType[powerType], nil, self.powerCurves[powerType])
+        ---@diagnostic disable-next-line: param-type-mismatch
+        local _, _, b = powerPercent:GetRGB()
+        state.power[powerType] = b
+        self:UpdateBareStateBlock(powerName, { "能量", "状态" })
+    else
+        state.power[powerType] = power / 255
+        self:UpdateBareStateBlock(powerName, { "能量", "状态" })
+    end
 end
 
 function Fuyutsui:UpdateChargedComboPoints()
