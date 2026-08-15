@@ -5,6 +5,7 @@ Fuyutsui.MacroBodies = {
     ["圣光潜力"] = "item:241308\n/cast item:241309",
     ["银月城生命药水"] = "item:241304\n/cast item:241305\n/cast item:271884\n/cast item:271885",
     ["浓缩银月城生命药水"] = "item:271884\n/cast item:271885\n/cast item:241304\n/cast item:241305",
+    ["圣言祭礼"] = "/cast 圣言祭礼\n/use 16",
 }
 -- 全职业宏表：按 UnitClassBase 键索引
 -- 由 LoadPlayerMacros 按当前职业与专精选取
@@ -101,6 +102,7 @@ Fuyutsui.ClassMacros = {
             "[@mouseover]自由祝福",
             "[@mouseover]代祷",
             "[@mouseover]圣疗术",
+            "圣言祭礼",
         },
         specialSpells = {},
     },

@@ -155,6 +155,7 @@ Fuyutsui.ClassBlocks = {
                 { name = "闪耀之光", spellId = 327510, maxApps = 2 },
                 { name = "正义盾击", spellId = 132403 },
                 { name = "奉献", spellId = 188370, },
+                { name = "圣言祭礼", spellId = 433550, },
 
             },
             target = {
