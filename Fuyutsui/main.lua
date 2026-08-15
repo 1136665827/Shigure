@@ -31,7 +31,6 @@ function Fuyutsui:UpdatePlayerBlocks()
     self:UpdatePlayerPowerType()
     C_Timer.After(1, function()
         self:UpdatePlayerConfig()
-        self:UpdatePlayerPowerType()
         self.isInitialized = true
     end)
 end
