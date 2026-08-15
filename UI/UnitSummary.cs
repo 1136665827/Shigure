@@ -15,7 +15,8 @@ internal static class UnitSummary
         var aura = unit.AuraNames is { Count: > 0 } ? unit.AuraNames[0] : "?";
         var auras = unit.AuraNames is { Count: > 0 } ? string.Join("/", unit.AuraNames) : "?";
         var dir = unit.Reverse ? "逆序" : "正序";
-        return unit.Kind switch
+        var roleFilter = DescribeRoleFilter(unit);
+        return roleFilter + (unit.Kind switch
         {
             UnitSelectorKind.LowestHealth => $"血量最低 (<{threshold})",
             UnitSelectorKind.LowestHealthWithAnyAura => $"带任一[{auras}]且血最低 (<{threshold})",
@@ -32,7 +33,7 @@ internal static class UnitSummary
             UnitSelectorKind.HighestHealingAbsorbWithAura => $"带[{aura}]且治疗吸收最高 (>{threshold})",
             UnitSelectorKind.HighestHealingAbsorbWithAuraCount => $"[{aura}]={unit.AuraCount}且治疗吸收最高 (>{threshold})",
             _ => unit.Kind.ToString()
-        };
+        });
     }
 
     public static string Describe(ModuleCountField count)
@@ -60,6 +61,25 @@ internal static class UnitSummary
             ? (fixedValue ?? defaultValue).ToString()
             : $"动态:{field.Trim()}";
     }
+
+    private static string DescribeRoleFilter(ModuleUnit unit)
+    {
+        if (!IsLowestHealthKind(unit.Kind) || unit.RoleFilter is null)
+        {
+            return string.Empty;
+        }
+
+        return unit.RoleFilter == UnitRoleFilterKind.Include
+            ? $"职责={unit.Role}且"
+            : $"职责!={unit.Role}且";
+    }
+
+    private static bool IsLowestHealthKind(UnitSelectorKind kind)
+        => kind is UnitSelectorKind.LowestHealth
+            or UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAura
+            or UnitSelectorKind.LowestHealthWithAura
+            or UnitSelectorKind.LowestHealthWithAuraCount;
 
     private static bool IsHealingAbsorbKind(UnitSelectorKind kind)
         => kind is UnitSelectorKind.HighestHealingAbsorb
