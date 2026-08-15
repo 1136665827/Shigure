@@ -215,10 +215,16 @@ local potions = {
     [241293] = "狂放恣意饮剂",
 }
 
-function Fuyutsui:ITEM_COUNT_CHANGED(_, itemID)
-    if potions[itemID] then
-        self:GetItemCount()
-    end
+function Fuyutsui:ITEM_COUNT_CHANGED()
+    self:GetItemCount()
+end
+
+function Fuyutsui:PLAYERBANKSLOTS_CHANGED()
+    self:GetItemCount()
+end
+
+function Fuyutsui:BAG_UPDATE()
+    self:GetItemCount()
 end
 
 function Fuyutsui:UNIT_HEALTH(_, unit)
