@@ -124,6 +124,8 @@ local stateBlockGetters = {
         ["敌人数-有仇恨"] = function() return state.threatEnemyCount or 0 end,
         ["酒池"] = function() return state.staggerPercent or 0 end,
         ["神圣军备"] = function() return state.holyArmaments or 0 end,
+        ["收割者战刃"] = function() return state.reaverGlaive or 0 end,
+        ["英勇打击"] = function() return state.heroicStrike or 0 end,
         -- 兼容：旧职业表仍把能量/配置/物品写在 ["状态"] 下
         ["符文"] = function() return GetRunePixel() end,
         ["姿态"] = function() return state.shapeshiftFormID or 0 end,
