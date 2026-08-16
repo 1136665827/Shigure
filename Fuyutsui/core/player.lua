@@ -302,6 +302,19 @@ function Fuyutsui:UpdateHolyArmaments(spellID) -- 神圣军备
     end
 end
 
+function Fuyutsui:UpdateReaverGlaive(spellID) -- 收割者战刃
+    if not spellID or spellID ~= 204157 then return end
+    local overrideSpellID = C_Spell.GetOverrideSpell(204157)
+
+    if overrideSpellID == 1283344 then
+        state.reaverGlaive = 1 / 255
+        self:UpdateStateBlock("状态", "收割者战刃")
+    else
+        state.reaverGlaive = 0
+        self:UpdateStateBlock("状态", "收割者战刃")
+    end
+end
+
 local heroicStrikeTimer = nil
 
 function Fuyutsui:UpdateHeroicStrike(spellID) -- 英勇打击

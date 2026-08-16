@@ -1,5 +1,5 @@
 local addon, ns = ...
-local screenWidth = GetScreenWidth()
+local screenWidth = GetScreenWidth() * 0.7
 
 --[[============================================================================
     可修改配置（置顶）
