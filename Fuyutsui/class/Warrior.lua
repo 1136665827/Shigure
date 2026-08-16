@@ -19,6 +19,7 @@ Fuyutsui.ClassBlocks = {
                 "首领战",
                 "难度",
                 "敌人数量",
+                "英勇打击",
             },
             ["能量"] = {
                 "怒气值",
@@ -58,7 +59,7 @@ Fuyutsui.ClassBlocks = {
                 { name = "巨人神力", spellId = 440989, maxApps = 10, },
                 { name = "刽子手的精准", spellId = 386633, maxApps = 2, },
                 { name = "英勇之力", spellId = 1292058, maxApps = 5, },
-                { name = "战争大师", spellId = 1269391, maxApps = 0, },
+                { name = "战争大师", spellId = 1269394, maxApps = 5, },
                 { name = "横扫攻击", spellId = 260708, maxApps = 12, },
                 { name = "粉碎连击", spellId = 1261189, maxApps = 2, },
                 { name = "趁虚而入", spellId = 456120, maxApps = 2, },

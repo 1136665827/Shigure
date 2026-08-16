@@ -191,7 +191,7 @@ end
 
 function Fuyutsui:SPELL_UPDATE_COOLDOWN(_, spellID, baseSpellID)
     if issecretvalue(spellID) then return end
-
+    -- print(spellID, baseSpellID, C_Spell.GetSpellLink(spellID))
     if spellID == 25771 then
         self:UpdatePlayerForbearance()
     end
@@ -293,6 +293,7 @@ end
 function Fuyutsui:SPELL_UPDATE_ICON(_, spellID)
     if issecretvalue(spellID) then return end
     self:UpdateHolyArmaments(spellID)
+    self:UpdateHeroicStrike(spellID)
 end
 
 local rosterTimer
