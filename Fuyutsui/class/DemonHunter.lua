@@ -123,9 +123,10 @@ Fuyutsui.ClassBlocks = {
                 -- 奥达奇
                 { name = "战刃绝技", spellId = 444661, maxApps = 20 },
                 { name = "撕裂猛击", spellId = 442442, }, -- 强化[破裂]
-                { name = "战刃乱舞", spellId = 442435, }, -- 强化[灵魂裂劈]
-                -- { name = "沸腾怒意", spellId = 1270547, maxApps = 20, },
-                -- { name = "无羁邪怒", spellId = 1270476, },
+                { name = "战刃乱舞", spellId = 442435 }, -- 强化[灵魂裂劈]
+                -- 其他
+                { name = "沸腾怒意", spellId = 1270547, maxApps = 20, },
+                { name = "无羁邪怒", spellId = 1270476, },
 
             },
             target = {
