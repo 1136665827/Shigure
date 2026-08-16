@@ -6,6 +6,7 @@ Fuyutsui.MacroBodies = {
     ["银月城生命药水"] = "item:241304\n/cast item:241305\n/cast item:271884\n/cast item:271885",
     ["浓缩银月城生命药水"] = "item:271884\n/cast item:271885\n/cast item:241304\n/cast item:241305",
     ["圣言祭礼"] = "/cast 圣言祭礼\n/use 16",
+    ["收割者战刃"] = "/cast 投掷利刃",
 }
 -- 全职业宏表：按 UnitClassBase 键索引
 -- 由 LoadPlayerMacros 按当前职业与专精选取
@@ -29,7 +30,6 @@ Fuyutsui.ClassMacros = {
             "横扫攻击",
             "天神下凡",
             "旋风斩",
-            "斩杀",
             "嗜血",
             "暴怒",
             "奥丁之怒",
@@ -103,6 +103,10 @@ Fuyutsui.ClassMacros = {
             "[@mouseover]代祷",
             "[@mouseover]圣疗术",
             "圣言祭礼",
+            "清毒术",
+            "复仇者之盾",
+            "责难",
+            "[@mouseover]圣洁鸣钟",
         },
         specialSpells = {},
     },
@@ -263,6 +267,7 @@ Fuyutsui.ClassMacros = {
             "圣言术：静",
             "银月城生命药水",
             "渐隐术",
+            "[@player]真言术：耀",
         },
         specialSpells = {
             "/castsequence reset=0.4 真言术：耀,x",
@@ -369,6 +374,7 @@ Fuyutsui.ClassMacros = {
             "闪电之盾",
             "[@cursor]狂风图腾",
             "[@target]净化灵魂",
+            "净化术",
         },
         specialSpells = {},
     },
@@ -624,8 +630,10 @@ Fuyutsui.ClassMacros = {
             "灵魂切削",
             "[@player]烈焰咒符",
             "[@player]怨念咒符",
-            "灵魂裂劈",
-            "破裂",
+            "[@target]灵魂裂劈",
+            "[@focus]灵魂裂劈",
+            "[@target]破裂",
+            "[@focus]破裂",
             "邪能毁灭",
             "[@cursor]沉默咒符",
             "虚空新星",
@@ -641,6 +649,7 @@ Fuyutsui.ClassMacros = {
             "灵魂献祭",
             "根除",
             "坍缩之星",
+            "收割者战刃",
         },
         specialSpells = {
             "/castsequence reset=0.5 恶魔变形,x",
