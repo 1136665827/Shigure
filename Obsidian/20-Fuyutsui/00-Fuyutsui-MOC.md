@@ -30,7 +30,7 @@ source_symbols:
   - Fuyutsui:OnEnable
   - Fuyutsui:LoadPlayerBlocks
   - Fuyutsui:CreateTexture
-verified_at: 2026-08-10
+verified_at: 2026-08-16
 ---
 
 # Fuyutsui 功能知识地图
@@ -75,6 +75,7 @@ verified_at: 2026-08-10
 | 玩家/目标/队伍光环 | [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] | `RefreshUnitAuraContainers`、`RefreshGroupAuraContainers` | 主色条与 CountBars |
 | 动作条扫描、安全宏边界 | [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] | `ReadKeybindings`、`CreateMacro` | 插件缓存与 Windows 按键契约 |
 | 命令、快捷按钮、SavedVariables | [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]] | `SlashCommand`、`SwitchCharFlag` | 配置像素与 UI |
+| `/fu` 命令用法与参数语义 | [[20-Fuyutsui/11-Fuyutsui-fu斜杠命令]] | `SlashCommand`、`InsertSpellCommand` | 角色配置、临时状态与快捷控件 |
 
 ## 既有专项页
 
