@@ -38,6 +38,7 @@ local AURA_BAR_LEVEL = 9004
 local HEAL_ABSORB_MAX_SLOTS = 30  -- 最大槽位数
 local HEAL_ABSORB_COLS = 5        -- 每行列数
 local HEAL_ABSORB_BAR_UNITS = 100 -- 单条条身单元数
+local HEAL_ABSORB_WIDTH_SCALE = 0.7 -- 单元宽度相对横向条的缩放比例
 
 --[[============================================================================
     派生尺寸（一般不用改）
@@ -60,6 +61,7 @@ local BAR_CONFIG = {
 
 local HEAL_ABSORB_SLOT_UNITS = 1 + HEAL_ABSORB_BAR_UNITS + 1 -- 前锚点 + 条身 + 终点
 local HEAL_ABSORB_ROWS = HEAL_ABSORB_MAX_SLOTS / HEAL_ABSORB_COLS
+local HEAL_ABSORB_UNIT_WIDTH = BAR_CONFIG.width * HEAL_ABSORB_WIDTH_SCALE
 
 local AURA_BLOCK_W = BLOCK_FIX_CONFIG.blockWidth
 local AURA_BLOCK_H = AURA_BLOCK_HEIGHT
@@ -349,18 +351,18 @@ end
 local function CreateHealAbsorbSlot(slot)
     local row = math.floor((slot - 1) / HEAL_ABSORB_COLS)
     local col = (slot - 1) % HEAL_ABSORB_COLS
-    local originX = col * HEAL_ABSORB_SLOT_UNITS * BAR_CONFIG.width
+    local originX = col * HEAL_ABSORB_SLOT_UNITS * HEAL_ABSORB_UNIT_WIDTH
     local originY = -row * BAR_CONFIG.height
     local rowR = row / 255
 
     local slotFrame = CreateFrame("Frame", nil, healAbsorbBars)
-    slotFrame:SetSize(HEAL_ABSORB_SLOT_UNITS * BAR_CONFIG.width, BAR_CONFIG.height)
+    slotFrame:SetSize(HEAL_ABSORB_SLOT_UNITS * HEAL_ABSORB_UNIT_WIDTH, BAR_CONFIG.height)
     slotFrame:SetPoint("TOPLEFT", healAbsorbBars, "TOPLEFT", originX, originY)
     slotFrame:Hide()
 
     -- 条前锚点：r=行号，g=单位编号（绑定时写入），b=0
     local anchor = slotFrame:CreateTexture(nil, "BACKGROUND")
-    anchor:SetSize(BAR_CONFIG.width, BAR_CONFIG.height)
+    anchor:SetSize(HEAL_ABSORB_UNIT_WIDTH, BAR_CONFIG.height)
     anchor:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", 0, 0)
     anchor:SetColorTexture(rowR, 0, 0, 1)
 
@@ -368,21 +370,21 @@ local function CreateHealAbsorbSlot(slot)
     local bodyTex = {}
     for i = 1, HEAL_ABSORB_BAR_UNITS do
         local tex = slotFrame:CreateTexture(nil, "BACKGROUND")
-        tex:SetSize(BAR_CONFIG.width, BAR_CONFIG.height)
-        tex:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", i * BAR_CONFIG.width, 0)
+        tex:SetSize(HEAL_ABSORB_UNIT_WIDTH, BAR_CONFIG.height)
+        tex:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", i * HEAL_ABSORB_UNIT_WIDTH, 0)
         tex:SetColorTexture(rowR, i / 255, 0, 1)
         bodyTex[i] = tex
     end
 
     -- 条右侧终点色块（与 CountBars BAR_END_COLOR 相同）
     local endTex = slotFrame:CreateTexture(nil, "BACKGROUND")
-    endTex:SetSize(BAR_CONFIG.width, BAR_CONFIG.height)
-    endTex:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", (1 + HEAL_ABSORB_BAR_UNITS) * BAR_CONFIG.width, 0)
+    endTex:SetSize(HEAL_ABSORB_UNIT_WIDTH, BAR_CONFIG.height)
+    endTex:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", (1 + HEAL_ABSORB_BAR_UNITS) * HEAL_ABSORB_UNIT_WIDTH, 0)
     endTex:SetColorTexture(BAR_END_COLOR[1], BAR_END_COLOR[2], BAR_END_COLOR[3], BAR_END_COLOR[4])
 
     local bar = CreateFrame("StatusBar", nil, slotFrame)
-    bar:SetSize(HEAL_ABSORB_BAR_UNITS * BAR_CONFIG.width + 1, BAR_CONFIG.height)
-    bar:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", BAR_CONFIG.width, 0)
+    bar:SetSize(HEAL_ABSORB_BAR_UNITS * HEAL_ABSORB_UNIT_WIDTH + 1, BAR_CONFIG.height)
+    bar:SetPoint("TOPLEFT", slotFrame, "TOPLEFT", HEAL_ABSORB_UNIT_WIDTH, 0)
     StyleHorizontalStatusBar(bar)
     bar:SetFrameLevel(BAR_STATUS_LEVEL)
     bar:SetMinMaxValues(0, 1)
