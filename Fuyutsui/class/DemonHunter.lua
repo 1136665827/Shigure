@@ -89,47 +89,69 @@ Fuyutsui.ClassBlocks = {
             },
             ["目标"] = {
                 "类型",
+                "生命值",
                 "施法",
-                "引导",
                 "施法可打断",
+                "引导",
                 "引导可打断",
+                "距离",
             },
             ["焦点"] = {
                 "施法",
-                "引导",
                 "施法可打断",
+                "引导",
                 "引导可打断",
+                "距离",
+            },
+            ["物品"] = {
+                "治疗石",
+                "鲁莽药水",
+                "圣光潜力",
+            },
+            ["配置开关"] = {
+                "爆发开关",
+                "爆发药水开关",
             },
         },
         auras = {
             player = {
+                -- 核心技能
                 { name = "恶魔尖刺", spellId = 203819, },
-                { name = "烈火烙印", spellId = 207771, },
-                { name = "沸腾怒意", spellId = 1270547, maxApps = 20, },
-                { name = "无羁邪怒", spellId = 1270476, },
+                { name = "烈火烙印", spellId = 207771 },
+                -- 奥达奇
+                { name = "战刃绝技", spellId = 444661, },
+                { name = "撕裂猛击", spellId = 442442, }, -- 强化[破裂]
+                { name = "战刃乱舞", spellId = 442435, }, -- 强化[灵魂裂劈]
+                -- { name = "沸腾怒意", spellId = 1270547, maxApps = 20, },
+                -- { name = "无羁邪怒", spellId = 1270476, },
+
             },
         },
         spells = {
+            -- 核心技能
+            { spellId = 263642, name = "破裂", charge = true, maxCharge = 2 },
+            { spellId = 228477, name = "灵魂裂劈", castCount = 6 },
+            { spellId = 247454, name = "幽魂炸弹" },
+            { spellId = 390163, name = "怨念咒符" },
+            { spellId = 204596, name = "烈焰咒符" },
+            { spellId = 232893, name = "邪能之刃" }, -- 小冲锋
+            { spellId = 185123, name = "投掷利刃", charge = true, maxCharge = 2 }, -- 奥达奇覆盖为204157
+            { spellId = 258920, name = "献祭光环" },
+            { spellId = 203720, name = "恶魔尖刺" },
+            -- 手动技能
+            { spellId = 204021, name = "烈火烙印", charge = true, maxCharge = 2 },
+            { spellId = 212084, name = "邪能毁灭" },
+            { spellId = 187827, name = "恶魔变形" },
+            { spellId = 189110, name = "地狱火撞击", charge = true, maxCharge = 2 },
+            -- 非核心技能
             { spellId = 196718, name = "黑暗" },
             { spellId = 198793, name = "复仇回避" },
-            { spellId = 185123, name = "投掷利刃", charge = true, maxCharge = 2 },
             { spellId = 207684, name = "悲苦咒符" },
             { spellId = 217832, name = "禁锢" },
-            { spellId = 258920, name = "献祭光环" },
             { spellId = 179057, name = "混乱新星" },
-            { spellId = 187827, name = "恶魔变形" },
-            { spellId = 232893, name = "邪能之刃" },
-            { spellId = 189110, name = "地狱火撞击", charge = true, maxCharge = 2 },
-            { spellId = 203720, name = "恶魔尖刺" },
-            { spellId = 204021, name = "烈火烙印", charge = true, maxCharge = 2 },
-            { spellId = 247454, name = "幽魂炸弹" },
             { spellId = 207407, name = "灵魂切削" },
-            { spellId = 204596, name = "烈焰咒符" },
-            { spellId = 390163, name = "怨念咒符" },
-            { spellId = 263642, name = "破裂", charge = true, maxCharge = 2 },
-            { spellId = 212084, name = "邪能毁灭" },
             { spellId = 202137, name = "沉默咒符" },
-            { spellId = 228477, name = "灵魂裂劈", castCount = 6 },
+
         },
     },
     [3] = {
@@ -299,4 +321,5 @@ Fuyutsui.spellsList = {
     [201453]  = { index = 54, name = "恶魔变形" },
     [200166]  = { index = 55, name = "恶魔变形" },
     [456640]  = { index = 56, name = "吞噬之焰" },
+    [1283344] = { index = 57, name = "收割者战刃" },
 }
