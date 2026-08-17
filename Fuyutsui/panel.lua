@@ -1,12 +1,13 @@
 --[[
 摘要：
-    Fuyutsui 前端面板原型：15 秒爆发计时条（点击按按键分派：左键重置/右键取消/中键长计时）+
-    三个状态切换按钮（AOE/循环/药水）。
+    Fuyutsui 前端面板原型：15 秒爆发计时条（悬停 Tooltip 三行按键说明；点击按按键分派：
+    左键重置/右键取消/中键长计时）+ 三个状态切换按钮（AOE/循环/药水）。
 描述：
     面板无标题栏、初始居中，采用 PhantomProject 手法：WindowBorder 1px 边框 + WindowBg
     内缩填充；上层为爆发计时条（轨道全透明、填充 SliderLeft 蓝，纯进度条无文字，
     点击按按键分派：左键重置 15 秒、右键取消、中键 1 小时长计时，随时间收缩或归零隐藏，
-    每帧刷新），下层为三个等宽切换按钮（BUTTON_BORDER=1
+    每帧刷新），悬停显示三行按键说明 Tooltip（左键/右键/中键，照 BindRowHover 手法）；
+    下层为三个等宽切换按钮（BUTTON_BORDER=1
     边框 + 内缩填充，悬停/按下变色，文字用 GameFontHighlightSmall 并随状态翻转改色）。
     全部尺寸为固定 UI 像素，取自文件头全大写常量（PANEL_WIDTH/ROW_HEIGHT/BAR_HEIGHT/
     SPACING/PANEL_BORDER/BUTTON_BORDER/CLICK_THRESHOLD/FONT_SIZE），不做缩放换算；面板可拖动，
@@ -21,6 +22,7 @@
     buttonDefs：三个按钮的默认态/点击态文字与颜色定义表
     panel：面板根框体（全局命名 FuyutsuiBurstPanel，子元素全部匿名）
 修改记录：
+    2026-08-17：计时条层新增悬停 Tooltip（左键/右键/中键三行按键说明，照 BindRowHover 手法）
     2026-08-17：新增 Fuyutsui 前端面板原型（爆发计时条 + 三按钮切换）
     2026-08-17：修改 按冻结后变更（提交 9d82699）取消 UI 缩放换算，尺寸改为文件头
         全大写常量；字体改为从 GameFontHighlightSmall 取字体文件/阴影并固定字号
@@ -96,6 +98,23 @@ barLayer:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PANEL_BORDER, -PANEL_BORDER)
 barLayer:SetHeight(ROW_HEIGHT)
 barLayer:EnableMouse(true)
 
+-- 悬停 Tooltip：照 PhantomProject BindRowHover 手法——标题行 SetText 绿（Fuyutsui）、
+-- 三行按键说明 AddLine 灰，锚定层右侧 SPACING 偏移，层级 TOOLTIP；OnMouseDown 隐藏、点击分派后由 OnMouseUp 恢复
+local function ShowBurstTooltip()
+    GameTooltip:SetOwner(barLayer, "ANCHOR_RIGHT", SPACING, 0)
+    GameTooltip:SetFrameStrata("TOOLTIP")
+    GameTooltip:SetFrameLevel(1000)
+    GameTooltip:SetText("Fuyutsui", 0, 1, 0.6, 1, true)
+    GameTooltip:AddLine("左键：爆发15秒", 0.8, 0.8, 0.8, true)
+    GameTooltip:AddLine("右键：取消爆发", 0.8, 0.8, 0.8, true)
+    GameTooltip:AddLine("中键：永久爆发", 0.8, 0.8, 0.8, true)
+    GameTooltip:Show()
+end
+barLayer:SetScript("OnEnter", ShowBurstTooltip) -- 悬停进入显示提示
+barLayer:SetScript("OnLeave", function()        -- 光标移出层后隐藏提示
+    GameTooltip:Hide()
+end)
+
 -- 计时条：轨道全透明、填充蓝，条高 BAR_HEIGHT 在层内严格垂直居中（上 3 下 3），条宽 = 层宽 - 2*SPACING
 local track = barLayer:CreateTexture(nil, "BACKGROUND") -- 计时条轨道（全透明，仅提供宽度/高度布局基准）
 track:SetPoint("TOPLEFT", barLayer, "TOPLEFT", SPACING, -(ROW_HEIGHT - BAR_HEIGHT) / 2)
@@ -129,6 +148,7 @@ end)
 
 -- 按下记录光标位置并启动面板拖动；抬起时位移小于 CLICK_THRESHOLD 像素判定为点击，按按键分派（见下方 OnMouseUp）
 barLayer:SetScript("OnMouseDown", function()
+    GameTooltip:Hide() -- 按下瞬间隐藏 Tooltip，拖动过程不显示
     pressX, pressY = GetCursorPosition()
     panel:StartMoving()
 end)
@@ -146,6 +166,7 @@ barLayer:SetScript("OnMouseUp", function(self, button)
         else
             burstTime = GetTime() + 15 -- Button4/Button5 等未请求变更的按键维持现状
         end
+        ShowBurstTooltip()             -- 判定为点击并分派后立即恢复 Tooltip（光标仍在层内）；拖动不恢复
     end
     panel:StopMovingOrSizing()
     panel:SetUserPlaced(false) -- 清除用户放置标记，避免位置被客户端保存
