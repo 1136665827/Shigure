@@ -30,6 +30,8 @@ Shigure 是荒坂公司（Arasaka Corporation）开发的冲锋枪。有时人�
 
 Shigure 是一个 Windows WinForms 桌面程序。它从目标窗口读取 Fuyutsui 绘制的像素状态，按职业 keymap 和模块规则选择按键，并在界面中展示状态、光环、技能、队伍、动态单位、逻辑结果和运行日志。
 
+程序采用单实例运行；再次启动时会提示“Shigure 已经在运行”，随后退出新实例。
+
 当前版本：`1.2.1`
 
 ## 主要功能
@@ -53,7 +55,7 @@ Shigure 是一个 Windows WinForms 桌面程序。它从目标窗口读取 Fuyut
 - `日志`：记录启动、停止、职业识别、模块匹配、逻辑状态、施放步骤、配置同步和异常。
 - `关于`：显示产品、公司、版本、模块目录和配置目录。
 
-触发键、发送模式、模块选择、模块保存以及配置同步都会按需重启运行循环。窗口位置、大小、模块选择和表格列宽等 UI 状态保存在我的文档目录 `{MyDocuments}/Shigure/cache/window-state.json`；模块保存在 `{MyDocuments}/Shigure/module`。`cache/` 与模块数据都是本地数据，默认不提交到 Git。
+触发键、发送模式、模块选择、模块保存以及配置同步都会按需重启运行循环。窗口位置、大小、主界面横纵布局（两个方向分别保存窗口位置）、模块选择和表格列宽等 UI 状态保存在我的文档目录 `{MyDocuments}/Shigure/cache/window-state.json`；模块保存在 `{MyDocuments}/Shigure/module`。`cache/` 与模块数据都是本地数据，默认不提交到 Git。
 
 ## 环境要求
 

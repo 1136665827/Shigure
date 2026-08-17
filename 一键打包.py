@@ -22,7 +22,7 @@ SKIP_DIRS = {
     ".agents",
     ".claude",
     "__pycache__",
-    "Senkoh",
+    "Obsidian",
     "artifacts",
     "bin",
     "cache",
@@ -179,26 +179,6 @@ def apply_replacements(backups: dict[Path, tuple[str, str]], new_name: str) -> N
         path.write_text(replace_text(text, new_name), encoding=encoding, newline="")
 
 
-def map_path_through_renames(path: Path, completed_renames: list[tuple[Path, Path]]) -> Path:
-    current_path = path
-    for old_path, new_path in completed_renames:
-        try:
-            relative_path = current_path.relative_to(old_path)
-        except ValueError:
-            continue
-        current_path = new_path / relative_path
-    return current_path
-
-
-def restore_replacements(
-    backups: dict[Path, tuple[str, str]],
-    completed_renames: list[tuple[Path, Path]],
-) -> None:
-    for path, (text, encoding) in backups.items():
-        restore_path = map_path_through_renames(path, completed_renames)
-        restore_path.write_text(text, encoding=encoding, newline="")
-
-
 def collect_path_renames(
     root: Path,
     script_path: Path,
@@ -254,13 +234,6 @@ def apply_path_renames(
     for old_path, new_path in rename_plan:
         old_path.rename(new_path)
         completed_renames.append((old_path, new_path))
-
-
-def restore_path_renames(completed_renames: list[tuple[Path, Path]]) -> None:
-    for old_path, new_path in reversed(completed_renames):
-        if old_path.exists():
-            raise FileExistsError(f"恢复目标已存在，无法安全恢复: {old_path}")
-        new_path.rename(old_path)
 
 
 def publish(root: Path, new_name: str) -> None:
@@ -323,10 +296,10 @@ def main() -> int:
             f"将把文本和路径中的 {OLD_NAME}、{ADDON_OLD_NAME} 按原文大小写形式 "
             f"替换为 {new_name}，并把 /fu 替换为 /{new_name[:2].lower()}。"
         )
-        print(f"预计临时修改 {len(preview_files)} 个文本文件，打包结束后会恢复。")
+        print(f"预计永久修改 {len(preview_files)} 个文本文件，打包结束后不会恢复。")
         for path in preview_files:
             print(f"- {path.relative_to(root)}")
-        print(f"预计临时重命名 {len(rename_plan)} 个文件或目录，打包结束后会恢复。")
+        print(f"预计永久重命名 {len(rename_plan)} 个文件或目录，打包结束后不会恢复。")
         for old_path, new_path in rename_plan:
             print(f"- {old_path.relative_to(root)} -> {new_path.relative_to(root)}")
     else:
@@ -341,38 +314,23 @@ def main() -> int:
         return 0
 
     completed_renames: list[tuple[Path, Path]] = []
-    error: BaseException | None = None
-
     try:
         if should_rename:
             apply_replacements(backups, new_name)
             apply_path_renames(rename_plan, completed_renames)
 
             print()
-            print(f"临时替换完成，已修改 {len(backups)} 个文本文件。")
+            print(f"名称替换完成，已永久修改 {len(backups)} 个文本文件。")
             print(f"已重命名 {len(completed_renames)} 个文件或目录。")
 
         publish(root, new_name)
     except BaseException as exc:
-        error = exc
-    finally:
-        if should_rename:
-            try:
-                print()
-                print("发布流程已结束，开始恢复项目名称。")
-                restore_replacements(backups, completed_renames)
-                restore_path_renames(completed_renames)
-                print()
-                print(f"已恢复项目名称为 {OLD_NAME}，插件名称为 {ADDON_OLD_NAME}。")
-            except BaseException as restore_exc:
-                print(f"恢复项目名称失败: {restore_exc}")
-                return 1
-
-    if error is not None:
-        if isinstance(error, KeyboardInterrupt):
+        if isinstance(exc, KeyboardInterrupt):
             print("执行已中断。")
         else:
-            print(f"执行失败: {error}")
+            print(f"执行失败: {exc}")
+        if should_rename and completed_renames:
+            print("名称替换已保留，不会恢复。")
         return 1
 
     print()
