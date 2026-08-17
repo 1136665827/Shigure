@@ -182,6 +182,20 @@ function Fuyutsui:InsertSpellCommand(rest)
     self:SetInsertSpell(index, spellName, unit)
 end
 
+--- /fu cd 系列命令统一动作：写 Fuyutsui.BurstTime 唯一真相 + 镜像 c.cooldowns + 打印
+--- 含时长文案 + 刷新 stateblock「爆发开关」像素 + 刷新快捷按钮显示态（不调用 SwitchCooldown）
+local function SetBurstTime(c, seconds, cooldown, text)
+    Fuyutsui.BurstTime = GetTime() + seconds
+    c.cooldowns = cooldown
+    print(text)
+    if Fuyutsui.UpdateBareStateBlock then
+        Fuyutsui:UpdateBareStateBlock("爆发开关", { "配置开关", "状态" })
+    end
+    if Fuyutsui.RefreshQuickToggleAppearance then
+        Fuyutsui:RefreshQuickToggleAppearance()
+    end
+end
+
 function Fuyutsui:SlashCommand(input, editbox)
     input = strtrim(input or "")
     local command = string.lower(input)
@@ -189,16 +203,24 @@ function Fuyutsui:SlashCommand(input, editbox)
     local c = self:GetCharConfig()
     if command == "cd" then
         if not c then return end
-        c.cooldowns = (c.cooldowns == 0) and 1 or 0
-        self:SwitchCooldown()
+        SetBurstTime(c, 15, 1, "|cff00ff00[Fuyutsui]|r 爆发已开启（15 秒）")
     elseif command == "cd on" then
         if not c then return end
-        c.cooldowns = 1
-        self:SwitchCooldown()
+        SetBurstTime(c, 3600, 1, "|cff00ff00[Fuyutsui]|r 爆发已开启（3600 秒）")
     elseif command == "cd off" then
         if not c then return end
-        c.cooldowns = 0
-        self:SwitchCooldown()
+        SetBurstTime(c, -1, 0, "|cff00ff00[Fuyutsui]|r 爆发已关闭")
+    elseif command:match("^cd%s+") then
+        if not c then return end
+        local secStr = command:match("^cd%s+(.+)$")
+        local sec = tonumber(strtrim(secStr or ""))
+        if not sec then
+            print("|cff00ff00[Fuyutsui]|r 无效秒数；请输入数字（例如 /fu cd 30），或使用 /fu cd on / /fu cd off。")
+        elseif sec > 0 then
+            SetBurstTime(c, sec, 1, "|cff00ff00[Fuyutsui]|r 爆发已开启（" .. sec .. " 秒）")
+        else
+            SetBurstTime(c, -1, 0, "|cff00ff00[Fuyutsui]|r 爆发已关闭")
+        end
     elseif command == "aoemode" then
         if not c then return end
         c.aoeMode = (c.aoeMode == 0) and 1 or 0
@@ -280,9 +302,10 @@ function Fuyutsui:SlashCommand(input, editbox)
         self:InsertSpellCommand(rest)
     elseif command == "help" or command == "" then
         print("|cff00ff00Fuyutsui|r 命令列表:")
-        print("爆发开关: /fu cd")
-        print("|cff00ff00开启|r爆发: /fu cd on")
+        print("爆发开关（开启 15 秒）: /fu cd")
+        print("|cff00ff00开启|r爆发（长计时 3600 秒）: /fu cd on")
         print("|cffff0000关闭|r爆发: /fu cd off")
+        print("按秒开启爆发: /fu cd xx（xx 为秒数，<=0 等同关闭）")
         print("切换AOE模式: /fu aoemode")
         print("切换AOE为|cff00ff00自动|r: /fu aoemode auto")
         print("切换AOE为|cff00ff00单体|r: /fu aoemode aoe")

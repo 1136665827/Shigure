@@ -57,4 +57,3 @@ core/target.lua
 core/group.lua
 core/events.lua
 main.lua
-panel.lua
