@@ -25,9 +25,9 @@
 local addon, ns = ... -- 保持 Fuyutsui 文件惯例，本文件不引用
 
 -- 固定 UI 像素尺寸常量（文件头集中定义，所有尺寸直接引用，不做缩放换算）
-local PANEL_WIDTH = 180
-local ROW_HEIGHT = 18
-local SPACING = 4
+local PANEL_WIDTH = 120
+local ROW_HEIGHT = 16
+local SPACING = 2
 local PANEL_BORDER = 1
 local BUTTON_BORDER = 1
 local CLICK_THRESHOLD = 5
