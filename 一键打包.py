@@ -329,7 +329,7 @@ def main() -> int:
             print("执行已中断。")
         else:
             print(f"执行失败: {exc}")
-        if should_rename and completed_renames:
+        if should_rename:
             print("名称替换已保留，不会恢复。")
         return 1
 
