@@ -4,6 +4,12 @@ namespace Shigure;
 
 public sealed class MainForm : Form, IMessageFilter
 {
+    private enum MainWindowLayout
+    {
+        Horizontal,
+        Vertical
+    }
+
     private const int ResizeGripSize = 8;
     private const int RoundedCornerResizeDebounceMs = 80;
     private const string HeaderIconResourcePath = "Assets.arasaka-icon-transparent.png";
@@ -34,7 +40,8 @@ public sealed class MainForm : Form, IMessageFilter
     private Label _configSourceLabel = null!;
     private Button _updateConfigButton = null!;
     private readonly ToolTip _settingsToolTip = new();
-    private Button _settingsButton = null!;
+    private Button _horizontalLayoutButton = null!;
+    private Button _verticalLayoutButton = null!;
     private string _toggleKeyName = "XBUTTON2";
     private string? _selectedModuleId;
     private bool _isCapturingToggleKey;
@@ -42,11 +49,14 @@ public sealed class MainForm : Form, IMessageFilter
     private string? _lastModuleSelectorSignature;
     private bool _usesDwmRoundedCorners = true;
 
-    private Button _enableButton = null!;
-
-    private PictureBox _headerIcon = null!;
-    private Label _titleLabel = null!;
-    private Label _runtimeStatusLabel = null!;
+    private readonly List<Button> _enableButtons = [];
+    private Button _verticalEnableButton = null!;
+    private readonly List<PictureBox> _headerIcons = [];
+    private readonly List<Label> _titleLabels = [];
+    private readonly List<Label> _runtimeStatusLabels = [];
+    private Control _horizontalTopBar = null!;
+    private Control _verticalTopBar = null!;
+    private MainWindowLayout _mainWindowLayout = MainWindowLayout.Horizontal;
     private Bitmap? _headerIconMask;
     private Color? _currentHeaderIconColor;
 
@@ -393,23 +403,41 @@ public sealed class MainForm : Form, IMessageFilter
         ForeColor = UiTheme.Text;
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
-        var root = new TableLayoutPanel
+        var root = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = Color.Transparent,
             Padding = new Padding(12),
-            RowCount = 1,
-            ColumnCount = 1
+            Margin = new Padding(0)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         Controls.Add(root);
 
-        root.Controls.Add(BuildTopBar(), 0, 0);
+        root.Controls.Add(BuildTopBars());
 
         ResumeLayout(false);
     }
 
-    private Control BuildTopBar()
+    private Control BuildTopBars()
+    {
+        var host = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+
+        _horizontalTopBar = BuildHorizontalTopBar();
+        _verticalTopBar = BuildVerticalTopBar();
+        _verticalTopBar.Visible = false;
+        host.Controls.Add(_horizontalTopBar);
+        host.Controls.Add(_verticalTopBar);
+
+        _currentHeaderIconColor = null;
+        UpdateHeaderIconColor(null);
+        return host;
+    }
+
+    private Control BuildHorizontalTopBar()
     {
         var bar = new TableLayoutPanel
         {
@@ -422,6 +450,7 @@ public sealed class MainForm : Form, IMessageFilter
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        bar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var brand = new FlowLayoutPanel
         {
@@ -434,10 +463,8 @@ public sealed class MainForm : Form, IMessageFilter
             Padding = new Padding(0)
         };
 
-        _headerIcon = CreateHeaderIcon();
-        UpdateHeaderIconColor(null);
-
-        _titleLabel = new Label
+        var headerIcon = CreateHeaderIcon();
+        var titleLabel = new Label
         {
             Text = "Shigure",
             AutoSize = true,
@@ -446,11 +473,7 @@ public sealed class MainForm : Form, IMessageFilter
             ForeColor = UiTheme.Text,
             Margin = new Padding(8, 0, 0, 0)
         };
-
-        brand.Controls.Add(_headerIcon);
-        brand.Controls.Add(_titleLabel);
-
-        _runtimeStatusLabel = new Label
+        var runtimeStatusLabel = new Label
         {
             Text = string.Empty,
             AutoSize = false,
@@ -459,42 +482,127 @@ public sealed class MainForm : Form, IMessageFilter
             ForeColor = UiTheme.Muted
         };
 
+        brand.Controls.Add(headerIcon);
+        brand.Controls.Add(titleLabel);
+        var buttons = BuildTopBarButtons(vertical: false);
+
+        RegisterTopBarPresentation(headerIcon, titleLabel, runtimeStatusLabel);
         EnableDrag(bar);
         EnableDrag(brand);
-        EnableDrag(_headerIcon);
-        EnableDrag(_titleLabel);
-        EnableDrag(_runtimeStatusLabel);
+        EnableDrag(headerIcon);
+        EnableDrag(titleLabel);
+        EnableDrag(runtimeStatusLabel);
 
+        bar.Controls.Add(brand, 0, 0);
+        bar.Controls.Add(runtimeStatusLabel, 1, 0);
+        bar.Controls.Add(buttons, 2, 0);
+        return bar;
+    }
+
+    private Control BuildVerticalTopBar()
+    {
+        var bar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        bar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        bar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var brand = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            Anchor = AnchorStyles.Top,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+
+        var headerIcon = CreateHeaderIcon();
+        headerIcon.Anchor = AnchorStyles.Top;
+        var titleFont = new Font(Font.FontFamily, 13F, FontStyle.Bold);
+        // 旋转后由 GDI+ 绘制文字，保留 GDI 的默认字形外延并额外留出少量边距，
+        // 避免末尾字符因两套文字测量方式的差异被裁掉。
+        var titleSize = TextRenderer.MeasureText("Shigure", titleFont);
+        var titleLabel = new RotatableLabel
+        {
+            Text = "Shigure",
+            AutoSize = false,
+            Size = new Size(titleSize.Width + 4, 32),
+            Anchor = AnchorStyles.Top,
+            Font = titleFont,
+            ForeColor = UiTheme.Text,
+            Margin = new Padding(0, 8, 0, 0)
+        };
+        titleLabel.Rotated = true;
+        var runtimeStatusLabel = new RotatableLabel
+        {
+            Text = string.Empty,
+            AutoSize = false,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Muted
+        };
+        runtimeStatusLabel.Rotated = true;
+
+        brand.Controls.Add(headerIcon);
+        brand.Controls.Add(titleLabel);
+        var buttons = BuildTopBarButtons(vertical: true);
+
+        RegisterTopBarPresentation(headerIcon, titleLabel, runtimeStatusLabel);
+        EnableDrag(bar);
+        EnableDrag(brand);
+        EnableDrag(headerIcon);
+        EnableDrag(titleLabel);
+        EnableDrag(runtimeStatusLabel);
+
+        bar.Controls.Add(brand, 0, 0);
+        bar.Controls.Add(runtimeStatusLabel, 0, 1);
+        bar.Controls.Add(buttons, 0, 2);
+        return bar;
+    }
+
+    private FlowLayoutPanel BuildTopBarButtons(bool vertical)
+    {
         var buttons = new FlowLayoutPanel
         {
             AutoSize = true,
-            Anchor = AnchorStyles.Right,
-            FlowDirection = FlowDirection.LeftToRight,
+            Anchor = vertical ? AnchorStyles.Bottom : AnchorStyles.Right,
+            FlowDirection = vertical ? FlowDirection.TopDown : FlowDirection.LeftToRight,
             WrapContents = false,
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
 
-        _enableButton = UiTheme.CreateButton("开关", UiTheme.Field, UiTheme.Text);
-        ConfigureTopBarButton(_enableButton);
-        _enableButton.Click += (_, _) => ToggleEnabled();
-
-        _settingsButton = UiTheme.CreateButton("设置", UiTheme.Field, UiTheme.Text);
-        ConfigureTopBarButton(_settingsButton);
-        _settingsButton.Click += (_, _) => ShowSettingsView();
-
-        var closeButton = UiTheme.CreateButton("✕", UiTheme.Field, UiTheme.Muted);
-        ConfigureTopBarButton(closeButton);
+        var enableButton = CreateTopBarButton(vertical ? "开\r\n启" : "开关", UiTheme.Field, UiTheme.Text, vertical);
+        enableButton.Click += (_, _) => ToggleEnabled();
+        var settingsButton = CreateTopBarButton(vertical ? "设\r\n置" : "设置", UiTheme.Field, UiTheme.Text, vertical);
+        settingsButton.Click += (_, _) => ShowSettingsView();
+        var closeButton = CreateTopBarButton(vertical ? "X" : "✕", UiTheme.Field, UiTheme.Muted, vertical);
         closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(196, 43, 28);
         closeButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(153, 27, 21);
         closeButton.Click += (_, _) => Close();
 
-        buttons.Controls.AddRange(new Control[] { _enableButton, _settingsButton, closeButton });
+        _enableButtons.Add(enableButton);
+        if (vertical)
+        {
+            _verticalEnableButton = enableButton;
+        }
+        buttons.Controls.AddRange([enableButton, settingsButton, closeButton]);
+        return buttons;
+    }
 
-        bar.Controls.Add(brand, 0, 0);
-        bar.Controls.Add(_runtimeStatusLabel, 1, 0);
-        bar.Controls.Add(buttons, 2, 0);
-        return bar;
+    private void RegisterTopBarPresentation(PictureBox icon, Label title, Label status)
+    {
+        _headerIcons.Add(icon);
+        _titleLabels.Add(title);
+        _runtimeStatusLabels.Add(status);
     }
 
     private static PictureBox CreateHeaderIcon()
@@ -528,9 +636,12 @@ public sealed class MainForm : Form, IMessageFilter
             return;
         }
 
-        var previous = _headerIcon.Image;
-        _headerIcon.Image = TintHeaderIcon(_headerIconMask, color);
-        previous?.Dispose();
+        foreach (var headerIcon in _headerIcons)
+        {
+            var previous = headerIcon.Image;
+            headerIcon.Image = TintHeaderIcon(_headerIconMask, color);
+            previous?.Dispose();
+        }
     }
 
     private static Color ResolveClassIconColor(int? classId)
@@ -591,7 +702,7 @@ public sealed class MainForm : Form, IMessageFilter
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             BackColor = UiTheme.Surface,
             ColumnCount = 2,
-            RowCount = 2,
+            RowCount = 3,
             Padding = new Padding(0),
             Margin = new Padding(0)
         };
@@ -601,6 +712,7 @@ public sealed class MainForm : Form, IMessageFilter
         const int settingsCardGap = 14;
         const int settingsActionButtonHeight = 36;
         // 第一行包含 14px 下间距；第二行无需间距，因此卡片的实际高度均为 232px。
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight));
 
@@ -708,7 +820,7 @@ public sealed class MainForm : Form, IMessageFilter
             ColumnCount = 2,
             RowCount = 4,
             Padding = new Padding(18),
-            Margin = new Padding(0, 0, 7, 0)
+            Margin = new Padding(0, 0, 7, settingsCardGap)
         };
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
@@ -758,7 +870,7 @@ public sealed class MainForm : Form, IMessageFilter
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(18),
-            Margin = new Padding(7, 0, 0, 0)
+            Margin = new Padding(7, 0, 0, settingsCardGap)
         };
         getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
@@ -819,10 +931,56 @@ public sealed class MainForm : Form, IMessageFilter
         moduleActions.Controls.Add(openModuleDirectoryButton);
         getModulesCard.Controls.Add(moduleActions, 0, 3);
 
+        var layoutCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(0, 0, 7, 0)
+        };
+        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        layoutCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        layoutCard.Controls.Add(CreateTitle("界面布局"), 0, 0);
+        layoutCard.Controls.Add(CreateDescription("选择主界面浮动条的排列方向"), 0, 1);
+        var layoutInfoLabel = CreateInfoLabel("切换时会交换主界面的宽高，控件与功能保持不变");
+        layoutInfoLabel.Dock = DockStyle.Fill;
+        layoutInfoLabel.AutoSize = false;
+        layoutInfoLabel.TextAlign = ContentAlignment.TopLeft;
+        layoutInfoLabel.Margin = new Padding(0, 10, 0, 8);
+        layoutCard.Controls.Add(layoutInfoLabel, 0, 2);
+
+        var layoutActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        _horizontalLayoutButton = UiTheme.CreateButton("横向布局", UiTheme.ButtonKind.Secondary);
+        _horizontalLayoutButton.AutoSize = false;
+        _horizontalLayoutButton.Size = new Size(140, settingsActionButtonHeight);
+        _horizontalLayoutButton.Margin = new Padding(0, 0, 10, 0);
+        _horizontalLayoutButton.Click += (_, _) => SetMainWindowLayout(MainWindowLayout.Horizontal);
+        _verticalLayoutButton = UiTheme.CreateButton("纵向布局", UiTheme.ButtonKind.Secondary);
+        _verticalLayoutButton.AutoSize = false;
+        _verticalLayoutButton.Size = new Size(140, settingsActionButtonHeight);
+        _verticalLayoutButton.Margin = new Padding(0);
+        _verticalLayoutButton.Click += (_, _) => SetMainWindowLayout(MainWindowLayout.Vertical);
+        layoutActions.Controls.Add(_horizontalLayoutButton);
+        layoutActions.Controls.Add(_verticalLayoutButton);
+        layoutCard.Controls.Add(layoutActions, 0, 3);
+
         panel.Controls.Add(inputCard, 0, 0);
         panel.Controls.Add(configCard, 1, 0);
         panel.Controls.Add(moduleCard, 0, 1);
         panel.Controls.Add(getModulesCard, 1, 1);
+        panel.Controls.Add(layoutCard, 0, 2);
+        UpdateLayoutButtons();
         scrollHost.Controls.Add(panel);
         scrollHost.Resize += (_, _) => panel.Width = Math.Max(0, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
         return scrollHost;
@@ -1363,7 +1521,10 @@ public sealed class MainForm : Form, IMessageFilter
             }
 
             AppendLog($"运行异常: {exception.Message}");
-            _titleLabel.ForeColor = UiTheme.Danger;
+            foreach (var titleLabel in _titleLabels)
+            {
+                titleLabel.ForeColor = UiTheme.Danger;
+            }
             SetRuntimeControls(running: false);
         });
     }
@@ -1385,7 +1546,12 @@ public sealed class MainForm : Form, IMessageFilter
 
         UpdateHeaderIconColor(snapshot.ClassId);
         UpdateLogicStatusLabel(snapshot.Enabled);
-        _enableButton.Text = snapshot.Enabled ? "关闭" : "开启";
+        foreach (var enableButton in _enableButtons)
+        {
+            enableButton.Text = enableButton == _verticalEnableButton
+                ? snapshot.Enabled ? "关\r\n闭" : "开\r\n启"
+                : snapshot.Enabled ? "关闭" : "开启";
+        }
 
         RefreshModuleSelector(snapshot, forceRefresh: false);
         _statusForm.ApplySnapshot(snapshot);
@@ -1614,13 +1780,22 @@ public sealed class MainForm : Form, IMessageFilter
             UpdateLogicStatusLabel(enabled: false);
         }
 
-        _enableButton.Enabled = running;
+        foreach (var enableButton in _enableButtons)
+        {
+            enableButton.Enabled = running;
+        }
     }
 
     private void UpdateLogicStatusLabel(bool enabled)
     {
-        _runtimeStatusLabel.Text = string.Empty;
-        _titleLabel.ForeColor = enabled ? UiTheme.Accent : UiTheme.Text;
+        foreach (var statusLabel in _runtimeStatusLabels)
+        {
+            statusLabel.Text = string.Empty;
+        }
+        foreach (var titleLabel in _titleLabels)
+        {
+            titleLabel.ForeColor = enabled ? UiTheme.Accent : UiTheme.Text;
+        }
     }
 
     private void PostToUi(Action action)
@@ -1758,20 +1933,12 @@ public sealed class MainForm : Form, IMessageFilter
 
     private void ApplyCachedWindowState()
     {
-        if (_uiCache.MainWindowBounds is { } mainBounds)
-        {
-            var restoredBounds = new Rectangle(
-                mainBounds.X,
-                mainBounds.Y,
-                Math.Max(MinimumSize.Width, mainBounds.Width),
-                Math.Max(MinimumSize.Height, mainBounds.Height));
-            if (UiCacheStore.IsBoundsVisible(restoredBounds))
-            {
-                StartPosition = FormStartPosition.Manual;
-                Bounds = restoredBounds;
-            }
-        }
-        else if (_uiCache.MainWindowLocation is { } mainLocation)
+        var cachedLayout = ParseMainWindowLayout(_uiCache.MainWindowLayout);
+        SetMainWindowLayout(cachedLayout, persist: false);
+
+        var cachedBounds = GetCachedMainWindowBounds(cachedLayout) ?? _uiCache.MainWindowBounds;
+        if (!TryApplyCachedMainWindowBounds(cachedBounds)
+            && _uiCache.MainWindowLocation is { } mainLocation)
         {
             var restoredBounds = new Rectangle(mainLocation.X, mainLocation.Y, Width, Height);
             if (UiCacheStore.IsBoundsVisible(restoredBounds))
@@ -1790,13 +1957,9 @@ public sealed class MainForm : Form, IMessageFilter
         var latestCache = UiCacheStore.Load();
         _uiCache.ModuleRulesGridColumns = latestCache.ModuleRulesGridColumns;
 
-        _uiCache.MainWindowBounds = new WindowBounds
-        {
-            X = Left,
-            Y = Top,
-            Width = Width,
-            Height = Height
-        };
+        var currentBounds = CaptureMainWindowBounds();
+        _uiCache.MainWindowBounds = currentBounds;
+        SetCachedMainWindowBounds(_mainWindowLayout, currentBounds);
         _uiCache.MainWindowLocation = new WindowLocation
         {
             X = Left,
@@ -1810,6 +1973,7 @@ public sealed class MainForm : Form, IMessageFilter
 
         _uiCache.SelectedSettingsPage = _statusForm.SelectedPageKey;
 
+        _uiCache.MainWindowLayout = _mainWindowLayout.ToString();
         _uiCache.ToggleKey = _toggleKeyName;
         _uiCache.SelectedModuleId = _selectedModuleId;
         UiCacheStore.Save(_uiCache);
@@ -1970,6 +2134,296 @@ public sealed class MainForm : Form, IMessageFilter
         button.AutoSize = false;
         button.Size = new Size(88, 36);
         button.Padding = new Padding(4, 1, 4, 1);
+    }
+
+    private static Button CreateTopBarButton(string text, Color backColor, Color foreColor, bool vertical)
+    {
+        Button button;
+        if (vertical)
+        {
+            var stackedButton = new StackedTextButton();
+            UiTheme.StyleButton(stackedButton, text, backColor, foreColor);
+            button = stackedButton;
+        }
+        else
+        {
+            button = UiTheme.CreateButton(text, backColor, foreColor);
+        }
+
+        ConfigureTopBarButton(button);
+        button.Size = vertical ? new Size(36, 88) : new Size(88, 36);
+        button.Margin = vertical ? new Padding(0, 6, 0, 0) : new Padding(6, 0, 0, 0);
+        return button;
+    }
+
+    private void SetMainWindowLayout(MainWindowLayout layout, bool persist = true)
+    {
+        if (_mainWindowLayout == layout)
+        {
+            UpdateLayoutButtons();
+            return;
+        }
+
+        if (persist)
+        {
+            SetCachedMainWindowBounds(_mainWindowLayout, CaptureMainWindowBounds());
+        }
+
+        var previousClientSize = ClientSize;
+        _mainWindowLayout = layout;
+        var vertical = layout == MainWindowLayout.Vertical;
+
+        SuspendLayout();
+        try
+        {
+            MinimumSize = Size.Empty;
+            ClientSize = new Size(previousClientSize.Height, previousClientSize.Width);
+            MinimumSize = vertical ? new Size(56, 420) : new Size(420, 56);
+            _horizontalTopBar.Visible = !vertical;
+            _verticalTopBar.Visible = vertical;
+            (vertical ? _verticalTopBar : _horizontalTopBar).BringToFront();
+        }
+        finally
+        {
+            ResumeLayout(true);
+        }
+
+        if (persist)
+        {
+            TryApplyCachedMainWindowBounds(GetCachedMainWindowBounds(layout));
+        }
+
+        UpdateLayoutButtons();
+        if (persist)
+        {
+            SaveUiCache();
+        }
+    }
+
+    private WindowBounds CaptureMainWindowBounds()
+    {
+        return new WindowBounds
+        {
+            X = Left,
+            Y = Top,
+            Width = Width,
+            Height = Height
+        };
+    }
+
+    private WindowBounds? GetCachedMainWindowBounds(MainWindowLayout layout)
+        => layout == MainWindowLayout.Vertical
+            ? _uiCache.VerticalMainWindowBounds
+            : _uiCache.HorizontalMainWindowBounds;
+
+    private void SetCachedMainWindowBounds(MainWindowLayout layout, WindowBounds bounds)
+    {
+        if (layout == MainWindowLayout.Vertical)
+        {
+            _uiCache.VerticalMainWindowBounds = bounds;
+        }
+        else
+        {
+            _uiCache.HorizontalMainWindowBounds = bounds;
+        }
+    }
+
+    private bool TryApplyCachedMainWindowBounds(WindowBounds? bounds)
+    {
+        if (bounds is null)
+        {
+            return false;
+        }
+
+        var restoredBounds = new Rectangle(
+            bounds.X,
+            bounds.Y,
+            Math.Max(MinimumSize.Width, bounds.Width),
+            Math.Max(MinimumSize.Height, bounds.Height));
+        if (!UiCacheStore.IsBoundsVisible(restoredBounds))
+        {
+            return false;
+        }
+
+        StartPosition = FormStartPosition.Manual;
+        Bounds = restoredBounds;
+        return true;
+    }
+
+    private static MainWindowLayout ParseMainWindowLayout(string? value)
+        => Enum.TryParse<MainWindowLayout>(value, ignoreCase: true, out var layout)
+            ? layout
+            : MainWindowLayout.Horizontal;
+
+    private void UpdateLayoutButtons()
+    {
+        if (_horizontalLayoutButton is null || _verticalLayoutButton is null)
+        {
+            return;
+        }
+
+        StyleLayoutButton(_horizontalLayoutButton, _mainWindowLayout == MainWindowLayout.Horizontal);
+        StyleLayoutButton(_verticalLayoutButton, _mainWindowLayout == MainWindowLayout.Vertical);
+    }
+
+    private static void StyleLayoutButton(Button button, bool selected)
+    {
+        button.BackColor = selected ? UiTheme.Accent : UiTheme.Field;
+        button.ForeColor = selected ? Color.FromArgb(10, 31, 31) : UiTheme.Text;
+        button.FlatAppearance.BorderColor = selected ? UiTheme.Accent : UiTheme.Border;
+        button.FlatAppearance.MouseOverBackColor = selected ? Color.FromArgb(112, 234, 221) : UiTheme.Hover;
+        button.FlatAppearance.MouseDownBackColor = selected ? Color.FromArgb(62, 194, 181) : UiTheme.Pressed;
+    }
+
+    private sealed class RotatableLabel : Label
+    {
+        private string _displayText = string.Empty;
+        private bool _rotated;
+        private bool _suppressBaseText;
+
+        [System.ComponentModel.DesignerSerializationVisibility(
+            System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public bool Rotated
+        {
+            get => _rotated;
+            set
+            {
+                if (_rotated == value)
+                {
+                    return;
+                }
+
+                _rotated = value;
+                var size = Size;
+                Size = new Size(size.Height, size.Width);
+                base.Text = value ? string.Empty : _displayText;
+                Invalidate();
+            }
+        }
+
+        [System.Diagnostics.CodeAnalysis.AllowNull]
+        public override string Text
+        {
+            get => _suppressBaseText ? string.Empty : _displayText;
+            set
+            {
+                _displayText = value ?? string.Empty;
+                base.Text = _rotated ? string.Empty : _displayText;
+                Invalidate();
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            if (!_rotated)
+            {
+                base.OnPaint(e);
+                return;
+            }
+
+            _suppressBaseText = true;
+            try
+            {
+                base.OnPaint(e);
+            }
+            finally
+            {
+                _suppressBaseText = false;
+            }
+
+            if (string.IsNullOrEmpty(_displayText))
+            {
+                return;
+            }
+            DrawRotatedText(e.Graphics, ClientRectangle, _displayText, Font, ForeColor);
+        }
+    }
+
+    private sealed class StackedTextButton : Button
+    {
+        private string _displayText = string.Empty;
+        private bool _suppressBaseText;
+
+        [System.Diagnostics.CodeAnalysis.AllowNull]
+        public override string Text
+        {
+            get => _suppressBaseText ? string.Empty : _displayText;
+            set
+            {
+                _displayText = value ?? string.Empty;
+                base.Text = string.Empty;
+                Invalidate();
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs pevent)
+        {
+            _suppressBaseText = true;
+            try
+            {
+                base.OnPaint(pevent);
+            }
+            finally
+            {
+                _suppressBaseText = false;
+            }
+
+            var lines = _displayText.Replace("\r", string.Empty).Split('\n');
+            if (lines.Length == 0)
+            {
+                return;
+            }
+
+            var flags = TextFormatFlags.HorizontalCenter
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.NoPadding
+                | TextFormatFlags.NoPrefix;
+            var lineHeight = TextRenderer.MeasureText(
+                pevent.Graphics,
+                "开",
+                Font,
+                Size.Empty,
+                TextFormatFlags.NoPadding).Height;
+            var totalHeight = lineHeight * lines.Length;
+            var top = Math.Max(0, (ClientSize.Height - totalHeight) / 2);
+            for (var index = 0; index < lines.Length; index++)
+            {
+                var lineBounds = new Rectangle(0, top + (index * lineHeight), ClientSize.Width, lineHeight);
+                TextRenderer.DrawText(pevent.Graphics, lines[index], Font, lineBounds, ForeColor, flags);
+            }
+        }
+    }
+
+    private static void DrawRotatedText(
+        Graphics graphics,
+        Rectangle bounds,
+        string text,
+        Font font,
+        Color color)
+    {
+        var state = graphics.Save();
+        try
+        {
+            graphics.TranslateTransform(bounds.Left + bounds.Width / 2F, bounds.Top + bounds.Height / 2F);
+            graphics.RotateTransform(90F);
+            using var brush = new SolidBrush(color);
+            using var format = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags = StringFormatFlags.NoWrap
+            };
+            graphics.DrawString(
+                text,
+                font,
+                brush,
+                new RectangleF(-bounds.Height / 2F, -bounds.Width / 2F, bounds.Height, bounds.Width),
+                format);
+        }
+        finally
+        {
+            graphics.Restore(state);
+        }
     }
 
     private sealed record ModuleSelectionOption(string? ModuleId, string Text)

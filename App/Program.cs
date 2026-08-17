@@ -2,6 +2,8 @@ namespace Shigure;
 
 internal static class Program
 {
+    private const string SingleInstanceMutexName = @"Global\ArasakaCorporation.Shigure.SingleInstance";
+
     [STAThread]
     private static void Main(string[] args)
     {
@@ -17,22 +19,43 @@ internal static class Program
 
         ApplicationConfiguration.Initialize();
 
-        var options = AppOptions.FromArgs(args);
-        var baseDirectory = AppPaths.BaseDirectory;
-        var moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory());
-        ShowModuleMigrationHint(baseDirectory, moduleStore);
-        var triggerKeyState = new WindowsTriggerKeyState();
-        var processLocator = new WowProcessLocator(baseDirectory);
-        var runtimeFactory = new ShigureRuntimeFactory(baseDirectory, moduleStore, triggerKeyState, processLocator);
-        var runtimeSession = new RuntimeSessionCoordinator(runtimeFactory);
+        using var singleInstanceMutex = new Mutex(
+            initiallyOwned: true,
+            SingleInstanceMutexName,
+            out var createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show(
+                "Shigure 已经在运行。",
+                "Shigure",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
 
-        Application.Run(new MainForm(
-            options,
-            baseDirectory,
-            moduleStore,
-            triggerKeyState,
-            processLocator,
-            runtimeSession));
+        try
+        {
+            var options = AppOptions.FromArgs(args);
+            var baseDirectory = AppPaths.BaseDirectory;
+            var moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory());
+            ShowModuleMigrationHint(baseDirectory, moduleStore);
+            var triggerKeyState = new WindowsTriggerKeyState();
+            var processLocator = new WowProcessLocator(baseDirectory);
+            var runtimeFactory = new ShigureRuntimeFactory(baseDirectory, moduleStore, triggerKeyState, processLocator);
+            var runtimeSession = new RuntimeSessionCoordinator(runtimeFactory);
+
+            Application.Run(new MainForm(
+                options,
+                baseDirectory,
+                moduleStore,
+                triggerKeyState,
+                processLocator,
+                runtimeSession));
+        }
+        finally
+        {
+            singleInstanceMutex.ReleaseMutex();
+        }
     }
 
     // 模块目录迁移提示：旧目录(baseDirectory/module)存在且有内容、且新目录(我的文档目录)尚无模块文件时，
