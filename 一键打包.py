@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
+import urllib.request
 from pathlib import Path
 
 
@@ -22,7 +25,7 @@ SKIP_DIRS = {
     ".agents",
     ".claude",
     "__pycache__",
-    "Senkoh",
+    "Obsidian",
     "artifacts",
     "bin",
     "cache",
@@ -62,6 +65,11 @@ NAME_REPLACEMENT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 SLASH_COMMAND_PATTERN = re.compile(r"/fu\b", re.IGNORECASE)
+TARGET_FRAMEWORK_PATTERN = re.compile(
+    r"<TargetFramework>net(?P<major>\d+)\.(?P<minor>\d+)(?:-[^<]+)?</TargetFramework>",
+    re.IGNORECASE,
+)
+DOTNET_INSTALL_SCRIPT_URL = "https://dot.net/v1/dotnet-install.ps1"
 
 
 def configure_console() -> None:
@@ -179,26 +187,6 @@ def apply_replacements(backups: dict[Path, tuple[str, str]], new_name: str) -> N
         path.write_text(replace_text(text, new_name), encoding=encoding, newline="")
 
 
-def map_path_through_renames(path: Path, completed_renames: list[tuple[Path, Path]]) -> Path:
-    current_path = path
-    for old_path, new_path in completed_renames:
-        try:
-            relative_path = current_path.relative_to(old_path)
-        except ValueError:
-            continue
-        current_path = new_path / relative_path
-    return current_path
-
-
-def restore_replacements(
-    backups: dict[Path, tuple[str, str]],
-    completed_renames: list[tuple[Path, Path]],
-) -> None:
-    for path, (text, encoding) in backups.items():
-        restore_path = map_path_through_renames(path, completed_renames)
-        restore_path.write_text(text, encoding=encoding, newline="")
-
-
 def collect_path_renames(
     root: Path,
     script_path: Path,
@@ -256,16 +244,137 @@ def apply_path_renames(
         completed_renames.append((old_path, new_path))
 
 
-def restore_path_renames(completed_renames: list[tuple[Path, Path]]) -> None:
-    for old_path, new_path in reversed(completed_renames):
-        if old_path.exists():
-            raise FileExistsError(f"恢复目标已存在，无法安全恢复: {old_path}")
-        new_path.rename(old_path)
+def get_required_dotnet_sdk(project_path: Path) -> tuple[str, int]:
+    result = read_text(project_path)
+    if result is None:
+        raise RuntimeError(f"无法读取项目文件: {project_path}")
+
+    project_text, _ = result
+    match = TARGET_FRAMEWORK_PATTERN.search(project_text)
+    if match is None:
+        raise RuntimeError("无法从项目文件的 TargetFramework 判断所需 .NET SDK 版本。")
+
+    major = int(match.group("major"))
+    minor = int(match.group("minor"))
+    return f"{major}.{minor}", major
 
 
-def publish(root: Path, new_name: str) -> None:
+def get_user_dotnet_paths() -> tuple[Path, Path]:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    install_dir = (
+        Path(local_app_data) / "Microsoft" / "dotnet"
+        if local_app_data
+        else Path.home() / ".dotnet"
+    )
+    return install_dir, install_dir / "dotnet.exe"
+
+
+def get_installed_sdk_versions(dotnet_command: str | Path) -> list[str]:
+    try:
+        result = subprocess.run(
+            [str(dotnet_command), "--list-sdks"],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return []
+
+    versions: list[str] = []
+    for line in result.stdout.splitlines():
+        version = line.partition(" ")[0].strip()
+        if version:
+            versions.append(version)
+    return versions
+
+
+def find_compatible_dotnet(required_major: int) -> tuple[str | None, list[str]]:
+    _, user_dotnet = get_user_dotnet_paths()
+    candidates = [shutil.which("dotnet"), str(user_dotnet)]
+    checked: set[str] = set()
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+
+        normalized = os.path.normcase(os.path.abspath(candidate))
+        if normalized in checked:
+            continue
+        checked.add(normalized)
+
+        versions = get_installed_sdk_versions(candidate)
+        if any(version.split(".", 1)[0] == str(required_major) for version in versions):
+            return candidate, versions
+
+    return None, []
+
+
+def install_dotnet_sdk(channel: str) -> str:
+    install_dir, dotnet_path = get_user_dotnet_paths()
+    powershell = shutil.which("powershell") or shutil.which("pwsh")
+    if powershell is None:
+        raise RuntimeError("找不到 PowerShell，无法自动安装 .NET SDK。")
+
+    install_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="shigure-dotnet-") as temp_dir:
+        installer_path = Path(temp_dir) / "dotnet-install.ps1"
+        print(f"正在从微软官网下载 .NET {channel} SDK 安装脚本……")
+        urllib.request.urlretrieve(DOTNET_INSTALL_SCRIPT_URL, installer_path)
+
+        command = [
+            powershell,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(installer_path),
+            "-Channel",
+            channel,
+            "-Quality",
+            "GA",
+            "-Architecture",
+            "x64",
+            "-InstallDir",
+            str(install_dir),
+            "-NoPath",
+        ]
+        print(f"正在安装到当前用户目录: {install_dir}")
+        subprocess.run(command, check=True)
+
+    if not dotnet_path.exists():
+        raise RuntimeError(f"安装完成后仍找不到 dotnet: {dotnet_path}")
+    return str(dotnet_path)
+
+
+def ensure_dotnet_sdk(project_path: Path) -> str:
+    channel, required_major = get_required_dotnet_sdk(project_path)
+    print()
+    print(f"正在检测 .NET {channel} SDK 依赖……")
+
+    dotnet_command, versions = find_compatible_dotnet(required_major)
+    if dotnet_command is not None:
+        matching_versions = [
+            version for version in versions
+            if version.split(".", 1)[0] == str(required_major)
+        ]
+        print(f"已安装兼容的 SDK: {', '.join(matching_versions)}")
+        return dotnet_command
+
+    print(f"未检测到 .NET {channel} SDK，开始自动下载和安装。")
+    dotnet_command = install_dotnet_sdk(channel)
+    versions = get_installed_sdk_versions(dotnet_command)
+    if not any(version.split(".", 1)[0] == str(required_major) for version in versions):
+        raise RuntimeError(f".NET {channel} SDK 安装后验证失败。")
+
+    print(f".NET {channel} SDK 安装并验证成功。")
+    return dotnet_command
+
+
+def publish(root: Path, new_name: str, dotnet_command: str) -> None:
     command = [
-        "dotnet",
+        dotnet_command,
         "publish",
         f".\\{new_name}.csproj",
         "-c",
@@ -302,13 +411,12 @@ def main() -> int:
 
     new_name = ask_new_name()
     should_rename = new_name != OLD_NAME
+    source_csproj = root / f"{OLD_NAME}.csproj"
+    if not source_csproj.exists():
+        print(f"找不到需要打包的项目文件: {source_csproj}")
+        return 1
 
     if should_rename:
-        source_csproj = root / f"{OLD_NAME}.csproj"
-        if not source_csproj.exists():
-            print(f"找不到需要打包的项目文件: {source_csproj}")
-            return 1
-
         backups = collect_replacements(root, script_path)
         preview_files = list(backups)
         rename_plan = collect_path_renames(root, script_path, new_name)
@@ -323,10 +431,10 @@ def main() -> int:
             f"将把文本和路径中的 {OLD_NAME}、{ADDON_OLD_NAME} 按原文大小写形式 "
             f"替换为 {new_name}，并把 /fu 替换为 /{new_name[:2].lower()}。"
         )
-        print(f"预计临时修改 {len(preview_files)} 个文本文件，打包结束后会恢复。")
+        print(f"预计永久修改 {len(preview_files)} 个文本文件，打包结束后不会恢复。")
         for path in preview_files:
             print(f"- {path.relative_to(root)}")
-        print(f"预计临时重命名 {len(rename_plan)} 个文件或目录，打包结束后会恢复。")
+        print(f"预计永久重命名 {len(rename_plan)} 个文件或目录，打包结束后不会恢复。")
         for old_path, new_path in rename_plan:
             print(f"- {old_path.relative_to(root)} -> {new_path.relative_to(root)}")
     else:
@@ -340,39 +448,33 @@ def main() -> int:
         print("已取消。")
         return 0
 
-    completed_renames: list[tuple[Path, Path]] = []
-    error: BaseException | None = None
+    try:
+        dotnet_command = ensure_dotnet_sdk(source_csproj)
+    except BaseException as exc:
+        if isinstance(exc, KeyboardInterrupt):
+            print("依赖安装已中断，项目名称尚未修改。")
+        else:
+            print(f"依赖检测或安装失败，项目名称尚未修改: {exc}")
+        return 1
 
+    completed_renames: list[tuple[Path, Path]] = []
     try:
         if should_rename:
             apply_replacements(backups, new_name)
             apply_path_renames(rename_plan, completed_renames)
 
             print()
-            print(f"临时替换完成，已修改 {len(backups)} 个文本文件。")
+            print(f"名称替换完成，已永久修改 {len(backups)} 个文本文件。")
             print(f"已重命名 {len(completed_renames)} 个文件或目录。")
 
-        publish(root, new_name)
+        publish(root, new_name, dotnet_command)
     except BaseException as exc:
-        error = exc
-    finally:
-        if should_rename:
-            try:
-                print()
-                print("发布流程已结束，开始恢复项目名称。")
-                restore_replacements(backups, completed_renames)
-                restore_path_renames(completed_renames)
-                print()
-                print(f"已恢复项目名称为 {OLD_NAME}，插件名称为 {ADDON_OLD_NAME}。")
-            except BaseException as restore_exc:
-                print(f"恢复项目名称失败: {restore_exc}")
-                return 1
-
-    if error is not None:
-        if isinstance(error, KeyboardInterrupt):
+        if isinstance(exc, KeyboardInterrupt):
             print("执行已中断。")
         else:
-            print(f"执行失败: {error}")
+            print(f"执行失败: {exc}")
+        if should_rename:
+            print("名称替换已保留，不会恢复。")
         return 1
 
     print()

@@ -208,25 +208,28 @@ internal static class UiTheme
 
     public static Button CreateButton(string text, Color backColor, Color foreColor)
     {
-        var button = new Button
-        {
-            Text = text,
-            AutoSize = true,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = backColor,
-            ForeColor = foreColor,
-            Padding = new Padding(10, 2, 10, 2),
-            Margin = new Padding(6, 0, 0, 0),
-            UseVisualStyleBackColor = false,
-            Cursor = Cursors.Hand,
-            TabStop = false
-        };
+        var button = new Button();
+        StyleButton(button, text, backColor, foreColor);
+        return button;
+    }
+
+    public static void StyleButton(Button button, string text, Color backColor, Color foreColor)
+    {
+        button.Text = text;
+        button.AutoSize = true;
+        button.FlatStyle = FlatStyle.Flat;
+        button.BackColor = backColor;
+        button.ForeColor = foreColor;
+        button.Padding = new Padding(10, 2, 10, 2);
+        button.Margin = new Padding(6, 0, 0, 0);
+        button.UseVisualStyleBackColor = false;
+        button.Cursor = Cursors.Hand;
+        button.TabStop = false;
         button.FlatAppearance.BorderSize = 1;
         button.FlatAppearance.BorderColor = backColor == Accent ? Accent : Border;
         button.FlatAppearance.MouseOverBackColor = backColor == Accent ? Color.FromArgb(112, 234, 221) : Hover;
         button.FlatAppearance.MouseDownBackColor = backColor == Accent ? Color.FromArgb(62, 194, 181) : Pressed;
         ApplyControlRoundedRegion(button, 8);
-        return button;
     }
 
     public static Button CreateButton(string text, ButtonKind kind)
