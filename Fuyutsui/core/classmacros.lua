@@ -634,6 +634,8 @@ Fuyutsui.ClassMacros = {
             "[@focus]灵魂裂劈",
             "[@target]破裂",
             "[@focus]破裂",
+            "[@target]瓦解",
+            "[@focus]瓦解",
             "邪能毁灭",
             "[@cursor]沉默咒符",
             "虚空新星",
