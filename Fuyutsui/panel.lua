@@ -23,6 +23,8 @@
         全大写常量；字体改为从 GameFontHighlightSmall 取字体文件/阴影并固定字号
     2026-08-17：微调轮——轨道全透明（删 SliderRight 配色）、条高 BAR_HEIGHT=10 并严格
         垂直居中、文件级变量/常量补行尾中文注释并同步修正过期注释
+    2026-08-17：修复计时条归零残段——SetWidth(0) 清除 desired width 导致 1px 残留，
+        归零改为隐藏填充（OnUpdate 中 remaining<=0 或轨道宽无效时 fill:Hide）
 --]]
 
 local addon, ns = ... -- 保持 Fuyutsui 文件惯例，本文件不引用
@@ -101,7 +103,9 @@ fill:SetPoint("TOPLEFT", track, "TOPLEFT", 0, 0)
 fill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", 0, 0)
 fill:SetColorTexture(SliderLeft:GetRGB())
 
--- 每帧刷新填充：显示值 = max(0, min(15, burstTime - GetTime()))，条宽按剩余比例收缩
+-- 每帧刷新填充：显示值 = max(0, min(15, burstTime - GetTime()))，条宽按剩余比例收缩；
+-- remaining 归 0（含初始 burstTime=0）或轨道宽无效时隐藏填充——SetWidth(0) 会清除 desired
+-- width 导致 1px 残段，故归零改为 Hide 而不是设宽 0
 barLayer:SetScript("OnUpdate", function(self)
     local remaining = burstTime - GetTime()
     if remaining > 15 then
@@ -110,8 +114,11 @@ barLayer:SetScript("OnUpdate", function(self)
         remaining = 0
     end
     local trackWidth = self:GetWidth() - 2 * SPACING
-    if trackWidth > 0 then
+    if trackWidth > 0 and remaining > 0 then
+        fill:Show()
         fill:SetWidth(trackWidth * remaining / 15)
+    else
+        fill:Hide()
     end
 end)
 
