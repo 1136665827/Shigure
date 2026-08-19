@@ -157,6 +157,11 @@ local DEFENSIVE_DISPEL_TYPE_NAMES = {
     [11] = "Bleed",
 }
 
+local OFFENSIVE_DISPEL_TYPE_NAMES = {
+    [1] = "Magic",
+    [9] = "Enrage",
+}
+
 function Fuyutsui:UpdateSpellKnown()
     UpdateCooldownSpellKnown()
 
@@ -191,6 +196,15 @@ function Fuyutsui:UpdateSpellKnown()
         end
     end
     self.includeDispelTypes = includeDispelTypes
+
+    local includeOffensiveDispelTypes = {}
+    for id, can in pairs(offensiveDispelCapabilities) do
+        local name = OFFENSIVE_DISPEL_TYPE_NAMES[id]
+        if can and name then
+            includeOffensiveDispelTypes[name] = true
+        end
+    end
+    self.includeOffensiveDispelTypes = includeOffensiveDispelTypes
 
     dispelCurve:ClearPoints()
     target.enemyCurve:ClearPoints()
