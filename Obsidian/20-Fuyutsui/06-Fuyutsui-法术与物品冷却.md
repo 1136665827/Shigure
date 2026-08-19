@@ -33,7 +33,7 @@ source_symbols:
   - Fuyutsui:UpdateItemCooldown
   - Fuyutsui:CreateAutoLayoutBar
   - Fuyutsui.spellsList
-verified_at: 2026-08-09
+verified_at: 2026-08-19
 ---
 
 # Fuyutsui 法术与物品冷却
@@ -69,7 +69,7 @@ verified_at: 2026-08-09
 | 法术书/天赋状态 | 已知法术筛选、`forcedKnown`/`inSpellBook` 例外 | 可更新集合；未知法术写 255 |
 | Cooldown/Charge Duration | 经 `curve255` 求剩余时间颜色 | `B=0..255` |
 | `castCount`、`maxCharge` | CountBars 自动布局 | 横向计数条 |
-| 已知驱散法术 | 构建友方/敌方类型曲线与光环驱散过滤 | 目标类型、队伍驱散槽 |
+| 已知驱散法术 | 构建驱散能力、旧友方/敌方曲线与光环驱散过滤 | 队伍及目标/焦点驱散槽；旧曲线当前不参与单位类型输出 |
 | 物品数量/冷却 API | 状态 getter 读取 | 药水、治疗石等物品状态 |
 
 ## 执行链路
@@ -80,7 +80,7 @@ verified_at: 2026-08-09
      -> blocks.spells 过滤到本地 spells
      -> 未知项主槽/充能槽写 255
      -> 计算 defensive/offensive dispel 能力
-     -> 重建目标类型曲线和 AuraContainer dispel 过滤
+     -> 重建旧友方/敌方曲线和 AuraContainer dispel 过滤
 
 每 0.2 秒
   -> UpdateSpellCooldown()
@@ -119,9 +119,9 @@ verified_at: 2026-08-09
 
 - `dispelCapabilities`、`offensiveDispelCapabilities`。
 - `includeDispelTypes`，供队伍 AuraContainer 过滤。
-- `dispelCurve`、`target.friendCurve`、`target.enemyCurve`，把驱散类别叠入单位类型像素。
+- `dispelCurve`、`target.friendCurve`、`target.enemyCurve`。其中 friend/enemy 曲线仍会重建，但当前 `UpdateUnitType()` 已改为单位 token 编号，不再读取它们。
 
-这解释了法术学习变化为何会影响 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] 和 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
+因此法术学习变化会影响 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 的驱散过滤，但不会改变 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] 的目标/焦点类型编号。
 
 ## 横向技能条
 
@@ -160,7 +160,7 @@ ItemID 是版本敏感数据；新增同类物品必须更新聚合列表和相�
 - 修改职业 `spells` 后必须执行 ClassBlocks→config 同步，见 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]]。
 - 修改冷却哨兵、曲线或 GCD 规则时同步 Shigure 的状态判断和测试。
 - 修改横向条预留/终点布局时同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
-- 增加驱散类型或能力表时同时检查目标类型曲线、队伍 dispel 槽和 AuraContainer 过滤。
+- 增加驱散类型或能力表时同时检查旧友方/敌方曲线、队伍 dispel 槽和 AuraContainer 过滤；不要假定旧曲线仍参与目标/焦点类型输出。
 - 在合入职业表前自动检查“当前专精 SpellID 唯一”和“导出字段名唯一”。
 
 ## 源码索引
@@ -175,4 +175,4 @@ ItemID 是版本敏感数据；新增同类物品必须更新聚合列表和相�
 
 ## 知识图谱
 
-本页使用 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 的主行与 CountBars，向 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] 提供类型曲线、向 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 提供驱散过滤；其配置同步边界由 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]] 管理。
+本页使用 [[20-Fuyutsui/03-Fuyutsui-状态块与编码入口]] 的主行与 CountBars，并向 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]] 提供驱散过滤；目标/焦点类型编号由 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] 独立定义，其配置同步边界由 [[40-跨项目/02-Shigure-ClassBlocks到config同步契约]] 管理。
