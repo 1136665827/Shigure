@@ -1,6 +1,6 @@
 ---
 title: Fuyutsui 光环容器本地集成
-summary: 说明当前直接位于 core/block.lua 的 Blizzard AuraContainer 集成、持续/永久槽配对、反应过滤、层数条和队伍光环。
+summary: 说明当前直接位于 core/block.lua 的 Blizzard AuraContainer 集成、持续/永久槽配对、目标/焦点驱散槽、反应过滤、层数条和队伍光环。
 aliases:
   - Fuyutsui AuraContainer
   - Fuyutsui 光环槽
@@ -16,6 +16,7 @@ up:
   - "[[20-Fuyutsui/00-Fuyutsui-MOC]]"
 related:
   - "[[50-参考资料/AuraContainer_AI_Reference_zh-CN]]"
+  - "[[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]]"
   - "[[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]]"
   - "[[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]"
 source_files:
@@ -26,18 +27,20 @@ source_files:
 source_symbols:
   - EnsureAuraContainerLoaded
   - AddDurationAuraSlotPair
+  - GetUnitDispelStateIndex
+  - AddUnitDispelSlots
   - Fuyutsui:RefreshUnitAuraContainers
   - Fuyutsui:LayoutAuraApplicationBars
   - Fuyutsui:RefreshGroupAuraContainers
   - Fuyutsui:RebindAuraSpellFilters
-verified_at: 2026-08-09
+verified_at: 2026-08-19
 ---
 
 # Fuyutsui 光环容器本地集成
 
 上级：[[20-Fuyutsui/00-Fuyutsui-MOC]]
 
-相关：[[50-参考资料/AuraContainer_AI_Reference_zh-CN]] · [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] · [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
+相关：[[50-参考资料/AuraContainer_AI_Reference_zh-CN]] · [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数]] · [[20-Fuyutsui/06-Fuyutsui-法术与物品冷却]] · [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]
 
 ## AI 快速摘要
 
@@ -63,6 +66,7 @@ verified_at: 2026-08-09
 |---|---|---|
 | `ClassBlocks.auras.player` | 玩家 AuraContainer 槽对 | 顶部持续/永久光环像素 |
 | target/focus harmful/helpful | 对应单位容器及反应过滤 | 顶部目标/焦点光环像素 |
+| `目标驱散类型`、`焦点驱散类型` + 当前驱散能力 | 每单位友方 HARMFUL/敌方 HELPFUL dispel 槽 | 固定驱散类型色；编码与目标/焦点类型并列记录在目标专题 |
 | 玩家光环 `maxApps` | 额外应用层数 StatusBar | `FuyutsuiCountBars` |
 | `group.aura[offset]` | 每成员 `HELPFUL|PLAYER` 槽 | 成员块中的持续/永久像素 |
 | `group.dispel` + 当前驱散能力 | 每成员 HARMFUL dispel 槽 | 成员块中的固定驱散类型色 |
@@ -119,6 +123,8 @@ WoW 在敌对单位上处理 `HELPFUL`、友方单位上处理 `HARMFUL` 时，S
 - 切换 target/focus 时按 `SetUnit → SetAuraSlotCandidateFilters → UpdateAllAuras` 顺序强制重绑。
 
 这套顺序用于避免槽错误落到单位的“第一个任意光环”。
+
+同一单位容器还会通过 `GetUnitDispelStateIndex()` 定位 `目标驱散类型` 或 `焦点驱散类型` 状态槽，并按友方 HARMFUL、敌方 HELPFUL 两条链路写入固定驱散类别。字段关系和完整编号表统一见 [[20-Fuyutsui/05-Fuyutsui-目标焦点与敌人数#目标/焦点类型与驱散类型]]；本页只说明 AuraContainer 实现。
 
 ## 玩家应用层数条
 
