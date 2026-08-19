@@ -27,7 +27,7 @@ local function GetUnitCache(unit)
     if unit == "focus" then return focus end
 end
 
-local function GetUnitDispelType(unit, cache)
+local function getUnitType(unit, cache)
     if not UnitExists(unit) then return 0 end
     if cache.canAttack then
         return 1 / 255
@@ -43,7 +43,7 @@ function Fuyutsui:UpdateUnitType(unit)
     if not cache or not category then return end
     local unitType = 0
     if not cache.isDead then
-        unitType = GetUnitDispelType(unit, cache)
+        unitType = getUnitType(unit, cache)
     end
     cache.type = unitType
     self:UpdateStateBlock(category, "类型")
