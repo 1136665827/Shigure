@@ -735,18 +735,45 @@ local function RebindContainerSpellFilters(container, unit)
             includeDispelTypes = dispel.includeDispelTypes,
         })
     end
+    if container.fuyutsuiUnitDispelSlots then
+        local canAttack = bindUnit and UnitCanAttack("player", bindUnit)
+        local canAssist = bindUnit and UnitCanAssist("player", bindUnit)
+        for _, slot in ipairs(container.fuyutsuiUnitDispelSlots) do
+            local enabled = (slot.reaction == "enemy" and canAttack and not canAssist)
+                or (slot.reaction == "friend" and canAssist)
+            local source = slot.reaction == "enemy"
+                and Fuyutsui.includeOffensiveDispelTypes
+                or Fuyutsui.includeDispelTypes
+            local includeDispelTypes = {}
+            if enabled and type(source) == "table" then
+                for name, canDispel in pairs(source) do
+                    if canDispel then
+                        includeDispelTypes[name] = true
+                    end
+                end
+            end
+            if next(includeDispelTypes) then
+                container:SetAuraSlotCandidateFilters(slot.key, {
+                    includeDispelTypes = includeDispelTypes,
+                })
+            else
+                container:SetAuraSlotCandidateFilters(slot.key, AURA_MATCH_NONE_FILTERS)
+            end
+        end
+    end
 
     if container.UpdateAllAuras then
         container:UpdateAllAuras()
     end
 end
 
--- 防御驱散类型 -> 蓝通道编码（与 main.lua DEFENSIVE_DISPEL_TYPE_NAMES / dispelCapabilities 一致）
+-- 驱散类型 -> 蓝通道编码（防御驱散与进攻驱散共用）
 local DISPEL_TYPE_COLOR_IDS = {
     Magic = 1,
     Curse = 2,
     Disease = 3,
     Poison = 4,
+    Enrage = 9,
     Bleed = 11,
 }
 
@@ -760,7 +787,7 @@ local function MakeDispelColorMap(index)
     return map
 end
 
-local function SetupDispelTypePixel(button, index)
+local function SetupDispelTypePixel(button, index, showWhenHarmful, showWhenHelpful)
     button:SetSize(AURA_BLOCK_W, AURA_BLOCK_H)
     button:SetClipsChildren(true)
     ConfigureAuraButtonMouse(button)
@@ -772,17 +799,17 @@ local function SetupDispelTypePixel(button, index)
     tex:SetVertexColor(1, 1, 1, 1)
 
     button:AddDispelTypeTexture(tex, {
-        showWhenHarmful = true,
-        showWhenHelpful = false,
+        showWhenHarmful = showWhenHarmful ~= false,
+        showWhenHelpful = showWhenHelpful == true,
         showWithoutDispelType = false,
         style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset,
         customDispelColorMap = MakeDispelColorMap(index),
     })
 end
 
-local function MakeDispelSlotInitializer(index)
+local function MakeDispelSlotInitializer(index, showWhenHarmful, showWhenHelpful)
     return function(button)
-        SetupDispelTypePixel(button, index)
+        SetupDispelTypePixel(button, index, showWhenHarmful, showWhenHelpful)
     end
 end
 
@@ -877,8 +904,50 @@ function Fuyutsui:ReleasePlayerAuraContainers()
     self:ReleaseUnitAuraContainers()
 end
 
-local function CreateUnitAuraDurationSlots(unit, spellSlots)
-    if not spellSlots or #spellSlots == 0 then
+local function GetUnitDispelStateIndex(unit)
+    local stateBlocks = Fuyutsui.blocks and Fuyutsui.blocks.state
+    if not stateBlocks then
+        return nil
+    end
+    if unit == "target" then
+        return stateBlocks["目标驱散类型"]
+    elseif unit == "focus" then
+        return stateBlocks["焦点驱散类型"]
+    end
+end
+
+local function AddUnitDispelSlots(container, unit, index)
+    if not index then
+        return
+    end
+
+    local slots = {
+        {
+            key = unit .. "_dispel_helpful",
+            filter = "HELPFUL",
+            reaction = "enemy",
+            initializeFrame = MakeDispelSlotInitializer(index, false, true),
+        },
+        {
+            key = unit .. "_dispel_harmful",
+            filter = "HARMFUL",
+            reaction = "friend",
+            initializeFrame = MakeDispelSlotInitializer(index, true, false),
+        },
+    }
+    for _, slot in ipairs(slots) do
+        container:AddAuraSlot(slot.key, slot.filter, {
+            candidateFilters = AURA_MATCH_NONE_FILTERS,
+            sortMethod = AuraContainerSortMethod.Expiration,
+            sortDirection = AuraContainerSortDirection.Normal,
+            initializeFrame = slot.initializeFrame,
+        })
+    end
+    container.fuyutsuiUnitDispelSlots = slots
+end
+
+local function CreateUnitAuraDurationSlots(unit, spellSlots, dispelIndex)
+    if (not spellSlots or #spellSlots == 0) and not dispelIndex then
         return
     end
 
@@ -902,17 +971,21 @@ local function CreateUnitAuraDurationSlots(unit, spellSlots)
         AddDurationAuraSlotPair(durationSlots, "duration_index", filter, info.includeSpellIDs, info.index)
     end
 
+    AddUnitDispelSlots(durationSlots, unit, dispelIndex)
+
     Fuyutsui[key] = durationSlots
     durationSlots.fuyutsuiUnit = unit
     ApplyUnitAuraReactionFilters(durationSlots, unit)
+    RebindContainerSpellFilters(durationSlots, unit)
 end
 
 function Fuyutsui:RefreshUnitAuraContainers()
     for unit, key in pairs(UNIT_AURA_CONTAINER_KEYS) do
         if not Fuyutsui[key] then
             local spellSlots = CollectAuraSpellSlots(unit)
-            if #spellSlots > 0 then
-                CreateUnitAuraDurationSlots(unit, spellSlots)
+            local dispelIndex = GetUnitDispelStateIndex(unit)
+            if #spellSlots > 0 or dispelIndex then
+                CreateUnitAuraDurationSlots(unit, spellSlots, dispelIndex)
             end
         end
     end

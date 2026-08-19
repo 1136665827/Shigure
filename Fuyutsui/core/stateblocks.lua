@@ -234,6 +234,8 @@ local stateBlockGetters = {
     },
     ["目标"] = {
         ["类型"] = function() return target.type or 0 end,
+        -- 实际颜色由 AuraContainer 覆盖；底层保持 0，避免无可驱散光环时残留旧值。
+        ["驱散类型"] = function() return 0 end,
         ["生命值"] = function() return target.healthPercent or 0 end,
         ["距离"] = function()
             if not target.maxRange then return nil end
@@ -246,6 +248,7 @@ local stateBlockGetters = {
     },
     ["焦点"] = {
         ["类型"] = function() return focus.type or 0 end,
+        ["驱散类型"] = function() return 0 end,
         ["生命值"] = function() return focus.healthPercent or 0 end,
         ["距离"] = function()
             if not focus.maxRange then return nil end
