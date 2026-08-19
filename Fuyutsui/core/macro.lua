@@ -41,7 +41,7 @@ local function createMacro(name, key, macro)
         btn:RegisterForClicks("AnyUp", "AnyDown")
         macroList[name] = btn
     end
-    SetOverrideBindingClick(bindingOwner, false, key, name, "LeftButton")
+    SetOverrideBindingClick(bindingOwner, true, key, name, "LeftButton")
     btn:SetAttribute("macrotext", macro)
     -- print(name, key, macro)
 end

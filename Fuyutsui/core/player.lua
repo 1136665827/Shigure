@@ -280,6 +280,11 @@ function Fuyutsui:UpdatePlayerStagger()
     local unit = "player"
     local damage = UnitStagger(unit)
     local maxHealth = UnitHealthMax(unit)
+    if issecretvalue(damage) or issecretvalue(maxHealth) then
+        state.staggerPercent = 0
+        self:UpdateStateBlock("状态", "酒池")
+        return
+    end
     local staggerPercent = damage / maxHealth * 100
     state.staggerPercent = staggerPercent / 255 or 0
     self:UpdateStateBlock("状态", "酒池")
