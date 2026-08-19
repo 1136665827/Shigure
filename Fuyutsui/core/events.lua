@@ -30,8 +30,9 @@ function Fuyutsui:PLAYER_ENTERING_WORLD()
     self:UpdateHeroTalent()
     self:GetMountsInfo()
     self:UpdateChargedComboPoints()
-    C_Timer.After(5, function()
+    C_Timer.After(3, function()
         self:UpdateGroup()
+        self:LoadPlayerMacros()
     end)
 end
 

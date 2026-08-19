@@ -27,14 +27,45 @@ local function GetUnitCache(unit)
     if unit == "focus" then return focus end
 end
 
-local function GetUnitDispelType(unit, cache)
-    if not UnitExists(unit) then return 0 end
-    if cache.canAttack then
-        return 1 / 255
-    elseif cache.canAssist then
-        return 11 / 255
+local function isSameUnit(unit1, unit2)
+    local isSame = UnitIsUnit(unit1, unit2)
+    return isSame
+end
+
+local function getUnitTypeIndex(unit)
+    for index = 1, 40 do
+        if isSameUnit(unit, "raid" .. index) then
+            return index
+        end
     end
-    return 0
+
+    if isSameUnit(unit, "player") then
+        return 41
+    end
+
+    for index = 1, 4 do
+        if isSameUnit(unit, "party" .. index) then
+            return 41 + index
+        end
+    end
+
+    for index = 1, 5 do
+        if isSameUnit(unit, "boss" .. index) then
+            return 45 + index
+        end
+    end
+
+    return 51
+end
+
+local function getUnitType(unit)
+    if not UnitExists(unit) then return 0 end
+
+    local index = getUnitTypeIndex(unit)
+    if UnitCanAssist("player", unit) then
+        index = index + 100
+    end
+    return index / 255
 end
 
 function Fuyutsui:UpdateUnitType(unit)
@@ -43,7 +74,7 @@ function Fuyutsui:UpdateUnitType(unit)
     if not cache or not category then return end
     local unitType = 0
     if not cache.isDead then
-        unitType = GetUnitDispelType(unit, cache)
+        unitType = getUnitType(unit)
     end
     cache.type = unitType
     self:UpdateStateBlock(category, "类型")
