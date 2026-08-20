@@ -20,6 +20,7 @@ internal static class UnitSummary
         {
             UnitSelectorKind.LowestHealth => $"血量最低 (<{threshold})",
             UnitSelectorKind.LowestHealthWithAnyAura => $"带任一[{auras}]且血最低 (<{threshold})",
+            UnitSelectorKind.LowestHealthWithoutAnyAura => $"不带任一[{auras}]且血最低 (<{threshold})",
             UnitSelectorKind.LowestHealthWithoutAura => $"不带[{aura}]且血最低 (<{threshold})",
             UnitSelectorKind.LowestHealthWithAura => $"带[{aura}]且血最低 (<{threshold})",
             UnitSelectorKind.LowestHealthWithAuraCount => $"[{aura}]={unit.AuraCount}且血最低 (<{threshold})",
@@ -29,6 +30,7 @@ internal static class UnitSummary
             UnitSelectorKind.UnitWithDispelType => $"驱散类型={unit.DispelType}",
             UnitSelectorKind.HighestHealingAbsorb => $"治疗吸收最高 (>{threshold})",
             UnitSelectorKind.HighestHealingAbsorbWithAnyAura => $"带任一[{auras}]且治疗吸收最高 (>{threshold})",
+            UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura => $"不带任一[{auras}]且治疗吸收最高 (>{threshold})",
             UnitSelectorKind.HighestHealingAbsorbWithoutAura => $"不带[{aura}]且治疗吸收最高 (>{threshold})",
             UnitSelectorKind.HighestHealingAbsorbWithAura => $"带[{aura}]且治疗吸收最高 (>{threshold})",
             UnitSelectorKind.HighestHealingAbsorbWithAuraCount => $"[{aura}]={unit.AuraCount}且治疗吸收最高 (>{threshold})",
@@ -77,6 +79,7 @@ internal static class UnitSummary
     private static bool IsLowestHealthKind(UnitSelectorKind kind)
         => kind is UnitSelectorKind.LowestHealth
             or UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAnyAura
             or UnitSelectorKind.LowestHealthWithoutAura
             or UnitSelectorKind.LowestHealthWithAura
             or UnitSelectorKind.LowestHealthWithAuraCount;
@@ -84,6 +87,7 @@ internal static class UnitSummary
     private static bool IsHealingAbsorbKind(UnitSelectorKind kind)
         => kind is UnitSelectorKind.HighestHealingAbsorb
             or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
             or UnitSelectorKind.HighestHealingAbsorbWithoutAura
             or UnitSelectorKind.HighestHealingAbsorbWithAura
             or UnitSelectorKind.HighestHealingAbsorbWithAuraCount;

@@ -31,6 +31,7 @@ public sealed class UnitEditorForm : Form
     [
         new("不筛选光环", LowestHealthAuraFilterKind.None),
         new("带任一光环", LowestHealthAuraFilterKind.WithAnyAura),
+        new("不带任一光环", LowestHealthAuraFilterKind.WithoutAnyAura),
         new("不带某光环", LowestHealthAuraFilterKind.WithoutAura),
         new("带某光环", LowestHealthAuraFilterKind.WithAura),
         new("某光环值等于", LowestHealthAuraFilterKind.WithAuraCount)
@@ -427,6 +428,7 @@ public sealed class UnitEditorForm : Form
                     switch (SelectedLowestHealthAuraFilter())
                     {
                         case LowestHealthAuraFilterKind.WithAnyAura:
+                        case LowestHealthAuraFilterKind.WithoutAnyAura:
                             auraMulti = true;
                             break;
                         case LowestHealthAuraFilterKind.WithoutAura:
@@ -444,6 +446,7 @@ public sealed class UnitEditorForm : Form
                     switch (SelectedLowestHealthAuraFilter())
                     {
                         case LowestHealthAuraFilterKind.WithAnyAura:
+                        case LowestHealthAuraFilterKind.WithoutAnyAura:
                             auraMulti = true;
                             break;
                         case LowestHealthAuraFilterKind.WithoutAura:
@@ -457,6 +460,7 @@ public sealed class UnitEditorForm : Form
 
                     break;
                 case UnitSelectorKind.LowestHealthWithAnyAura:
+                case UnitSelectorKind.LowestHealthWithoutAnyAura:
                     threshold = auraMulti = true;
                     break;
                 case UnitSelectorKind.LowestHealthWithoutAura:
@@ -468,6 +472,7 @@ public sealed class UnitEditorForm : Form
                     threshold = auraSingle = auraCount = true;
                     break;
                 case UnitSelectorKind.HighestHealingAbsorbWithAnyAura:
+                case UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura:
                     threshold = auraMulti = true;
                     break;
                 case UnitSelectorKind.HighestHealingAbsorbWithoutAura:
@@ -537,7 +542,9 @@ public sealed class UnitEditorForm : Form
             DispelType = SelectedDispelType()
         };
         unit.AuraNames = unit.Kind is UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAnyAura
             or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
             ? CheckedAuras()
             : SingleAuraList();
         ApplyPreviewThreshold(v => unit.HealthThreshold = v, f => unit.HealthThresholdField = f);
@@ -559,6 +566,9 @@ public sealed class UnitEditorForm : Form
             LowestHealthAuraFilterKind.WithAnyAura => healingAbsorb
                 ? UnitSelectorKind.HighestHealingAbsorbWithAnyAura
                 : UnitSelectorKind.LowestHealthWithAnyAura,
+            LowestHealthAuraFilterKind.WithoutAnyAura => healingAbsorb
+                ? UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
+                : UnitSelectorKind.LowestHealthWithoutAnyAura,
             LowestHealthAuraFilterKind.WithoutAura => healingAbsorb
                 ? UnitSelectorKind.HighestHealingAbsorbWithoutAura
                 : UnitSelectorKind.LowestHealthWithoutAura,
@@ -739,6 +749,18 @@ public sealed class UnitEditorForm : Form
                         }
 
                         break;
+                    case LowestHealthAuraFilterKind.WithoutAnyAura:
+                        moduleUnit.Kind = healingAbsorb
+                            ? UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
+                            : UnitSelectorKind.LowestHealthWithoutAnyAura;
+                        moduleUnit.AuraNames = CheckedAuras();
+                        if (moduleUnit.AuraNames.Count == 0)
+                        {
+                            MessageBox.Show("请至少勾选一个光环。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        break;
                     case LowestHealthAuraFilterKind.WithoutAura:
                         moduleUnit.Kind = healingAbsorb
                             ? UnitSelectorKind.HighestHealingAbsorbWithoutAura
@@ -762,7 +784,9 @@ public sealed class UnitEditorForm : Form
 
                 break;
             case UnitSelectorKind.LowestHealthWithAnyAura:
+            case UnitSelectorKind.LowestHealthWithoutAnyAura:
             case UnitSelectorKind.HighestHealingAbsorbWithAnyAura:
+            case UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura:
                 if (!ApplyThreshold(moduleUnit))
                 {
                     return;
@@ -970,10 +994,12 @@ public sealed class UnitEditorForm : Form
 
     private static bool UnitRequiresAura(UnitSelectorKind kind)
         => kind is UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAnyAura
             or UnitSelectorKind.LowestHealthWithoutAura
             or UnitSelectorKind.LowestHealthWithAura
             or UnitSelectorKind.LowestHealthWithAuraCount
             or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
             or UnitSelectorKind.HighestHealingAbsorbWithoutAura
             or UnitSelectorKind.HighestHealingAbsorbWithAura
             or UnitSelectorKind.HighestHealingAbsorbWithAuraCount
@@ -1015,11 +1041,13 @@ public sealed class UnitEditorForm : Form
 
     private static UnitSelectorKind DisplaySelectorKind(UnitSelectorKind kind)
         => kind is UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAnyAura
             or UnitSelectorKind.LowestHealthWithoutAura
             or UnitSelectorKind.LowestHealthWithAura
             or UnitSelectorKind.LowestHealthWithAuraCount
                 ? UnitSelectorKind.LowestHealth
             : kind is UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+                or UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
                 or UnitSelectorKind.HighestHealingAbsorbWithoutAura
                 or UnitSelectorKind.HighestHealingAbsorbWithAura
                 or UnitSelectorKind.HighestHealingAbsorbWithAuraCount
@@ -1031,10 +1059,12 @@ public sealed class UnitEditorForm : Form
         var filter = kind switch
         {
             UnitSelectorKind.LowestHealthWithAnyAura => LowestHealthAuraFilterKind.WithAnyAura,
+            UnitSelectorKind.LowestHealthWithoutAnyAura => LowestHealthAuraFilterKind.WithoutAnyAura,
             UnitSelectorKind.LowestHealthWithoutAura => LowestHealthAuraFilterKind.WithoutAura,
             UnitSelectorKind.LowestHealthWithAura => LowestHealthAuraFilterKind.WithAura,
             UnitSelectorKind.LowestHealthWithAuraCount => LowestHealthAuraFilterKind.WithAuraCount,
             UnitSelectorKind.HighestHealingAbsorbWithAnyAura => LowestHealthAuraFilterKind.WithAnyAura,
+            UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura => LowestHealthAuraFilterKind.WithoutAnyAura,
             UnitSelectorKind.HighestHealingAbsorbWithoutAura => LowestHealthAuraFilterKind.WithoutAura,
             UnitSelectorKind.HighestHealingAbsorbWithAura => LowestHealthAuraFilterKind.WithAura,
             UnitSelectorKind.HighestHealingAbsorbWithAuraCount => LowestHealthAuraFilterKind.WithAuraCount,
@@ -1310,6 +1340,7 @@ public sealed class UnitEditorForm : Form
     {
         None,
         WithAnyAura,
+        WithoutAnyAura,
         WithoutAura,
         WithAura,
         WithAuraCount
