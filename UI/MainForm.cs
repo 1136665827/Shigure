@@ -10,6 +10,12 @@ public sealed class MainForm : Form, IMessageFilter
         Vertical
     }
 
+    private enum CloseButtonBehavior
+    {
+        MinimizeToTray,
+        Exit
+    }
+
     private const int ResizeGripSize = 8;
     private const int RoundedCornerResizeDebounceMs = 80;
     private const string HeaderIconResourcePath = "Assets.arasaka-icon-transparent.png";
@@ -42,6 +48,14 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly ToolTip _settingsToolTip = new();
     private Button _horizontalLayoutButton = null!;
     private Button _verticalLayoutButton = null!;
+    private Button _minimizeToTrayButton = null!;
+    private Button _exitOnCloseButton = null!;
+    private NotifyIcon _trayIcon = null!;
+    private ContextMenuStrip _trayMenu = null!;
+    private ToolStripMenuItem _trayToggleMenuItem = null!;
+    private Icon? _trayDefaultIcon;
+    private Icon? _trayEnabledIcon;
+    private bool? _trayIconShowsEnabled;
     private string _toggleKeyName = "XBUTTON2";
     private string? _selectedModuleId;
     private bool _isCapturingToggleKey;
@@ -57,6 +71,7 @@ public sealed class MainForm : Form, IMessageFilter
     private Control _horizontalTopBar = null!;
     private Control _verticalTopBar = null!;
     private MainWindowLayout _mainWindowLayout = MainWindowLayout.Horizontal;
+    private CloseButtonBehavior _closeButtonBehavior = CloseButtonBehavior.MinimizeToTray;
     private Bitmap? _headerIconMask;
     private Color? _currentHeaderIconColor;
 
@@ -85,6 +100,7 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly SemaphoreSlim _moduleImportGate = new(1, 1);
     private Task _configUpdateTail = Task.CompletedTask;
     private long _runtimeRequestVersion;
+    private bool _exitRequested;
     private bool _shutdownStarted;
     private bool _shutdownCompleted;
 
@@ -126,6 +142,8 @@ public sealed class MainForm : Form, IMessageFilter
         };
         Application.AddMessageFilter(this);
         InitializeComponent();
+        TryApplyApplicationIcon();
+        InitializeTrayIcon();
         _statusForm.AttachSettingsPanel(BuildSettingsPanel());
         _moduleEditor = new ModuleEditorControl(
             _moduleStore,
@@ -149,7 +167,6 @@ public sealed class MainForm : Form, IMessageFilter
             CancelToggleKeyCapture();
             SaveUiCache();
         };
-        TryApplyApplicationIcon();
         ApplyCachedWindowState();
         ApplyInitialOptions();
         WireSettingEvents();
@@ -295,6 +312,17 @@ public sealed class MainForm : Form, IMessageFilter
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        if (!_shutdownCompleted
+            && !_exitRequested
+            && e.CloseReason == CloseReason.UserClosing
+            && _closeButtonBehavior == CloseButtonBehavior.MinimizeToTray)
+        {
+            e.Cancel = true;
+            MinimizeToTray();
+            base.OnFormClosing(e);
+            return;
+        }
+
         if (!_shutdownCompleted)
         {
             e.Cancel = true;
@@ -316,6 +344,11 @@ public sealed class MainForm : Form, IMessageFilter
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        _trayMenu.Dispose();
+        _trayDefaultIcon?.Dispose();
+        _trayEnabledIcon?.Dispose();
         _roundedCornerResizeTimer.Dispose();
         base.OnFormClosed(e);
     }
@@ -980,7 +1013,55 @@ public sealed class MainForm : Form, IMessageFilter
         panel.Controls.Add(moduleCard, 0, 1);
         panel.Controls.Add(getModulesCard, 1, 1);
         panel.Controls.Add(layoutCard, 0, 2);
+
+        var closeBehaviorCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(18),
+            Margin = new Padding(7, 0, 0, 0)
+        };
+        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        closeBehaviorCard.Controls.Add(CreateTitle("点击 X 时（关闭窗口按钮）"), 0, 0);
+        closeBehaviorCard.Controls.Add(CreateDescription("选择点击主界面关闭按钮后的行为"), 0, 1);
+
+        var closeBehaviorInfo = CreateInfoLabel("最小化后可通过系统栏图标重新打开；完全退出会停止运行");
+        closeBehaviorInfo.Dock = DockStyle.Fill;
+        closeBehaviorInfo.AutoSize = false;
+        closeBehaviorInfo.TextAlign = ContentAlignment.TopLeft;
+        closeBehaviorInfo.Margin = new Padding(0, 10, 0, 8);
+        closeBehaviorCard.Controls.Add(closeBehaviorInfo, 0, 2);
+
+        var closeBehaviorActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        _minimizeToTrayButton = UiTheme.CreateButton("最小化到系统栏", UiTheme.ButtonKind.Secondary);
+        _minimizeToTrayButton.AutoSize = false;
+        _minimizeToTrayButton.Size = new Size(160, settingsActionButtonHeight);
+        _minimizeToTrayButton.Margin = new Padding(0, 0, 10, 0);
+        _minimizeToTrayButton.Click += (_, _) => SetCloseButtonBehavior(CloseButtonBehavior.MinimizeToTray);
+        _exitOnCloseButton = UiTheme.CreateButton("完全退出Shigure", UiTheme.ButtonKind.Secondary);
+        _exitOnCloseButton.AutoSize = false;
+        _exitOnCloseButton.Size = new Size(160, settingsActionButtonHeight);
+        _exitOnCloseButton.Margin = new Padding(0);
+        _exitOnCloseButton.Click += (_, _) => SetCloseButtonBehavior(CloseButtonBehavior.Exit);
+        closeBehaviorActions.Controls.Add(_minimizeToTrayButton);
+        closeBehaviorActions.Controls.Add(_exitOnCloseButton);
+        closeBehaviorCard.Controls.Add(closeBehaviorActions, 0, 3);
+        panel.Controls.Add(closeBehaviorCard, 1, 2);
+
         UpdateLayoutButtons();
+        UpdateCloseBehaviorButtons();
         scrollHost.Controls.Add(panel);
         scrollHost.Resize += (_, _) => panel.Width = Math.Max(0, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
         return scrollHost;
@@ -1552,6 +1633,7 @@ public sealed class MainForm : Form, IMessageFilter
                 ? snapshot.Enabled ? "关\r\n闭" : "开\r\n启"
                 : snapshot.Enabled ? "关闭" : "开启";
         }
+        UpdateTrayToggleMenuItem(running: true);
 
         RefreshModuleSelector(snapshot, forceRefresh: false);
         _statusForm.ApplySnapshot(snapshot);
@@ -1784,6 +1866,8 @@ public sealed class MainForm : Form, IMessageFilter
         {
             enableButton.Enabled = running;
         }
+
+        UpdateTrayToggleMenuItem(running);
     }
 
     private void UpdateLogicStatusLabel(bool enabled)
@@ -1935,6 +2019,8 @@ public sealed class MainForm : Form, IMessageFilter
     {
         var cachedLayout = ParseMainWindowLayout(_uiCache.MainWindowLayout);
         SetMainWindowLayout(cachedLayout, persist: false);
+        _closeButtonBehavior = ParseCloseButtonBehavior(_uiCache.CloseButtonBehavior);
+        UpdateCloseBehaviorButtons();
 
         var cachedBounds = GetCachedMainWindowBounds(cachedLayout) ?? _uiCache.MainWindowBounds;
         if (!TryApplyCachedMainWindowBounds(cachedBounds)
@@ -1974,6 +2060,7 @@ public sealed class MainForm : Form, IMessageFilter
         _uiCache.SelectedSettingsPage = _statusForm.SelectedPageKey;
 
         _uiCache.MainWindowLayout = _mainWindowLayout.ToString();
+        _uiCache.CloseButtonBehavior = _closeButtonBehavior.ToString();
         _uiCache.ToggleKey = _toggleKeyName;
         _uiCache.SelectedModuleId = _selectedModuleId;
         UiCacheStore.Save(_uiCache);
@@ -1983,6 +2070,153 @@ public sealed class MainForm : Form, IMessageFilter
     {
         RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
         _statusForm.ShowSettings(_lastSnapshot);
+    }
+
+    private void InitializeTrayIcon()
+    {
+        _trayMenu = new ContextMenuStrip
+        {
+            BackColor = UiTheme.SurfaceRaised,
+            ForeColor = UiTheme.Text,
+            Font = new Font(Font.FontFamily, 10F, FontStyle.Regular),
+            Padding = new Padding(6),
+            ShowImageMargin = false,
+            ShowCheckMargin = false,
+            DropShadowEnabled = true,
+            Renderer = new TrayMenuRenderer()
+        };
+
+        ToolStripMenuItem CreateTrayMenuItem(string text)
+        {
+            return new ToolStripMenuItem(text)
+            {
+                AutoSize = false,
+                Size = new Size(156, 38),
+                Padding = new Padding(14, 0, 14, 0),
+                ForeColor = UiTheme.Text
+            };
+        }
+
+        var showMainMenuItem = CreateTrayMenuItem("主界面");
+        showMainMenuItem.Click += (_, _) => ShowMainWindow();
+        _trayToggleMenuItem = CreateTrayMenuItem("开启/关闭");
+        _trayToggleMenuItem.Click += (_, _) => ToggleEnabled();
+        var settingsMenuItem = CreateTrayMenuItem("设置");
+        settingsMenuItem.Click += (_, _) => ShowSettingsView();
+        var exitMenuItem = CreateTrayMenuItem("退出");
+        exitMenuItem.ForeColor = UiTheme.Danger;
+        exitMenuItem.Click += (_, _) => RequestExit();
+        _trayMenu.Items.AddRange([showMainMenuItem, _trayToggleMenuItem, settingsMenuItem, exitMenuItem]);
+        _trayMenu.Opening += (_, _) => UpdateTrayToggleMenuItem(_runtimeSession.IsRunning);
+        UiTheme.ApplyControlRoundedRegion(_trayMenu, 10);
+
+        _trayDefaultIcon = CreateTrayIcon(Color.White);
+        _trayEnabledIcon = CreateTrayIcon(UiTheme.Success);
+
+        _trayIcon = new NotifyIcon
+        {
+            Text = "Shigure - 已关闭",
+            Icon = _trayDefaultIcon ?? Icon ?? SystemIcons.Application,
+            ContextMenuStrip = _trayMenu,
+            Visible = true
+        };
+        _trayIcon.MouseClick += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ShowMainWindow();
+            }
+        };
+    }
+
+    private void ShowMainWindow()
+    {
+        if (WindowState == FormWindowState.Minimized)
+        {
+            WindowState = FormWindowState.Normal;
+        }
+        if (!Visible)
+        {
+            Show();
+        }
+
+        BringToFront();
+        Activate();
+    }
+
+    private void MinimizeToTray()
+    {
+        CancelToggleKeyCapture();
+        SaveUiCache();
+        _statusForm.Hide();
+        Hide();
+    }
+
+    private void RequestExit()
+    {
+        if (_shutdownStarted)
+        {
+            return;
+        }
+
+        _exitRequested = true;
+        Close();
+    }
+
+    private void UpdateTrayToggleMenuItem(bool running)
+    {
+        if (_trayToggleMenuItem is null)
+        {
+            return;
+        }
+
+        var enabled = running && _lastSnapshot?.Enabled == true;
+        _trayToggleMenuItem.Enabled = running;
+        _trayToggleMenuItem.ForeColor = enabled ? UiTheme.Success : UiTheme.Text;
+
+        if (_trayIconShowsEnabled == enabled)
+        {
+            return;
+        }
+
+        _trayIconShowsEnabled = enabled;
+        _trayIcon.Icon = enabled
+            ? _trayEnabledIcon ?? _trayDefaultIcon ?? Icon ?? SystemIcons.Application
+            : _trayDefaultIcon ?? Icon ?? SystemIcons.Application;
+        _trayIcon.Text = enabled ? "Shigure - 已开启" : "Shigure - 已关闭";
+    }
+
+    private Icon? CreateTrayIcon(Color color)
+    {
+        _headerIconMask ??= LoadHeaderIconMask();
+        if (_headerIconMask is null)
+        {
+            return null;
+        }
+
+        using var tintedIcon = TintHeaderIcon(_headerIconMask, color);
+        using var trayBitmap = new Bitmap(32, 32, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using (var graphics = Graphics.FromImage(trayBitmap))
+        {
+            graphics.Clear(Color.Transparent);
+            graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+            graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+            graphics.DrawImage(tintedIcon, new Rectangle(0, 0, trayBitmap.Width, trayBitmap.Height));
+        }
+
+        var iconHandle = trayBitmap.GetHicon();
+        try
+        {
+            using var icon = Icon.FromHandle(iconHandle);
+            return (Icon)icon.Clone();
+        }
+        finally
+        {
+            NativeMethods.DestroyIcon(iconHandle);
+        }
     }
 
     private async Task ResetCaptureButtonTextAsync()
@@ -2255,6 +2489,29 @@ public sealed class MainForm : Form, IMessageFilter
             ? layout
             : MainWindowLayout.Horizontal;
 
+    private static CloseButtonBehavior ParseCloseButtonBehavior(string? value)
+        => Enum.TryParse<CloseButtonBehavior>(value, ignoreCase: true, out var behavior)
+            ? behavior
+            : CloseButtonBehavior.MinimizeToTray;
+
+    private void SetCloseButtonBehavior(CloseButtonBehavior behavior)
+    {
+        _closeButtonBehavior = behavior;
+        UpdateCloseBehaviorButtons();
+        SaveUiCache();
+    }
+
+    private void UpdateCloseBehaviorButtons()
+    {
+        if (_minimizeToTrayButton is null || _exitOnCloseButton is null)
+        {
+            return;
+        }
+
+        StyleLayoutButton(_minimizeToTrayButton, _closeButtonBehavior == CloseButtonBehavior.MinimizeToTray);
+        StyleLayoutButton(_exitOnCloseButton, _closeButtonBehavior == CloseButtonBehavior.Exit);
+    }
+
     private void UpdateLayoutButtons()
     {
         if (_horizontalLayoutButton is null || _verticalLayoutButton is null)
@@ -2273,6 +2530,55 @@ public sealed class MainForm : Form, IMessageFilter
         button.FlatAppearance.BorderColor = selected ? UiTheme.Accent : UiTheme.Border;
         button.FlatAppearance.MouseOverBackColor = selected ? Color.FromArgb(112, 234, 221) : UiTheme.Hover;
         button.FlatAppearance.MouseDownBackColor = selected ? Color.FromArgb(62, 194, 181) : UiTheme.Pressed;
+    }
+
+    private sealed class TrayMenuRenderer : ToolStripProfessionalRenderer
+    {
+        public TrayMenuRenderer()
+            : base(new TrayMenuColorTable())
+        {
+            RoundedEdges = true;
+        }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            e.Graphics.Clear(UiTheme.SurfaceRaised);
+        }
+
+        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        {
+            var bounds = new Rectangle(0, 0, e.ToolStrip.Width - 1, e.ToolStrip.Height - 1);
+            using var path = UiTheme.CreateRoundedRectanglePath(bounds, 10);
+            using var pen = new Pen(UiTheme.Border);
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            e.Graphics.DrawPath(pen, path);
+        }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (!e.Item.Selected)
+            {
+                return;
+            }
+
+            var bounds = new Rectangle(2, 2, e.Item.Width - 4, e.Item.Height - 4);
+            var background = e.Item.ForeColor == UiTheme.Danger ? UiTheme.DangerSoft : UiTheme.Hover;
+            using var path = UiTheme.CreateRoundedRectanglePath(bounds, 7);
+            using var brush = new SolidBrush(background);
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            e.Graphics.FillPath(brush, path);
+        }
+    }
+
+    private sealed class TrayMenuColorTable : ProfessionalColorTable
+    {
+        public override Color ToolStripDropDownBackground => UiTheme.SurfaceRaised;
+        public override Color MenuItemSelected => UiTheme.Hover;
+        public override Color MenuItemBorder => UiTheme.Border;
+        public override Color ToolStripBorder => UiTheme.Border;
+        public override Color ImageMarginGradientBegin => UiTheme.SurfaceRaised;
+        public override Color ImageMarginGradientMiddle => UiTheme.SurfaceRaised;
+        public override Color ImageMarginGradientEnd => UiTheme.SurfaceRaised;
     }
 
     private sealed class RotatableLabel : Label

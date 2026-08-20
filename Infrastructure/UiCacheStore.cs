@@ -63,6 +63,7 @@ internal sealed class UiCacheState
     public WindowBounds? SettingsWindowBounds { get; set; }
     public string? SelectedSettingsPage { get; set; }
     public string? MainWindowLayout { get; set; }
+    public string? CloseButtonBehavior { get; set; }
     public string? ToggleKey { get; set; }
     public string? SelectedModuleId { get; set; }
     public Dictionary<string, int>? ModuleRulesGridColumns { get; set; }
