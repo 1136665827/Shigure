@@ -439,6 +439,12 @@ function Fuyutsui:ClearGroupHealAbsorbBars()
 end
 
 function Fuyutsui:RefreshGroupHealAbsorbBars()
+    local groups = self.blocks and self.blocks.groups
+    if not groups or not groups.healthPercent then
+        self:ClearGroupHealAbsorbBars()
+        return
+    end
+
     wipe(healAbsorbUnitToSlot)
     local groupList = self.groupList or {}
     local bound = math.min(#groupList, HEAL_ABSORB_MAX_SLOTS)
