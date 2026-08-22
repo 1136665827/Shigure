@@ -43,18 +43,19 @@ Fuyutsui.ClassBlocks = {
                 "生命值",
                 "施法",
                 "施法可打断",
+                "驱散类型",
             },
         },
         auras = {
             player = {
                 { name = "熵能裂隙", spellId = 450193, },
                 { name = "天使长", spellId = 81700, },
-                { name = "阴暗面之力", spellId = 198069 },
+                { name = "阴暗面之力", spellId = 198069, },
                 { name = "黑暗主宰", spellId = 1253591, maxApps = 2, },
                 { name = "圣光涌动", spellId = 114255, maxApps = 2, },
                 { name = "福音", spellId = 472433, maxApps = 2, },
-                { name = "强效惩击", spellId = 1253725, maxApps = 2 },
-                { name = "严酷戒律", spellId = 373183, maxApps = 2 },
+                { name = "强效惩击", spellId = 1253725, maxApps = 2, },
+                { name = "严酷戒律", spellId = 373183, maxApps = 2, },
                 { name = "祸福相依", spellId = 390787, maxApps = 10, },
             },
             target = {
@@ -134,10 +135,17 @@ Fuyutsui.ClassBlocks = {
             ["能量"] = {
                 "法力值",
             },
+            ["物品"] = {
+                "治疗药水",
+            },
+            ["配置开关"] = {
+                "延迟",
+            },
             ["目标"] = {
                 "类型",
                 "施法",
                 "施法可打断",
+                "驱散类型",
             },
         },
         auras = {
@@ -145,7 +153,7 @@ Fuyutsui.ClassBlocks = {
                 { name = "神圣化身", spellId = 200183, },
                 { name = "神圣镜像", spellId = 405216, },
                 { name = "圣光涌动", spellId = 114255, maxApps = 2, },
-                { name = "祈福", spellId = 1262766, },
+                { name = "祈福", spellId = 1262766, maxApps = 2, },
                 { name = "救赎之魂", spellId = 194384, },
             },
             target = {
@@ -182,15 +190,17 @@ Fuyutsui.ClassBlocks = {
             { spellId = 14914, name = "神圣之火" },
             { spellId = 120517, name = "光晕" },
             { spellId = 64843, name = "神圣赞美诗" },
+            { spellId = 586, name = "渐隐术" },
         },
         group = {
-            num = 5,
+            num = 6,
             healthPercent = 1,
             role = 2,
             dispel = 3,
             aura = {
                 [4] = { name = "恢复", spellId = 139, },
                 [5] = { name = "愈合祷言", spellId = 41635, },
+                [6] = { name = "救赎之魂", spellId = 27827, },
             },
         },
     },
@@ -247,7 +257,7 @@ Fuyutsui.ClassBlocks = {
         auras = {
             player = {
                 { name = "虚空齐射", spellId = 1242171, maxApps = 5, },
-                { name = "命运多舛", spellId = 390978 },
+                { name = "命运多舛", spellId = 390978, },
                 { name = "熵能裂隙", spellId = 450193, },
                 { name = "暗影洞察", spellId = 375981, },
                 { name = "尤格-萨隆的神像", spellId = 373276, maxApps = 20, },
@@ -260,7 +270,6 @@ Fuyutsui.ClassBlocks = {
                     { name = "精神鞭笞", spellId = 15407, },
                     { name = "惊魂幻象", spellId = 1243069, maxApps = 100, },
                 },
-
             },
             focus = {
                 harmful = {

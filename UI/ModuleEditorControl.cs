@@ -750,6 +750,7 @@ public sealed class ModuleEditorControl : UserControl
             Width = 68,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None
         });
+        _rulesGrid.Columns.Add(CreateSpellIconColumn());
         _spellColumn.Name = "Spell";
         _spellColumn.HeaderText = "技能";
         _spellColumn.Width = 150;
@@ -833,10 +834,30 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.DataError += (_, e) => e.ThrowException = false;
         _rulesGrid.ColumnWidthChanged += OnColumnWidthChanged;
         _rulesGrid.CellValueChanged += OnRulesGridCellValueChanged;
+        _rulesGrid.HandleCreated += (_, _) => SetCompactRulePrefixColumns();
+        SetCompactRulePrefixColumns();
         RefreshKeymapColumns();
         ApplyColumnWidths(UiCacheStore.Load().ModuleRulesGridColumns);
 
         return _rulesGrid;
+    }
+
+    // 规则表格最左侧的拖拽手柄和编号列只承载结构信息，宽度各缩短为原可读性保护宽度的一半。
+    private void SetCompactRulePrefixColumns()
+    {
+        const int compactWidth = 36;
+        foreach (var name in new[] { "Drag", "RuleNumber" })
+        {
+            var column = _rulesGrid.Columns[name];
+            if (column is null)
+            {
+                continue;
+            }
+
+            var width = UiTheme.Scale(_rulesGrid, compactWidth);
+            column.MinimumWidth = width;
+            column.Width = width;
+        }
     }
 
     private void AddRuleIconColumn(string name, string icon, string tooltip, Color? foreColor = null)
@@ -858,6 +879,25 @@ public sealed class ModuleEditorControl : UserControl
         column.DefaultCellStyle.SelectionForeColor = foreColor ?? UiTheme.Text;
         _rulesGrid.Columns.Add(column);
     }
+
+    private static DataGridViewImageColumn CreateSpellIconColumn()
+        => new()
+        {
+            Name = "SpellIcon",
+            HeaderText = "图标",
+            Width = 54,
+            MinimumWidth = 54,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            ImageLayout = DataGridViewImageCellLayout.Zoom,
+            ReadOnly = true,
+            SortMode = DataGridViewColumnSortMode.NotSortable,
+            DefaultCellStyle = new DataGridViewCellStyle
+            {
+                Alignment = DataGridViewContentAlignment.MiddleCenter,
+                NullValue = null,
+                BackColor = UiTheme.Surface
+            }
+        };
 
     // 两个动态数值表共用的红色 "×" 删除列。
     private static void AddDeleteColumn(DataGridView grid)
@@ -1082,6 +1122,8 @@ public sealed class ModuleEditorControl : UserControl
         // 技能改变时联动刷新该行"目标"，技能或目标改变时再刷新"宏条件"。
         if (columnName == "Spell")
         {
+            _rulesGrid.Rows[e.RowIndex].Cells["SpellIcon"].Value =
+                SpellIconCatalog.Get(CellText(_rulesGrid.Rows[e.RowIndex], "Spell"));
             UpdateUnitCellItems(_rulesGrid.Rows[e.RowIndex]);
             UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
         }
@@ -1718,7 +1760,7 @@ public sealed class ModuleEditorControl : UserControl
         var row = _rulesGrid.Rows[rowIndex];
         if (row.IsNewRow)
         {
-            rowIndex = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, string.Empty, string.Empty);
+            rowIndex = _rulesGrid.Rows.Add(true, null!, string.Empty, string.Empty, string.Empty, string.Empty);
             row = _rulesGrid.Rows[rowIndex];
         }
 
@@ -2863,7 +2905,7 @@ public sealed class ModuleEditorControl : UserControl
                 || editor.DelayMs is > 0
                 || editor.LogicDelayMs is > 0)
             {
-                var index = _rulesGrid.Rows.Add(true, string.Empty, string.Empty, string.Empty, editor.ConditionText);
+                var index = _rulesGrid.Rows.Add(true, null!, string.Empty, string.Empty, string.Empty, editor.ConditionText);
                 _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
                     subs,
                     editor.DelayMs,
@@ -3172,7 +3214,13 @@ public sealed class ModuleEditorControl : UserControl
                 : rule.Unit is { } unit ? ReservedUnit.ToDisplayText(unit) : string.Empty;
             EnsureComboItem(_spellColumn, rule.Spell);
             // 先加行(目标先留空), 再按技能重建目标选项并写回目标值, 避免值不在选项内被吞掉。
-            var index = _rulesGrid.Rows.Add(rule.Enabled, rule.Spell, string.Empty, string.Empty, rule.Condition);
+            var index = _rulesGrid.Rows.Add(
+                rule.Enabled,
+                SpellIconCatalog.Get(rule.Spell)!,
+                rule.Spell,
+                string.Empty,
+                string.Empty,
+                rule.Condition);
             _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
                 rule.SubConditions,
                 rule.DelayMs,

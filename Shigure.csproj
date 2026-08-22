@@ -9,9 +9,9 @@
     <AssemblyName>Shigure</AssemblyName>
     <RootNamespace>Shigure</RootNamespace>
     <Company>Arasaka Corporation</Company>
-    <Version>1.2.1.7</Version>
-    <AssemblyVersion>1.2.1.7</AssemblyVersion>
-    <FileVersion>1.2.1.7</FileVersion>
+    <Version>1.2.1.8</Version>
+    <AssemblyVersion>1.2.1.8</AssemblyVersion>
+    <FileVersion>1.2.1.8</FileVersion>
     <ApplicationIcon>Assets\arasaka-icon.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
@@ -28,6 +28,8 @@
     <EmbeddedResource Include="Assets\*.svg" />
     <EmbeddedResource Include="Assets\Class\*.jpg" />
     <EmbeddedResource Include="Assets\Spec\*.jpg" />
+    <EmbeddedResource Include="Assets\Spell\*.jpg" />
+    <EmbeddedResource Include="Assets\SpellIconManifest.json" />
     <None Include="config\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="keymap\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="wow_process.txt" CopyToOutputDirectory="PreserveNewest" />

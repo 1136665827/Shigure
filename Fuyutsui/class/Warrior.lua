@@ -66,6 +66,8 @@ Fuyutsui.ClassBlocks = {
                 { name = "殒命在即", spellId = 445606, maxApps = 3, },
                 { name = "处刑者", spellId = 445584, maxApps = 5, },
                 { name = "武技神威", spellId = 316440, maxApps = 3, },
+                { name = "侩子手的精准", spellId = 386633, maxApps = 2, },
+                { name = "剑刃风暴", spellIds = { 446035 }, },
             },
             target = {
                 harmful = {
@@ -105,6 +107,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 107574, name = "天神下凡" },
             { spellId = 227847, name = "剑刃风暴" },
             { spellId = 260708, name = "横扫攻击" },
+            { spellId = 228920, name = "破坏者" },
         },
     },
     [2] = {

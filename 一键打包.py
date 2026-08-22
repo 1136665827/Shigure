@@ -8,6 +8,7 @@ import sys
 import tempfile
 import urllib.request
 from pathlib import Path
+from xml.sax.saxutils import escape as escape_xml
 
 
 OLD_NAME = "Shigure"
@@ -93,6 +94,33 @@ def ask_new_name() -> str:
         if NAME_PATTERN.fullmatch(new_name):
             return new_name
         print("名称格式不正确：必须以英文字母开头，只能包含英文字母、数字、下划线。")
+
+
+def ask_company_name() -> str:
+    while True:
+        company_name = input("请输入公司名称（将自动添加 Corporation 后缀）: ").strip()
+        if company_name and "\n" not in company_name and "\r" not in company_name:
+            return f"{company_name} Corporation"
+        print("公司名称不能为空，且不能包含换行。")
+
+
+def update_company_name(project_path: Path, company_name: str) -> None:
+    result = read_text(project_path)
+    if result is None:
+        raise RuntimeError(f"无法读取项目文件: {project_path}")
+
+    project_text, encoding = result
+    updated_text, replacements = re.subn(
+        r"(<Company>).*?(</Company>)",
+        lambda match: f"{match.group(1)}{escape_xml(company_name)}{match.group(2)}",
+        project_text,
+        count=1,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if replacements == 0:
+        raise RuntimeError(f"项目文件中找不到 <Company> 配置: {project_path}")
+
+    project_path.write_text(updated_text, encoding=encoding, newline="")
 
 
 def is_in_skipped_dir(path: Path, root: Path) -> bool:
@@ -410,6 +438,7 @@ def main() -> int:
     root, script_path = get_app_paths()
 
     new_name = ask_new_name()
+    company_name = ask_company_name()
     should_rename = new_name != OLD_NAME
     source_csproj = root / f"{OLD_NAME}.csproj"
     if not source_csproj.exists():
@@ -443,6 +472,8 @@ def main() -> int:
         print()
         print(f"新名称和原名称相同，将直接使用 {OLD_NAME}.csproj 打包。")
 
+    print(f"公司名称将设置为: {company_name}")
+
     confirm = input("确认继续？输入 Y/y 继续，其它任意内容取消: ").strip()
     if confirm.casefold() != "y":
         print("已取消。")
@@ -466,6 +497,10 @@ def main() -> int:
             print()
             print(f"名称替换完成，已永久修改 {len(backups)} 个文本文件。")
             print(f"已重命名 {len(completed_renames)} 个文件或目录。")
+
+        project_path = root / f"{new_name}.csproj"
+        update_company_name(project_path, company_name)
+        print(f"公司名称修改完成: {company_name}")
 
         publish(root, new_name, dotnet_command)
     except BaseException as exc:

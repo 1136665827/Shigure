@@ -30,6 +30,10 @@ Fuyutsui.ClassBlocks = {
             ["物品"] = {
                 "治疗药水",
             },
+            ["配置开关"] = {
+                "爆发开关",
+                "延迟",
+            },
             ["目标"] = {
                 "类型",
                 "生命值",
@@ -45,6 +49,12 @@ Fuyutsui.ClassBlocks = {
                 "引导可打断",
             },
         },
+        auras = {
+            player = {
+                { name = "天怒", spellId = 462854, },
+                { name = "熔岩奔腾", spellId = 77762, },
+            },
+        },
         spells = {
             { spellId = 57994, name = "风剪" },
             { spellId = 198103, name = "土元素" },
@@ -58,6 +68,11 @@ Fuyutsui.ClassBlocks = {
             { spellId = 192063, name = "阵风" },
             { spellId = 58875, name = "幽魂步" },
             { spellId = 73920, name = "治疗之雨" },
+            { spellId = 114050, name = "升腾" },
+            { spellId = 51490, name = "雷霆风暴" },
+            { spellId = 192077, name = "狂风图腾" },
+            { spellId = 77130, name = "净化灵魂" },
+            { spellId = 51505, name = "熔岩爆裂", charge = true, maxCharge = 3 },
         },
     },
     [2] = {
@@ -194,6 +209,11 @@ Fuyutsui.ClassBlocks = {
                 { name = "倾盆大雨", spellId = 462603, },
                 { name = "自然迅捷", spellId = 378081, },
             },
+            target = {
+                helpful = {
+                    { name = "激流", spellId = 61295, },
+                },
+            },
         },
         spells = {
             { spellId = 57994, name = "风剪" },
@@ -214,7 +234,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 77130, name = "净化灵魂" },
             { spellId = 73685, name = "生命释放" },
             { spellId = 443454, name = "先祖迅捷" },
-            { spellId = 444995, name = "涌动图腾"  },
+            { spellId = 444995, name = "涌动图腾" },
             { spellId = 98008, name = "灵魂链接图腾" },
             { spellId = 114052, name = "升腾" },
             { spellId = 108280, name = "治疗之潮图腾" },
@@ -228,6 +248,7 @@ Fuyutsui.ClassBlocks = {
             aura = {
                 [4] = { name = "激流", spellId = 61295, },
                 [5] = { name = "大地之盾", spellIds = { 974, 383648 }, },
+                [6] = { name = "救赎之魂", spellId = 27827, },
             },
         },
     },
