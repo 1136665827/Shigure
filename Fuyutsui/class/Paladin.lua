@@ -44,6 +44,8 @@ Fuyutsui.ClassBlocks = {
                 "距离",
                 "施法",
                 "施法可打断",
+                "驱散类型",
+                "生命值",
             },
         },
         auras = {
@@ -89,7 +91,6 @@ Fuyutsui.ClassBlocks = {
             { spellId = 200025, name = "美德道标" },
             { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 2 },
             { spellId = 391054, name = "代祷" },
-            -- { spellId = 432472, name = "圣洁武器", charge = true, maxCharge = 2 },
         },
         group = {
             num = 6,
@@ -97,7 +98,7 @@ Fuyutsui.ClassBlocks = {
             role = 2,
             dispel = 3,
             aura = {
-                [4] = { name = "救世道标", spellId = 1244893, },
+                [4] = { name = "救赎之魂", spellId = 27827, },
                 [5] = { name = "圣光道标", spellIds = { 53563, 156910 }, },
                 [6] = { name = "永恒之火", spellId = 156322, },
             },
@@ -161,22 +162,15 @@ Fuyutsui.ClassBlocks = {
         },
         auras = {
             player = {
-                { name = "闪耀之光", spellId = 327510, maxApps = 2 },
-                { name = "小闪耀之光", spellId = 182104, maxApps = 3 },
-                { name = "正义盾击", spellId = 132403 },
+                { name = "闪耀之光", spellId = 327510, maxApps = 2, },
+                { name = "小闪耀之光", spellId = 182104, maxApps = 3, },
+                { name = "正义盾击", spellId = 132403, },
                 { name = "奉献", spellId = 188370, },
                 { name = "圣言祭礼", spellId = 433550, },
                 { name = "虔诚光环", spellId = 135893, },
-
-            },
-            target = {
-                harmful = {
-                    -- { name = "血之疫病", spellId = 55078, },
-                },
             },
         },
         spells = {
-
             { spellId = 432472, name = "圣洁武器", charge = true, maxCharge = 2 },
             { spellId = 432459, name = "神圣壁垒", charge = true, maxCharge = 2 },
             { spellId = 213644, name = "清毒术" },
@@ -189,7 +183,6 @@ Fuyutsui.ClassBlocks = {
             { spellId = 204019, name = "祝福之锤", charge = true, maxCharge = 3 },
             { spellId = 389539, name = "戒卫" },
             { spellId = 375576, name = "圣洁鸣钟" },
-            -- ↓用的较少的
             { spellId = 115750, name = "盲目之光" },
             { spellId = 853, name = "制裁之锤" },
             { spellId = 642, name = "圣盾术" },
