@@ -574,6 +574,7 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.Controls.Add(textureOrderHint, 0, 0);
 
         ConfigureGrid(_spellsGrid);
+        _spellsGrid.Columns.Add(CreateSpellIconColumn());
         _spellsGrid.Columns.Add(CreateSpellTextColumn("Name", "名称", 24, 160));
         _spellsGrid.Columns.Add(CreateSpellTextColumn("SpellId", "法术 ID", 14, 120));
         _spellsGrid.Columns.Add(CreateSpellCheckColumn("Charge", "充能", 10, 80));
@@ -583,7 +584,14 @@ public sealed class ClassConfigEditorControl : UserControl
         _spellsGrid.Columns.Add(CreateSpellCheckColumn("InSpellBook", "法术书中", 14, 110));
         _spellsGrid.Columns.Add(CreateDeleteColumn());
         _spellsGrid.CellContentClick += HandleDeleteClick;
-        _spellsGrid.CellValueChanged += (_, _) => MarkDirty();
+        _spellsGrid.CellValueChanged += (_, e) =>
+        {
+            MarkDirty();
+            if (e.RowIndex >= 0 && e.RowIndex < _spellsGrid.Rows.Count)
+            {
+                UpdateSpellGridIcon(_spellsGrid.Rows[e.RowIndex]);
+            }
+        };
         _spellsGrid.UserAddedRow += (_, _) => MarkDirty();
         _spellsGrid.DataError += (_, e) => e.ThrowException = false;
         panel.Controls.Add(_spellsGrid, 0, 1);
@@ -970,6 +978,25 @@ public sealed class ClassConfigEditorControl : UserControl
             FillWeight = fillWeight,
             MinimumWidth = minimumWidth,
             SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+
+    private static DataGridViewImageColumn CreateSpellIconColumn()
+        => new()
+        {
+            Name = "Icon",
+            HeaderText = "图标",
+            Width = 54,
+            MinimumWidth = 54,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            ImageLayout = DataGridViewImageCellLayout.Zoom,
+            ReadOnly = true,
+            SortMode = DataGridViewColumnSortMode.NotSortable,
+            DefaultCellStyle = new DataGridViewCellStyle
+            {
+                Alignment = DataGridViewContentAlignment.MiddleCenter,
+                NullValue = null,
+                BackColor = UiTheme.SurfaceRaised
+            }
         };
 
     private static DataGridViewCheckBoxColumn CreateSpellCheckColumn(
@@ -1459,6 +1486,7 @@ public sealed class ClassConfigEditorControl : UserControl
         foreach (var spell in _currentSpec.Spells)
         {
             _spellsGrid.Rows.Add(
+                SpellIconCatalog.Get(spell.SpellId)!,
                 spell.Name,
                 spell.SpellId.ToString(CultureInfo.InvariantCulture),
                 spell.Charge,
@@ -1468,6 +1496,21 @@ public sealed class ClassConfigEditorControl : UserControl
                 spell.InSpellBook,
                 "×");
         }
+    }
+
+    private static void UpdateSpellGridIcon(DataGridViewRow row)
+    {
+        if (row.IsNewRow || !long.TryParse(
+                row.Cells["SpellId"].Value?.ToString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var spellId))
+        {
+            row.Cells["Icon"].Value = null;
+            return;
+        }
+
+        row.Cells["Icon"].Value = SpellIconCatalog.Get(spellId);
     }
 
     private void FillSpellsListGrid()
