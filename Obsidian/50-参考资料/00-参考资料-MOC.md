@@ -36,6 +36,7 @@ verified_at: "2026-08-10"
 ## 外部与历史资料
 
 - [[50-参考资料/AuraContainer_AI_Reference_zh-CN|World of Warcraft AuraContainer：AI 技术参考]]：固定版本的外部 API 资料；先检查版本和 `verified_at`。
+- [[50-参考资料/EncounterTimeline_API_zh-CN|World of Warcraft EncounterTimeline API：中文参考]]：WoW 12.0+ Boss 技能时间轴、职责/效果分类和 Secret Values 边界。
 - [[50-参考资料/OPTIMIZATION_zh-CN|Fuyutsui 优化建议]]：历史静态审计；所有结论都应回到当前源码复核。
 
 ## 阅读路由
@@ -46,6 +47,7 @@ verified_at: "2026-08-10"
 | 字段顺序或纹理布局 | [[50-参考资料/TEXTURE_LAYOUT_zh-CN|纹理排序说明]] | [[40-跨项目/02-Shigure-ClassBlocks到config同步契约|ClassBlocks 契约]] |
 | 宏槽位或热键 | [[50-参考资料/CLASSMACROS_AI_Reference_zh-CN|ClassMacros 参考]] | [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约|宏与热键契约]] |
 | AuraContainer API | [[50-参考资料/AuraContainer_AI_Reference_zh-CN|AuraContainer 参考]] | [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成|本地集成]] |
+| Boss 技能时间轴、职责筛选或 Secret Values | [[50-参考资料/EncounterTimeline_API_zh-CN|EncounterTimeline API 参考]] | 当前客户端 UI 源码与版本核对清单 |
 | 旧优化建议 | [[50-参考资料/OPTIMIZATION_zh-CN|历史审计]] | [[40-跨项目/04-Shigure-兼容性变更检查清单|兼容性检查清单]] |
 
 ## 关系
