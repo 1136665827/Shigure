@@ -72,7 +72,18 @@ public sealed class ClassConfigEditorControl : UserControl
         _reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
         _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
         InitializeComponent();
+        SpellIconCatalog.IconAvailable += OnSpellIconAvailable;
         ReloadFromAddon();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
+        }
+
+        base.Dispose(disposing);
     }
 
     private void InitializeComponent()
@@ -1494,6 +1505,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var spell in _currentSpec.Spells)
         {
+            SpellIconCatalog.Register(spell.SpellId, spell.Name);
             _spellsGrid.Rows.Add(
                 SpellIconCatalog.Get(spell.SpellId)!,
                 spell.Name,
@@ -1515,6 +1527,7 @@ public sealed class ClassConfigEditorControl : UserControl
             return;
         }
 
+        var name = row.Cells["Name"].Value?.ToString();
         var icon = long.TryParse(
             row.Cells["SpellId"].Value?.ToString(),
             NumberStyles.Integer,
@@ -1522,7 +1535,12 @@ public sealed class ClassConfigEditorControl : UserControl
             out var spellId)
             ? SpellIconCatalog.Get(spellId)
             : null;
-        row.Cells["Icon"].Value = icon ?? SpellIconCatalog.Get(row.Cells["Name"].Value?.ToString());
+        if (spellId > 0)
+        {
+            SpellIconCatalog.Register(spellId, name);
+        }
+
+        row.Cells["Icon"].Value = icon ?? SpellIconCatalog.Get(name);
     }
 
     private void FillSpellsListGrid()
@@ -1537,6 +1555,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var spell in _currentDocument.SpellsList.Where(spell => spell.Index is >= 1 and <= 100))
         {
+            SpellIconCatalog.Register(spell.SpellId, spell.Name);
             var rowIndex = _spellsListGrid.Rows.Add(
                 spell.SpellId.ToString(CultureInfo.InvariantCulture),
                 spell.Index.ToString(CultureInfo.InvariantCulture),
@@ -1727,6 +1746,7 @@ public sealed class ClassConfigEditorControl : UserControl
             Name = name
         };
         _currentDocument.SpellsList.Add(entry);
+        SpellIconCatalog.Register(spellId, name);
 
         var rowIndex = _spellsListGrid.Rows.Add(
             spellId.ToString(CultureInfo.InvariantCulture),
@@ -1744,6 +1764,39 @@ public sealed class ClassConfigEditorControl : UserControl
         _newSpellNameBox.Clear();
         _newSpellIdBox.Focus();
         MarkDirty();
+    }
+
+    private void OnSpellIconAvailable(long spellId)
+    {
+        if (IsDisposed || Disposing || !IsHandleCreated)
+        {
+            return;
+        }
+
+        BeginInvoke((Action)(() =>
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            RefreshDownloadedIcons(_spellsGrid, spellId);
+            RefreshDownloadedIcons(_spellsListGrid, spellId);
+        }));
+    }
+
+    private static void RefreshDownloadedIcons(DataGridView grid, long spellId)
+    {
+        foreach (DataGridViewRow row in grid.Rows)
+        {
+            if (!row.IsNewRow
+                && long.TryParse(row.Cells["SpellId"].Value?.ToString(), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out var rowSpellId)
+                && rowSpellId == spellId)
+            {
+                UpdateSpellGridIcon(row);
+            }
+        }
     }
 
     private bool TryValidateSpellsList(out string error)

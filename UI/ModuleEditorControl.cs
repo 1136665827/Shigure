@@ -102,7 +102,18 @@ public sealed class ModuleEditorControl : UserControl
         _fieldCatalog = ConditionFieldCatalog.Load(baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(baseDirectory);
         InitializeComponent();
+        SpellIconCatalog.IconAvailable += OnSpellIconAvailable;
         LoadModules();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
+        }
+
+        base.Dispose(disposing);
     }
 
     public void ReloadCatalogs()
@@ -1119,6 +1130,30 @@ public sealed class ModuleEditorControl : UserControl
         {
             UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
         }
+    }
+
+    private void OnSpellIconAvailable(long spellId)
+    {
+        if (IsDisposed || Disposing || !IsHandleCreated)
+        {
+            return;
+        }
+
+        BeginInvoke((Action)(() =>
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            foreach (DataGridViewRow row in _rulesGrid.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.Cells["SpellIcon"].Value = SpellIconCatalog.Get(CellText(row, "Spell"));
+                }
+            }
+        }));
     }
 
     private static void EnsureComboItem(DataGridViewComboBoxColumn column, object? value)
