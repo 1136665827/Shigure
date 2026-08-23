@@ -5,8 +5,8 @@ using System.Text.Json;
 namespace Shigure;
 
 /// <summary>
-/// 技能名称/ID 到技能图标的目录。优先读取嵌入资源；未知 ID 会在后台从 Wowhead
-/// 解析图标并按图标资源名缓存，因此多个 spellId 共用一份图片。
+/// 技能名称/ID 到技能图标的目录。优先读取自定义嵌入资源和发布数据包，开发环境
+/// 回退到 Assets/Spell；未知 ID 会在后台从 Wowhead 下载并按图标资源名缓存。
 /// </summary>
 internal static class SpellIconCatalog
 {
@@ -15,8 +15,9 @@ internal static class SpellIconCatalog
     private static readonly Dictionary<string, Image?> NamedIcons = new(StringComparer.Ordinal);
     private static readonly HashSet<long> PendingDownloads = new();
     private static readonly Dictionary<long, DateTime> RetryAfter = new();
+    private static readonly SpellIconPackage? PackagedCatalog = SpellIconPackage.TryOpen();
     private static readonly CatalogData Catalog = LoadCatalog();
-    private static readonly Dictionary<string, long> SpellIdsByName = Catalog.SpellIdsByName;
+    private static readonly Dictionary<string, long> SpellIdsByName = LoadSpellIdsByName();
     private static readonly Dictionary<long, string> IconTargetsBySpellId = Catalog.TargetsBySpellId;
     private static readonly string RuntimeCacheDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -142,6 +143,12 @@ internal static class SpellIconCatalog
         if (resourceName is not null)
         {
             return LoadResource(resourceName);
+        }
+
+        var packaged = PackagedCatalog?.LoadIcon(spellId);
+        if (packaged is not null)
+        {
+            return packaged;
         }
 
         string? target;
@@ -375,6 +382,22 @@ internal static class SpellIconCatalog
         File.Move(temporary, RuntimeIndexPath, overwrite: true);
     }
 
+    private static Dictionary<string, long> LoadSpellIdsByName()
+    {
+        var result = new Dictionary<string, long>(Catalog.SpellIdsByName, StringComparer.Ordinal);
+        if (PackagedCatalog is null)
+        {
+            return result;
+        }
+
+        foreach (var (name, spellId) in PackagedCatalog.SpellIdsByName)
+        {
+            result.TryAdd(name, spellId);
+        }
+
+        return result;
+    }
+
     private static CatalogData LoadCatalog()
     {
         var result = new CatalogData();
@@ -428,6 +451,168 @@ internal static class SpellIconCatalog
     {
         public Dictionary<string, long> SpellIdsByName { get; } = new(StringComparer.Ordinal);
         public Dictionary<long, string> TargetsBySpellId { get; } = new();
+    }
+
+    private sealed class SpellIconPackage
+    {
+        private static readonly byte[] Magic = "SHGICN1\0"u8.ToArray();
+        private const int Version = 1;
+        private const int HeaderSize = 56;
+        private const int RecordSize = 12;
+
+        private readonly FileStream _stream;
+        private readonly long[] _spellIds;
+        private readonly int[] _iconIndices;
+        private readonly long[] _iconOffsets;
+        private readonly int[] _iconLengths;
+
+        private SpellIconPackage(string path)
+        {
+            _stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            try
+            {
+                using var reader = new BinaryReader(
+                    _stream,
+                    System.Text.Encoding.UTF8,
+                    leaveOpen: true);
+                if (!reader.ReadBytes(Magic.Length).SequenceEqual(Magic)
+                    || reader.ReadInt32() != Version)
+                {
+                    throw new InvalidDataException("Unsupported spell icon package.");
+                }
+
+                var spellCount = reader.ReadInt32();
+                var iconCount = reader.ReadInt32();
+                var nameCount = reader.ReadInt32();
+                var spellMapOffset = reader.ReadInt64();
+                var iconIndexOffset = reader.ReadInt64();
+                var nameIndexOffset = reader.ReadInt64();
+                var dataOffset = reader.ReadInt64();
+                if (spellCount is < 1 or > 2_000_000
+                    || iconCount is < 1 or > 100_000
+                    || nameCount is < 0 or > 2_000_000
+                    || spellMapOffset != HeaderSize
+                    || iconIndexOffset != spellMapOffset + (long)spellCount * RecordSize
+                    || nameIndexOffset != iconIndexOffset + (long)iconCount * RecordSize
+                    || dataOffset < nameIndexOffset
+                    || dataOffset > _stream.Length)
+                {
+                    throw new InvalidDataException("Invalid spell icon package header.");
+                }
+
+                _spellIds = new long[spellCount];
+                _iconIndices = new int[spellCount];
+                _stream.Position = spellMapOffset;
+                for (var index = 0; index < spellCount; index++)
+                {
+                    var spellId = reader.ReadInt64();
+                    var iconIndex = reader.ReadInt32();
+                    if (spellId <= 0
+                        || index > 0 && spellId <= _spellIds[index - 1]
+                        || iconIndex < 0
+                        || iconIndex >= iconCount)
+                    {
+                        throw new InvalidDataException("Invalid spell map in icon package.");
+                    }
+
+                    _spellIds[index] = spellId;
+                    _iconIndices[index] = iconIndex;
+                }
+
+                _iconOffsets = new long[iconCount];
+                _iconLengths = new int[iconCount];
+                _stream.Position = iconIndexOffset;
+                for (var index = 0; index < iconCount; index++)
+                {
+                    var offset = reader.ReadInt64();
+                    var length = reader.ReadInt32();
+                    if (offset < dataOffset
+                        || length is < 512 or > 10 * 1024 * 1024
+                        || offset > _stream.Length - length)
+                    {
+                        throw new InvalidDataException("Invalid image index in icon package.");
+                    }
+
+                    _iconOffsets[index] = offset;
+                    _iconLengths[index] = length;
+                }
+
+                SpellIdsByName = new Dictionary<string, long>(StringComparer.Ordinal);
+                _stream.Position = nameIndexOffset;
+                for (var index = 0; index < nameCount; index++)
+                {
+                    var spellId = reader.ReadInt64();
+                    var byteLength = reader.ReadInt32();
+                    if (spellId <= 0
+                        || byteLength is < 1 or > 4096
+                        || _stream.Position > dataOffset - byteLength)
+                    {
+                        throw new InvalidDataException("Invalid name index in icon package.");
+                    }
+
+                    var name = System.Text.Encoding.UTF8.GetString(reader.ReadBytes(byteLength));
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        SpellIdsByName.TryAdd(name, spellId);
+                    }
+                }
+
+                if (_stream.Position != dataOffset)
+                {
+                    throw new InvalidDataException("Spell icon package index size mismatch.");
+                }
+            }
+            catch
+            {
+                _stream.Dispose();
+                throw;
+            }
+        }
+
+        public Dictionary<string, long> SpellIdsByName { get; }
+
+        public static SpellIconPackage? TryOpen()
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "data", "SpellIcons.shgpack");
+            try
+            {
+                return File.Exists(path) ? new SpellIconPackage(path) : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                or InvalidDataException or ArgumentException)
+            {
+                // 缺少或损坏数据包时继续使用文件夹、自定义图标和在线回退。
+                return null;
+            }
+        }
+
+        public Image? LoadIcon(long spellId)
+        {
+            var spellIndex = Array.BinarySearch(_spellIds, spellId);
+            if (spellIndex < 0)
+            {
+                return null;
+            }
+
+            var iconIndex = _iconIndices[spellIndex];
+            var bytes = new byte[_iconLengths[iconIndex]];
+            try
+            {
+                lock (_stream)
+                {
+                    _stream.Position = _iconOffsets[iconIndex];
+                    _stream.ReadExactly(bytes);
+                }
+
+                using var memory = new MemoryStream(bytes, writable: false);
+                using var source = Image.FromStream(memory);
+                return new Bitmap(source);
+            }
+            catch (Exception ex) when (ex is IOException or ArgumentException)
+            {
+                return null;
+            }
+        }
     }
 
 }

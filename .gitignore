@@ -31,5 +31,5 @@ __pycache__/
 
 outputs/
 
-# Obsolete generated icon package (the project distributes Assets/Spell instead)
+# Generated only inside the one-click packer's temporary build environment
 /Assets/SpellIcons.shgpack
