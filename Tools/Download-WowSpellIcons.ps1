@@ -21,7 +21,8 @@ foreach ($file in Get-ChildItem -LiteralPath $classRoot -Filter "*.lua") {
             $idToName[$id] = $name
         }
     }
-    foreach ($match in [regex]::Matches($source, '\[(?<id>\d+)\]\s*=\s*\{[^}]*?name\s*=\s*["''](?<name>[^"'']+)["'']')) {
+    # spellsList entries contain index; requiring it avoids treating array positions as spell IDs.
+    foreach ($match in [regex]::Matches($source, '\[(?<id>\d+)\]\s*=\s*\{\s*index\s*=\s*\d+\s*,\s*name\s*=\s*["''](?<name>[^"'']+)["'']')) {
         $id = [long]$match.Groups['id'].Value
         $name = $match.Groups['name'].Value.Trim()
         if ($name.Length -gt 0 -and -not $idToName.ContainsKey($id)) {

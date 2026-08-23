@@ -349,6 +349,5 @@ Fuyutsui.spellsList = {
     [335100]  = { index = 37, name = "碎甲猛击" },
     [228920]  = { index = 38, name = "破坏者" },
     [280735]  = { index = 39, name = "斩杀" },
-    [1269382] = { index = 40, name = "英勇打击" },
-    [446035]  = { index = 41, name = "剑刃风暴" },
+    [446035]  = { index = 40, name = "剑刃风暴" },
 }

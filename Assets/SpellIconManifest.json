@@ -1,17 +1,11 @@
 ﻿{
     "game":  "World of Warcraft",
-    "updated":  "2026-08-22",
+    "updated":  "2026-08-23",
     "source":  {
                    "tooltipBaseUrl":  "https://nether.wowhead.com/tooltip/spell/",
                    "imageBaseUrl":  "https://wow.zamimg.com/images/wow/icons/large/"
                },
     "spells":  [
-                   {
-                       "spellId":  5,
-                       "name":  "回响",
-                       "icon":  "inv_misc_bone_humanskull_01",
-                       "target":  "Spell/spell-5.jpg"
-                   },
                    {
                        "spellId":  17,
                        "name":  "真言术：盾",
@@ -102,20 +96,20 @@
                        "icon":  "spell_nature_removecurse",
                        "target":  "Spell/spell-475.jpg"
                    },
-                    {
-                        "spellId":  527,
-                        "name":  "纯净术",
-                        "icon":  "spell_holy_dispelmagic",
-                        "target":  "Spell/spell-527.jpg"
-                    },
-                    {
-                        "spellId":  528,
-                        "name":  "驱散魔法",
-                        "icon":  "spell_nature_nullifydisease",
-                        "target":  "Spell/spell-528.jpg"
-                    },
-                    {
-                        "spellId":  585,
+                   {
+                       "spellId":  527,
+                       "name":  "纯净术",
+                       "icon":  "spell_holy_dispelmagic",
+                       "target":  "Spell/spell-527.jpg"
+                   },
+                   {
+                       "spellId":  528,
+                       "name":  "驱散魔法",
+                       "icon":  "spell_nature_nullifydisease",
+                       "target":  "Spell/spell-528.jpg"
+                   },
+                   {
+                       "spellId":  585,
                        "name":  "惩击",
                        "icon":  "spell_holy_holysmite",
                        "target":  "Spell/spell-585.jpg"
@@ -1081,6 +1075,12 @@
                        "target":  "Spell/spell-34914.jpg"
                    },
                    {
+                       "spellId":  35395,
+                       "name":  "十字军打击",
+                       "icon":  "spell_holy_crusaderstrike",
+                       "target":  "Spell/spell-35395.jpg"
+                   },
+                   {
                        "spellId":  36554,
                        "name":  "暗影步",
                        "icon":  "ability_rogue_shadowstep",
@@ -1265,6 +1265,12 @@
                        "name":  "冰霜之柱",
                        "icon":  "ability_deathknight_pillaroffrost",
                        "target":  "Spell/spell-51271.jpg"
+                   },
+                   {
+                       "spellId":  51490,
+                       "name":  "雷霆风暴",
+                       "icon":  "spell_shaman_thunderstorm",
+                       "target":  "Spell/spell-51490.jpg"
                    },
                    {
                        "spellId":  51505,
@@ -1831,6 +1837,12 @@
                        "target":  "Spell/spell-110960.jpg"
                    },
                    {
+                       "spellId":  111400,
+                       "name":  "爆燃冲刺",
+                       "icon":  "ability_deathwing_sealarmorbreachtga",
+                       "target":  "Spell/spell-111400.jpg"
+                   },
+                   {
                        "spellId":  111771,
                        "name":  "恶魔传送门",
                        "icon":  "spell_warlock_demonicportal_green",
@@ -1853,6 +1865,12 @@
                        "name":  "潜伏帷幕",
                        "icon":  "ability_rogue_shroudofconcealment",
                        "target":  "Spell/spell-114018.jpg"
+                   },
+                   {
+                       "spellId":  114050,
+                       "name":  "升腾",
+                       "icon":  "8026697",
+                       "target":  "Spell/spell-114050.jpg"
                    },
                    {
                        "spellId":  114052,
@@ -4141,6 +4159,12 @@
                        "target":  "Spell/spell-1241059.jpg"
                    },
                    {
+                       "spellId":  1241288,
+                       "name":  "愤怒之锤",
+                       "icon":  "inv12_ability_paladin_hammerofwrath",
+                       "target":  "Spell/spell-1241288.jpg"
+                   },
+                   {
                        "spellId":  1241413,
                        "name":  "愤怒之锤",
                        "icon":  "inv12_ability_paladin_hammerofwrath",
@@ -4399,10 +4423,22 @@
                        "target":  "Spell/spell-1276672.jpg"
                    },
                    {
+                       "spellId":  1277026,
+                       "name":  "愤怒之锤",
+                       "icon":  "inv12_ability_paladin_hammerofwrath",
+                       "target":  "Spell/spell-1277026.jpg"
+                   },
+                   {
                        "spellId":  1277933,
                        "name":  "伺机待发",
                        "icon":  "ability_rogue_preparation",
                        "target":  "Spell/spell-1277933.jpg"
+                   },
+                   {
+                       "spellId":  1279408,
+                       "name":  "愤怒之锤",
+                       "icon":  "inv12_ability_paladin_hammerofwrath",
+                       "target":  "Spell/spell-1279408.jpg"
                    },
                    {
                        "spellId":  1283344,

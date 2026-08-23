@@ -356,4 +356,6 @@ Fuyutsui.spellsList = {
     [2645]    = { index = 51, name = "幽魂之狼" },
     [370]     = { index = 52, name = "净化术" },
     [378773]  = { index = 53, name = "强效净化术" },
+    [114050]  = { index = 54, name = "升腾" },
+    [51490]   = { index = 55, name = "雷霆风暴" },
 }
