@@ -28,9 +28,13 @@
     <EmbeddedResource Include="Assets\*.svg" />
     <EmbeddedResource Include="Assets\Class\*.jpg" />
     <EmbeddedResource Include="Assets\Spec\*.jpg" />
-    <EmbeddedResource Include="Assets\Spell\*.jpg" />
+    <!-- Complete spell icons live in one external read-only package. Only the
+         hand-picked custom JPG/PNG actions remain embedded in the executable. -->
+    <EmbeddedResource Include="Assets\Spell\*.jpg" Exclude="Assets\Spell\icon-*.jpg" />
     <EmbeddedResource Include="Assets\Spell\*.png" />
-    <EmbeddedResource Include="Assets\SpellIconManifest.json" />
+    <None Include="Assets\SpellIcons.shgpack" Link="data\SpellIcons.shgpack"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true" />
     <None Include="config\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="keymap\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="wow_process.txt" CopyToOutputDirectory="PreserveNewest" />

@@ -809,6 +809,7 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.Controls.Add(fields, 0, 0);
 
         ConfigureGrid(_groupAurasGrid, "class-config-group-auras");
+        _groupAurasGrid.Columns.Add(CreateSpellIconColumn());
         _groupAurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Offset", HeaderText = "偏移", Width = 70 });
         _groupAurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "名称", Width = 160 });
         _groupAurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SpellId", HeaderText = "spellId", Width = 110 });
@@ -820,7 +821,16 @@ public sealed class ClassConfigEditorControl : UserControl
         });
         _groupAurasGrid.Columns.Add(CreateDeleteColumn());
         _groupAurasGrid.CellContentClick += HandleDeleteClick;
-        _groupAurasGrid.CellValueChanged += (_, _) => MarkDirty();
+        _groupAurasGrid.CellValueChanged += (_, e) =>
+        {
+            MarkDirty();
+            if (e.RowIndex >= 0 && e.RowIndex < _groupAurasGrid.Rows.Count
+                && e.ColumnIndex >= 0
+                && _groupAurasGrid.Columns[e.ColumnIndex].Name is "Name" or "SpellId" or "SpellIds")
+            {
+                UpdateAuraGridIcon(_groupAurasGrid.Rows[e.RowIndex]);
+            }
+        };
         _groupAurasGrid.UserAddedRow += (_, _) => MarkDirty();
         panel.Controls.Add(_groupAurasGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_groupAurasGrid), 0, 2);
@@ -1496,16 +1506,10 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var aura in GetCurrentAuraList())
         {
-            var iconSpellId = aura.SpellId is > 0
-                ? aura.SpellId.Value
-                : aura.SpellIds.FirstOrDefault(id => id > 0);
-            if (iconSpellId > 0)
-            {
-                SpellIconCatalog.Register(iconSpellId, aura.Name);
-            }
+            var icon = GetAuraIcon(aura.SpellId, aura.SpellIds, aura.Name);
 
             _aurasGrid.Rows.Add(
-                (iconSpellId > 0 ? SpellIconCatalog.Get(iconSpellId) : SpellIconCatalog.Get(aura.Name))!,
+                icon!,
                 aura.Name,
                 aura.SpellId?.ToString(CultureInfo.InvariantCulture) ?? "",
                 string.Join(", ", aura.SpellIds),
@@ -1547,31 +1551,47 @@ public sealed class ClassConfigEditorControl : UserControl
         }
 
         var name = row.Cells["Name"].Value?.ToString();
-        var iconSpellId = GetAuraIconSpellId(row);
-        if (iconSpellId > 0)
-        {
-            SpellIconCatalog.Register(iconSpellId, name);
-        }
-
-        row.Cells["Icon"].Value = iconSpellId > 0
-            ? SpellIconCatalog.Get(iconSpellId) ?? SpellIconCatalog.Get(name)
-            : SpellIconCatalog.Get(name);
+        var spellId = long.TryParse(
+            row.Cells["SpellId"].Value?.ToString(),
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var parsedSpellId)
+            ? parsedSpellId
+            : (long?)null;
+        row.Cells["Icon"].Value = GetAuraIcon(
+            spellId,
+            ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? ""),
+            name);
     }
 
-    private static long GetAuraIconSpellId(DataGridViewRow row)
+    private static Image? GetAuraIcon(long? spellId, IEnumerable<long> spellIds, string? name)
     {
-        if (long.TryParse(
-                row.Cells["SpellId"].Value?.ToString(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var spellId)
-            && spellId > 0)
+        if (spellId is > 0)
         {
-            return spellId;
+            SpellIconCatalog.Register(spellId.Value, name);
+            var icon = SpellIconCatalog.Get(spellId.Value);
+            if (icon is not null)
+            {
+                return icon;
+            }
         }
 
-        return ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? "")
-            .FirstOrDefault(id => id > 0);
+        foreach (var candidate in spellIds)
+        {
+            if (candidate <= 0 || candidate == spellId)
+            {
+                continue;
+            }
+
+            SpellIconCatalog.Register(candidate, name);
+            var icon = SpellIconCatalog.Get(candidate);
+            if (icon is not null)
+            {
+                return icon;
+            }
+        }
+
+        return SpellIconCatalog.Get(name);
     }
 
     private static void UpdateSpellGridIcon(DataGridViewRow row)
@@ -1635,7 +1655,9 @@ public sealed class ClassConfigEditorControl : UserControl
             _groupDispelBox.Value = Clamp(_groupDispelBox, group.Dispel ?? 3);
             foreach (var aura in group.Auras)
             {
+                var icon = GetAuraIcon(aura.SpellId, aura.SpellIds, aura.Name);
                 _groupAurasGrid.Rows.Add(
+                    icon!,
                     aura.Offset.ToString(CultureInfo.InvariantCulture),
                     aura.Name,
                     aura.SpellId?.ToString(CultureInfo.InvariantCulture) ?? "",
@@ -1843,13 +1865,31 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private void RefreshDownloadedAuraIcons(long spellId)
     {
-        foreach (DataGridViewRow row in _aurasGrid.Rows)
+        foreach (var grid in new[] { _aurasGrid, _groupAurasGrid })
         {
-            if (!row.IsNewRow && GetAuraIconSpellId(row) == spellId)
+            foreach (DataGridViewRow row in grid.Rows)
             {
-                UpdateAuraGridIcon(row);
+                if (!row.IsNewRow && AuraRowUsesSpellId(row, spellId))
+                {
+                    UpdateAuraGridIcon(row);
+                }
             }
         }
+    }
+
+    private static bool AuraRowUsesSpellId(DataGridViewRow row, long spellId)
+    {
+        if (long.TryParse(
+                row.Cells["SpellId"].Value?.ToString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var primarySpellId)
+            && primarySpellId == spellId)
+        {
+            return true;
+        }
+
+        return ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? "").Contains(spellId);
     }
 
     private static void RefreshDownloadedIcons(DataGridView grid, long spellId)
