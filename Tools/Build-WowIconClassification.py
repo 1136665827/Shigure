@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build normalized JSON for the all_icons classification workbook."""
+"""Build complete spell-to-icon mappings and class/aura classification metadata."""
 
 from __future__ import annotations
 
@@ -40,6 +40,7 @@ def joined(values, limit: int = 200) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--icons", type=Path, required=True)
+    parser.add_argument("--existing-target", type=Path)
     parser.add_argument("--raw", type=Path, required=True)
     parser.add_argument("--class-root", type=Path)
     parser.add_argument("--build", required=True)
@@ -50,8 +51,17 @@ def main() -> None:
     suffix = f"-{args.locale}.csv"
     table = lambda name: args.raw / f"{name}{suffix}"
 
-    icon_files = sorted(args.icons.glob("*.jpg"), key=lambda path: path.name.casefold())
-    icon_name_to_file = {path.stem.casefold(): path.name for path in icon_files}
+    icon_names_by_key = {
+        path.name.casefold(): path.name for path in args.icons.glob("*.jpg") if path.is_file()
+    }
+    if args.existing_target and args.existing_target.is_dir():
+        for path in args.existing_target.glob("icon-*.jpg"):
+            # Assets/Spell uses icon-{original stem}.jpg. Reconstruct the logical
+            # all_icons name so rebuilding classification remains idempotent after moves.
+            logical_name = path.name[len("icon-"):]
+            icon_names_by_key.setdefault(logical_name.casefold(), logical_name)
+    icon_files = sorted(icon_names_by_key.values(), key=str.casefold)
+    icon_name_to_file = {Path(name).stem.casefold(): name for name in icon_files}
 
     file_data_to_icon: dict[int, str] = {}
     icon_to_file_data: dict[str, set[int]] = defaultdict(set)
@@ -219,11 +229,22 @@ def main() -> None:
                 if subtree_id:
                     trait_subtrees_by_spell[spell_id].add(subtree_id)
 
+    configured_aura_spells: set[int] = set()
     if args.class_root and args.class_root.is_dir():
         local_patterns = [
             re.compile(r"spellId\s*=\s*(?P<id>\d+).*?name\s*=\s*[\"'](?P<name>[^\"']+)[\"']"),
             re.compile(r"\[(?P<id>\d+)\]\s*=\s*\{\s*index\s*=\s*\d+\s*,\s*name\s*=\s*[\"'](?P<name>[^\"']+)[\"']"),
         ]
+        aura_spell_pattern = re.compile(
+            r"\{\s*name\s*=\s*[\"'](?P<name>[^\"']+)[\"'][^{}]*?"
+            r"\bspellId\s*=\s*(?P<id>\d+)",
+            re.DOTALL,
+        )
+        aura_spell_ids_pattern = re.compile(
+            r"\{\s*name\s*=\s*[\"'](?P<name>[^\"']+)[\"'][^{}]*?"
+            r"\bspellIds\s*=\s*\{(?P<ids>[^{}]*)\}",
+            re.DOTALL,
+        )
         for lua_path in args.class_root.glob("*.lua"):
             class_id = class_id_by_filename.get(lua_path.stem.casefold(), 0)
             if not class_id:
@@ -239,6 +260,26 @@ def main() -> None:
                     player_skill_spells.add(spell_id)
                     if spell_id not in spell_names:
                         spell_names[spell_id] = match.group("name").strip()
+            for match in aura_spell_pattern.finditer(source):
+                spell_id = as_int(match.group("id"))
+                if not spell_id:
+                    continue
+                classes_by_spell[spell_id].add(class_id)
+                sources_by_spell[spell_id].add("Shigure.aura")
+                configured_aura_spells.add(spell_id)
+                if spell_id not in spell_names:
+                    spell_names[spell_id] = match.group("name").strip()
+            for match in aura_spell_ids_pattern.finditer(source):
+                name = match.group("name").strip()
+                for id_text in re.findall(r"\d+", match.group("ids")):
+                    spell_id = as_int(id_text)
+                    if not spell_id:
+                        continue
+                    classes_by_spell[spell_id].add(class_id)
+                    sources_by_spell[spell_id].add("Shigure.aura")
+                    configured_aura_spells.add(spell_id)
+                    if spell_id not in spell_names:
+                        spell_names[spell_id] = name
 
     # Prefer the default-difficulty icon row, then the first usable row.
     spell_icon_candidates: dict[int, tuple[int, int]] = {}
@@ -253,9 +294,26 @@ def main() -> None:
         if current is None or priority < current[0]:
             spell_icon_candidates[spell_id] = (priority, file_data_id)
 
+    # Trigger/buff aura IDs are sometimes absent from SpellMisc while another spell
+    # with the same localized name carries the client icon. Use that icon only when
+    # every same-name candidate resolves to one logical image.
+    icon_file_ids_by_name: dict[str, set[int]] = defaultdict(set)
+    for spell_id, (_, file_data_id) in spell_icon_candidates.items():
+        name = spell_names.get(spell_id, "").strip()
+        if name:
+            icon_file_ids_by_name[name].add(file_data_id)
+    for spell_id in sorted(configured_aura_spells - spell_icon_candidates.keys()):
+        name = spell_names.get(spell_id, "").strip()
+        file_data_ids = icon_file_ids_by_name.get(name, set())
+        icon_files_for_name = {file_data_to_icon[value] for value in file_data_ids}
+        if len(icon_files_for_name) == 1:
+            file_data_id = min(file_data_ids)
+            spell_icon_candidates[spell_id] = (2, file_data_id)
+            sources_by_spell[spell_id].add("Shigure.aura.NameFallback")
+
     spells_by_icon: dict[str, list[int]] = defaultdict(list)
     class_spell_rows: list[dict] = []
-    all_spell_rows: list[dict] = []
+    mapped_spell_rows: list[dict] = []
     for spell_id, (_, file_data_id) in sorted(spell_icon_candidates.items()):
         icon_file = file_data_to_icon[file_data_id]
         spells_by_icon[icon_file].append(spell_id)
@@ -265,6 +323,7 @@ def main() -> None:
         trait_subtrees = sorted(trait_subtrees_by_spell.get(spell_id, set()))
         sources = sorted(sources_by_spell.get(spell_id, set()))
         likely_player_spell = bool(specs) or spell_id in player_skill_spells
+        configured_aura = spell_id in configured_aura_spells
         row = {
             "icon_file": icon_file,
             "icon_file_data_id": file_data_id,
@@ -280,14 +339,20 @@ def main() -> None:
             "trait_subtrees": joined(trait_subtree_names.get(value, str(value)) for value in trait_subtrees),
             "classification_sources": joined(sources),
             "likely_player_class_spell": likely_player_spell,
+            "configured_aura": configured_aura,
         }
-        all_spell_rows.append(row)
-        if likely_player_spell:
+        mapped_spell_rows.append({
+            "spell_id": spell_id,
+            "spell_name": spell_names.get(spell_id, ""),
+            "icon_file_data_id": file_data_id,
+            "icon_file": icon_file,
+        })
+        if likely_player_spell or configured_aura:
             class_spell_rows.append(row)
 
     icon_rows: list[dict] = []
-    for icon_path in icon_files:
-        spell_ids = spells_by_icon.get(icon_path.name, [])
+    for icon_name in icon_files:
+        spell_ids = spells_by_icon.get(icon_name, [])
         class_set: set[int] = set()
         specs: set[int] = set()
         likely_count = 0
@@ -297,8 +362,8 @@ def main() -> None:
             if specs_by_spell.get(spell_id) or spell_id in player_skill_spells:
                 likely_count += 1
         icon_rows.append({
-            "icon_file": icon_path.name,
-            "file_data_ids": joined(sorted(icon_to_file_data.get(icon_path.name, set()))),
+            "icon_file": icon_name,
+            "file_data_ids": joined(sorted(icon_to_file_data.get(icon_name, set()))),
             "db2_spell_count": len(spell_ids),
             "player_class_spell_count": likely_count,
             "spell_ids": joined(spell_ids),
@@ -314,21 +379,25 @@ def main() -> None:
         "build": args.build,
         "locale": args.locale,
         "icon_files": len(icon_files),
-        "icons_with_file_data_id": sum(bool(icon_to_file_data.get(path.name)) for path in icon_files),
-        "icons_with_spells": sum(bool(spells_by_icon.get(path.name)) for path in icon_files),
+        "icons_with_file_data_id": sum(bool(icon_to_file_data.get(name)) for name in icon_files),
+        "icons_with_spells": sum(bool(spells_by_icon.get(name)) for name in icon_files),
         "icons_with_player_class_spells": sum(
             any(specs_by_spell.get(spell_id) or spell_id in player_skill_spells
-                for spell_id in spells_by_icon.get(path.name, []))
-            for path in icon_files
+                for spell_id in spells_by_icon.get(name, []))
+            for name in icon_files
         ),
-        "mapped_spells": len(all_spell_rows),
-        "likely_player_class_spells": len(class_spell_rows),
+        "configured_aura_spells": len(configured_aura_spells),
+        "mapped_configured_auras": sum(spell_id in spell_icon_candidates for spell_id in configured_aura_spells),
+        "mapped_spells": len(mapped_spell_rows),
+        "likely_player_class_spells": sum(row["likely_player_class_spell"] for row in class_spell_rows),
+        "retained_spells": len(class_spell_rows),
         "classes": len(class_names),
         "specializations": sum(class_id in class_names for class_id in spec_class.values()),
     }
 
     payload = {
         "summary": summary,
+        "mapped_spells": mapped_spell_rows,
         "class_spells": class_spell_rows,
         "icons": icon_rows,
         "sources": [

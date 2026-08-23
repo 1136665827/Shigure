@@ -488,6 +488,7 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.Controls.Add(BuildAuraBucketTabs(), 0, 0);
 
         ConfigureGrid(_aurasGrid, "class-config-auras");
+        _aurasGrid.Columns.Add(CreateSpellIconColumn());
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "名称", Width = 160 });
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SpellId", HeaderText = "spellId", Width = 110 });
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn
@@ -499,7 +500,16 @@ public sealed class ClassConfigEditorControl : UserControl
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaxApps", HeaderText = "maxApps", Width = 135 });
         _aurasGrid.Columns.Add(CreateDeleteColumn());
         _aurasGrid.CellContentClick += HandleDeleteClick;
-        _aurasGrid.CellValueChanged += (_, _) => MarkDirty();
+        _aurasGrid.CellValueChanged += (_, e) =>
+        {
+            MarkDirty();
+            if (e.RowIndex >= 0 && e.RowIndex < _aurasGrid.Rows.Count
+                && e.ColumnIndex >= 0
+                && _aurasGrid.Columns[e.ColumnIndex].Name is "Name" or "SpellId" or "SpellIds")
+            {
+                UpdateAuraGridIcon(_aurasGrid.Rows[e.RowIndex]);
+            }
+        };
         _aurasGrid.UserAddedRow += (_, _) => MarkDirty();
         panel.Controls.Add(_aurasGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_aurasGrid), 0, 2);
@@ -1486,7 +1496,16 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var aura in GetCurrentAuraList())
         {
+            var iconSpellId = aura.SpellId is > 0
+                ? aura.SpellId.Value
+                : aura.SpellIds.FirstOrDefault(id => id > 0);
+            if (iconSpellId > 0)
+            {
+                SpellIconCatalog.Register(iconSpellId, aura.Name);
+            }
+
             _aurasGrid.Rows.Add(
+                (iconSpellId > 0 ? SpellIconCatalog.Get(iconSpellId) : SpellIconCatalog.Get(aura.Name))!,
                 aura.Name,
                 aura.SpellId?.ToString(CultureInfo.InvariantCulture) ?? "",
                 string.Join(", ", aura.SpellIds),
@@ -1517,6 +1536,42 @@ public sealed class ClassConfigEditorControl : UserControl
                 spell.InSpellBook,
                 "×");
         }
+    }
+
+    private static void UpdateAuraGridIcon(DataGridViewRow row)
+    {
+        if (row.IsNewRow)
+        {
+            row.Cells["Icon"].Value = null;
+            return;
+        }
+
+        var name = row.Cells["Name"].Value?.ToString();
+        var iconSpellId = GetAuraIconSpellId(row);
+        if (iconSpellId > 0)
+        {
+            SpellIconCatalog.Register(iconSpellId, name);
+        }
+
+        row.Cells["Icon"].Value = iconSpellId > 0
+            ? SpellIconCatalog.Get(iconSpellId) ?? SpellIconCatalog.Get(name)
+            : SpellIconCatalog.Get(name);
+    }
+
+    private static long GetAuraIconSpellId(DataGridViewRow row)
+    {
+        if (long.TryParse(
+                row.Cells["SpellId"].Value?.ToString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var spellId)
+            && spellId > 0)
+        {
+            return spellId;
+        }
+
+        return ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? "")
+            .FirstOrDefault(id => id > 0);
     }
 
     private static void UpdateSpellGridIcon(DataGridViewRow row)
@@ -1782,7 +1837,19 @@ public sealed class ClassConfigEditorControl : UserControl
 
             RefreshDownloadedIcons(_spellsGrid, spellId);
             RefreshDownloadedIcons(_spellsListGrid, spellId);
+            RefreshDownloadedAuraIcons(spellId);
         }));
+    }
+
+    private void RefreshDownloadedAuraIcons(long spellId)
+    {
+        foreach (DataGridViewRow row in _aurasGrid.Rows)
+        {
+            if (!row.IsNewRow && GetAuraIconSpellId(row) == spellId)
+            {
+                UpdateAuraGridIcon(row);
+            }
+        }
     }
 
     private static void RefreshDownloadedIcons(DataGridView grid, long spellId)

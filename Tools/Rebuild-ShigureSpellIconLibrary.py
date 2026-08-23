@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Move classified class icons into Assets/Spell and rebuild the embedded manifest."""
+"""Move every locally mapped spell icon into Assets/Spell and rebuild the manifest."""
 
 from __future__ import annotations
 
@@ -59,16 +59,24 @@ def main() -> None:
         raise SystemExit("Refusing to operate outside all_icons and Assets/Spell.")
 
     payload = json.loads(classification_path.read_text(encoding="utf-8"))
-    class_spells = payload.get("class_spells", [])
-    if len(class_spells) < 4000:
-        raise SystemExit(f"Classification has too few class spell rows: {len(class_spells)}")
+    mapped_spells = payload.get("mapped_spells", [])
+    if mapped_spells:
+        spell_rows = mapped_spells
+        if len(spell_rows) < 100_000:
+            raise SystemExit(f"Classification has too few mapped spell rows: {len(spell_rows)}")
+    else:
+        # Compatibility with classification files generated before the complete
+        # spell catalog was added.
+        spell_rows = payload.get("class_spells", [])
+        if len(spell_rows) < 4000:
+            raise SystemExit(f"Classification has too few class spell rows: {len(spell_rows)}")
 
     rows_by_spell_id: dict[int, dict] = {}
     required_icons: dict[str, str] = {}
     source_files_by_key = {
         path.name.casefold(): path for path in source_root.glob("*.jpg") if path.is_file()
     }
-    for row in class_spells:
+    for row in spell_rows:
         spell_id = int(row["spell_id"])
         icon_file = str(row["icon_file"])
         target_name = normalized_target(icon_file)
@@ -138,17 +146,25 @@ def main() -> None:
     for spell_id, row in sorted(rows_by_spell_id.items()):
         icon_file = str(row["icon_file"])
         icon_name = Path(icon_file).stem.casefold()
-        manifest_spells.append({
+        manifest_entry = {
             "spellId": spell_id,
             "name": str(row.get("spell_name", "")),
             "icon": icon_name,
             "target": f"Spell/{normalized_target(icon_file)}",
-            "classes": str(row.get("classes", "")),
-            "specializations": str(row.get("specializations", "")),
-            "skillLines": str(row.get("skill_lines", "")),
-            "traitSubtrees": str(row.get("trait_subtrees", "")),
-            "classificationSources": str(row.get("classification_sources", "")),
-        })
+        }
+        optional_fields = {
+            "classes": row.get("classes"),
+            "specializations": row.get("specializations"),
+            "skillLines": row.get("skill_lines"),
+            "traitSubtrees": row.get("trait_subtrees"),
+            "classificationSources": row.get("classification_sources"),
+        }
+        for field_name, value in optional_fields.items():
+            if value:
+                manifest_entry[field_name] = str(value)
+        if row.get("configured_aura"):
+            manifest_entry["configuredAura"] = True
+        manifest_spells.append(manifest_entry)
 
     manifest = {
         "game": "World of Warcraft",

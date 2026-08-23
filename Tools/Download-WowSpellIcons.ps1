@@ -39,8 +39,9 @@ $manifest = [ordered]@{
         tooltipBaseUrl = "https://nether.wowhead.com/tooltip/spell/"
         imageBaseUrl = "https://wow.zamimg.com/images/wow/icons/large/"
     }
-    spells = @()
+    spells = $null
 }
+$manifestSpells = New-Object 'System.Collections.Generic.List[object]'
 
 $webHeaders = @{ "User-Agent" = "Shigure Icon Catalog/1.0" }
 $oldById = @{}
@@ -162,20 +163,22 @@ foreach ($id in ($idToName.Keys | Sort-Object)) {
             target = "Spell/$targetName"
         }
         if ($oldById.ContainsKey($id)) {
-            foreach ($propertyName in @('classes', 'specializations', 'skillLines', 'traitSubtrees', 'classificationSources')) {
+            foreach ($propertyName in @('classes', 'specializations', 'skillLines', 'traitSubtrees', 'classificationSources', 'configuredAura')) {
                 $property = $oldById[$id].PSObject.Properties[$propertyName]
                 if ($null -ne $property -and $null -ne $property.Value) {
                     $manifestEntry[$propertyName] = $property.Value
                 }
             }
         }
-        $manifest.spells += $manifestEntry
+        $manifestSpells.Add($manifestEntry)
     }
 
     if ($usedNetwork -and $DelayMilliseconds -gt 0) {
         Start-Sleep -Milliseconds $DelayMilliseconds
     }
 }
+
+$manifest.spells = $manifestSpells
 
 $manifestJson = ($manifest | ConvertTo-Json -Depth 5) + [Environment]::NewLine
 $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
