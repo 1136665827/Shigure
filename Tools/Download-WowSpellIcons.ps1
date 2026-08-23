@@ -100,6 +100,10 @@ foreach ($id in ($idToName.Keys | Sort-Object)) {
         }
     }
 
+    if ([string]::IsNullOrWhiteSpace($icon) -and -not [string]::IsNullOrWhiteSpace($targetName)) {
+        $icon = $targetName.Substring('icon-'.Length, $targetName.Length - 'icon-'.Length - '.jpg'.Length)
+    }
+
     if ([string]::IsNullOrWhiteSpace($icon)) {
         try {
             $usedNetwork = $true
@@ -159,7 +163,6 @@ foreach ($id in ($idToName.Keys | Sort-Object)) {
         $manifestEntry = [ordered]@{
             spellId = $id
             name = $idToName[$id]
-            icon = $icon
             target = "Spell/$targetName"
         }
         if ($oldById.ContainsKey($id)) {
@@ -180,7 +183,7 @@ foreach ($id in ($idToName.Keys | Sort-Object)) {
 
 $manifest.spells = $manifestSpells
 
-$manifestJson = ($manifest | ConvertTo-Json -Depth 5) + [Environment]::NewLine
+$manifestJson = ($manifest | ConvertTo-Json -Depth 5 -Compress) + [Environment]::NewLine
 $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($manifestPath, $manifestJson, $utf8WithoutBom)
 

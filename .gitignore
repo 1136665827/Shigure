@@ -30,3 +30,6 @@ __pycache__/
 /.plan
 
 outputs/
+
+# Obsolete generated icon package (the project distributes Assets/Spell instead)
+/Assets/SpellIcons.shgpack

@@ -145,11 +145,9 @@ def main() -> None:
     manifest_spells = []
     for spell_id, row in sorted(rows_by_spell_id.items()):
         icon_file = str(row["icon_file"])
-        icon_name = Path(icon_file).stem.casefold()
         manifest_entry = {
             "spellId": spell_id,
             "name": str(row.get("spell_name", "")),
-            "icon": icon_name,
             "target": f"Spell/{normalized_target(icon_file)}",
         }
         optional_fields = {
@@ -186,7 +184,8 @@ def main() -> None:
     temporary_manifest = Path(temporary_name)
     try:
         temporary_manifest.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            json.dumps(manifest, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
         )
         os.replace(temporary_manifest, manifest_path)
     finally:
