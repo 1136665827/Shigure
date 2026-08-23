@@ -263,7 +263,7 @@ Fuyutsui.spellsList = {
     [1276452] = { index = 23,  name = "魔典：小鬼领主" },
     [132409]  = { index = 24,  name = "法术封锁" },
     [388215]  = { index = 25,  name = "吞噬魔法" },
-    [111440]  = { index = 26,  name = "爆燃冲刺" },
+    [111400]  = { index = 26,  name = "爆燃冲刺" },
     [710]     = { index = 27,  name = "放逐术" },
     [334275]  = { index = 28,  name = "疲劳诅咒" },
     [1714]    = { index = 29,  name = "语言诅咒" },

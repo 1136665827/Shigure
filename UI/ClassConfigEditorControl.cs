@@ -72,7 +72,18 @@ public sealed class ClassConfigEditorControl : UserControl
         _reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
         _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
         InitializeComponent();
+        SpellIconCatalog.IconAvailable += OnSpellIconAvailable;
         ReloadFromAddon();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
+        }
+
+        base.Dispose(disposing);
     }
 
     private void InitializeComponent()
@@ -386,7 +397,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
         panel.Controls.Add(BuildStateCategoryTabs(), 0, 0);
 
-        ConfigureGrid(_statesGrid);
+        ConfigureGrid(_statesGrid, "class-config-states");
         _stateNameColumn.Name = "Name";
         _stateNameColumn.HeaderText = "状态名";
         _stateNameColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
@@ -476,7 +487,8 @@ public sealed class ClassConfigEditorControl : UserControl
 
         panel.Controls.Add(BuildAuraBucketTabs(), 0, 0);
 
-        ConfigureGrid(_aurasGrid);
+        ConfigureGrid(_aurasGrid, "class-config-auras");
+        _aurasGrid.Columns.Add(CreateSpellIconColumn());
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "名称", Width = 160 });
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SpellId", HeaderText = "spellId", Width = 110 });
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn
@@ -488,7 +500,16 @@ public sealed class ClassConfigEditorControl : UserControl
         _aurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "MaxApps", HeaderText = "maxApps", Width = 135 });
         _aurasGrid.Columns.Add(CreateDeleteColumn());
         _aurasGrid.CellContentClick += HandleDeleteClick;
-        _aurasGrid.CellValueChanged += (_, _) => MarkDirty();
+        _aurasGrid.CellValueChanged += (_, e) =>
+        {
+            MarkDirty();
+            if (e.RowIndex >= 0 && e.RowIndex < _aurasGrid.Rows.Count
+                && e.ColumnIndex >= 0
+                && _aurasGrid.Columns[e.ColumnIndex].Name is "Name" or "SpellId" or "SpellIds")
+            {
+                UpdateAuraGridIcon(_aurasGrid.Rows[e.RowIndex]);
+            }
+        };
         _aurasGrid.UserAddedRow += (_, _) => MarkDirty();
         panel.Controls.Add(_aurasGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_aurasGrid), 0, 2);
@@ -573,7 +594,7 @@ public sealed class ClassConfigEditorControl : UserControl
         textureOrderHint.Padding = new Padding(8, 0, 0, 0);
         panel.Controls.Add(textureOrderHint, 0, 0);
 
-        ConfigureGrid(_spellsGrid);
+        ConfigureGrid(_spellsGrid, "class-config-spells");
         _spellsGrid.Columns.Add(CreateSpellIconColumn());
         _spellsGrid.Columns.Add(CreateSpellTextColumn("Name", "名称", 24, 160));
         _spellsGrid.Columns.Add(CreateSpellTextColumn("SpellId", "法术 ID", 14, 120));
@@ -688,9 +709,16 @@ public sealed class ClassConfigEditorControl : UserControl
         hint.Padding = new Padding(8, 0, 0, 0);
         panel.Controls.Add(hint, 0, 1);
 
-        ConfigureGrid(_spellsListGrid);
+        ConfigureGrid(_spellsListGrid, "class-config-spells-list");
         _spellsListGrid.AllowUserToAddRows = false;
-        _spellsListGrid.CellValueChanged += (_, _) => MarkDirty();
+        _spellsListGrid.CellValueChanged += (_, e) =>
+        {
+            MarkDirty();
+            if (e.RowIndex >= 0 && e.RowIndex < _spellsListGrid.Rows.Count)
+            {
+                UpdateSpellGridIcon(_spellsListGrid.Rows[e.RowIndex]);
+            }
+        };
         _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "SpellId",
@@ -705,6 +733,7 @@ public sealed class ClassConfigEditorControl : UserControl
             Width = 120,
             SortMode = DataGridViewColumnSortMode.NotSortable
         });
+        _spellsListGrid.Columns.Add(CreateSpellIconColumn());
         _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Name",
@@ -779,7 +808,8 @@ public sealed class ClassConfigEditorControl : UserControl
         fields.HandleCreated += (_, _) => FitGroupCards();
         panel.Controls.Add(fields, 0, 0);
 
-        ConfigureGrid(_groupAurasGrid);
+        ConfigureGrid(_groupAurasGrid, "class-config-group-auras");
+        _groupAurasGrid.Columns.Add(CreateSpellIconColumn());
         _groupAurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Offset", HeaderText = "偏移", Width = 70 });
         _groupAurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "名称", Width = 160 });
         _groupAurasGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "SpellId", HeaderText = "spellId", Width = 110 });
@@ -791,7 +821,16 @@ public sealed class ClassConfigEditorControl : UserControl
         });
         _groupAurasGrid.Columns.Add(CreateDeleteColumn());
         _groupAurasGrid.CellContentClick += HandleDeleteClick;
-        _groupAurasGrid.CellValueChanged += (_, _) => MarkDirty();
+        _groupAurasGrid.CellValueChanged += (_, e) =>
+        {
+            MarkDirty();
+            if (e.RowIndex >= 0 && e.RowIndex < _groupAurasGrid.Rows.Count
+                && e.ColumnIndex >= 0
+                && _groupAurasGrid.Columns[e.ColumnIndex].Name is "Name" or "SpellId" or "SpellIds")
+            {
+                UpdateAuraGridIcon(_groupAurasGrid.Rows[e.RowIndex]);
+            }
+        };
         _groupAurasGrid.UserAddedRow += (_, _) => MarkDirty();
         panel.Controls.Add(_groupAurasGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_groupAurasGrid), 0, 2);
@@ -943,9 +982,10 @@ public sealed class ClassConfigEditorControl : UserControl
         return bar;
     }
 
-    private static void ConfigureGrid(DataGridView grid)
+    private static void ConfigureGrid(DataGridView grid, string cacheKey)
     {
         UiTheme.StyleDataGridView(grid);
+        UiTheme.CacheDataGridViewColumnWidths(grid, cacheKey);
         grid.AllowUserToAddRows = true;
         grid.AllowUserToDeleteRows = false;
         grid.RowHeadersVisible = false;
@@ -1466,7 +1506,10 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var aura in GetCurrentAuraList())
         {
+            var icon = GetAuraIcon(aura.SpellId, aura.SpellIds, aura.Name);
+
             _aurasGrid.Rows.Add(
+                icon!,
                 aura.Name,
                 aura.SpellId?.ToString(CultureInfo.InvariantCulture) ?? "",
                 string.Join(", ", aura.SpellIds),
@@ -1485,6 +1528,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var spell in _currentSpec.Spells)
         {
+            SpellIconCatalog.Register(spell.SpellId, spell.Name);
             _spellsGrid.Rows.Add(
                 SpellIconCatalog.Get(spell.SpellId)!,
                 spell.Name,
@@ -1498,19 +1542,80 @@ public sealed class ClassConfigEditorControl : UserControl
         }
     }
 
-    private static void UpdateSpellGridIcon(DataGridViewRow row)
+    private static void UpdateAuraGridIcon(DataGridViewRow row)
     {
-        if (row.IsNewRow || !long.TryParse(
-                row.Cells["SpellId"].Value?.ToString(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var spellId))
+        if (row.IsNewRow)
         {
             row.Cells["Icon"].Value = null;
             return;
         }
 
-        row.Cells["Icon"].Value = SpellIconCatalog.Get(spellId);
+        var name = row.Cells["Name"].Value?.ToString();
+        var spellId = long.TryParse(
+            row.Cells["SpellId"].Value?.ToString(),
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var parsedSpellId)
+            ? parsedSpellId
+            : (long?)null;
+        row.Cells["Icon"].Value = GetAuraIcon(
+            spellId,
+            ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? ""),
+            name);
+    }
+
+    private static Image? GetAuraIcon(long? spellId, IEnumerable<long> spellIds, string? name)
+    {
+        if (spellId is > 0)
+        {
+            SpellIconCatalog.Register(spellId.Value, name);
+            var icon = SpellIconCatalog.Get(spellId.Value);
+            if (icon is not null)
+            {
+                return icon;
+            }
+        }
+
+        foreach (var candidate in spellIds)
+        {
+            if (candidate <= 0 || candidate == spellId)
+            {
+                continue;
+            }
+
+            SpellIconCatalog.Register(candidate, name);
+            var icon = SpellIconCatalog.Get(candidate);
+            if (icon is not null)
+            {
+                return icon;
+            }
+        }
+
+        return SpellIconCatalog.Get(name);
+    }
+
+    private static void UpdateSpellGridIcon(DataGridViewRow row)
+    {
+        if (row.IsNewRow)
+        {
+            row.Cells["Icon"].Value = null;
+            return;
+        }
+
+        var name = row.Cells["Name"].Value?.ToString();
+        var icon = long.TryParse(
+            row.Cells["SpellId"].Value?.ToString(),
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var spellId)
+            ? SpellIconCatalog.Get(spellId)
+            : null;
+        if (spellId > 0)
+        {
+            SpellIconCatalog.Register(spellId, name);
+        }
+
+        row.Cells["Icon"].Value = icon ?? SpellIconCatalog.Get(name);
     }
 
     private void FillSpellsListGrid()
@@ -1525,9 +1630,11 @@ public sealed class ClassConfigEditorControl : UserControl
 
         foreach (var spell in _currentDocument.SpellsList.Where(spell => spell.Index is >= 1 and <= 100))
         {
+            SpellIconCatalog.Register(spell.SpellId, spell.Name);
             var rowIndex = _spellsListGrid.Rows.Add(
                 spell.SpellId.ToString(CultureInfo.InvariantCulture),
                 spell.Index.ToString(CultureInfo.InvariantCulture),
+                (SpellIconCatalog.Get(spell.SpellId) ?? SpellIconCatalog.Get(spell.Name))!,
                 spell.Name);
             _spellsListGrid.Rows[rowIndex].Tag = spell;
         }
@@ -1548,7 +1655,9 @@ public sealed class ClassConfigEditorControl : UserControl
             _groupDispelBox.Value = Clamp(_groupDispelBox, group.Dispel ?? 3);
             foreach (var aura in group.Auras)
             {
+                var icon = GetAuraIcon(aura.SpellId, aura.SpellIds, aura.Name);
                 _groupAurasGrid.Rows.Add(
+                    icon!,
                     aura.Offset.ToString(CultureInfo.InvariantCulture),
                     aura.Name,
                     aura.SpellId?.ToString(CultureInfo.InvariantCulture) ?? "",
@@ -1714,10 +1823,12 @@ public sealed class ClassConfigEditorControl : UserControl
             Name = name
         };
         _currentDocument.SpellsList.Add(entry);
+        SpellIconCatalog.Register(spellId, name);
 
         var rowIndex = _spellsListGrid.Rows.Add(
             spellId.ToString(CultureInfo.InvariantCulture),
             nextIndex.ToString(CultureInfo.InvariantCulture),
+            (SpellIconCatalog.Get(spellId) ?? SpellIconCatalog.Get(name))!,
             name);
         var row = _spellsListGrid.Rows[rowIndex];
         row.Tag = entry;
@@ -1730,6 +1841,69 @@ public sealed class ClassConfigEditorControl : UserControl
         _newSpellNameBox.Clear();
         _newSpellIdBox.Focus();
         MarkDirty();
+    }
+
+    private void OnSpellIconAvailable(long spellId)
+    {
+        if (IsDisposed || Disposing || !IsHandleCreated)
+        {
+            return;
+        }
+
+        BeginInvoke((Action)(() =>
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            RefreshDownloadedIcons(_spellsGrid, spellId);
+            RefreshDownloadedIcons(_spellsListGrid, spellId);
+            RefreshDownloadedAuraIcons(spellId);
+        }));
+    }
+
+    private void RefreshDownloadedAuraIcons(long spellId)
+    {
+        foreach (var grid in new[] { _aurasGrid, _groupAurasGrid })
+        {
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (!row.IsNewRow && AuraRowUsesSpellId(row, spellId))
+                {
+                    UpdateAuraGridIcon(row);
+                }
+            }
+        }
+    }
+
+    private static bool AuraRowUsesSpellId(DataGridViewRow row, long spellId)
+    {
+        if (long.TryParse(
+                row.Cells["SpellId"].Value?.ToString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var primarySpellId)
+            && primarySpellId == spellId)
+        {
+            return true;
+        }
+
+        return ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? "").Contains(spellId);
+    }
+
+    private static void RefreshDownloadedIcons(DataGridView grid, long spellId)
+    {
+        foreach (DataGridViewRow row in grid.Rows)
+        {
+            if (!row.IsNewRow
+                && long.TryParse(row.Cells["SpellId"].Value?.ToString(), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out var rowSpellId)
+                && rowSpellId == spellId)
+            {
+                UpdateSpellGridIcon(row);
+            }
+        }
     }
 
     private bool TryValidateSpellsList(out string error)

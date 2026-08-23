@@ -3,6 +3,9 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import hashlib
+import json
+import struct
 import subprocess
 import sys
 import tempfile
@@ -31,6 +34,7 @@ SKIP_DIRS = {
     "bin",
     "cache",
     "obj",
+    "outputs",
 }
 
 TEXT_EXTENSIONS = {
@@ -71,6 +75,12 @@ TARGET_FRAMEWORK_PATTERN = re.compile(
     re.IGNORECASE,
 )
 DOTNET_INSTALL_SCRIPT_URL = "https://dot.net/v1/dotnet-install.ps1"
+SPELL_ICON_PACKAGE_MAGIC = b"SHGICN1\0"
+SPELL_ICON_PACKAGE_VERSION = 1
+SPELL_ICON_PACKAGE_HEADER = struct.Struct("<8sIIIIqqqq")
+SPELL_ICON_PACKAGE_SPELL_RECORD = struct.Struct("<qI")
+SPELL_ICON_PACKAGE_ICON_RECORD = struct.Struct("<qI")
+SPELL_ICON_PACKAGE_NAME_RECORD = struct.Struct("<qI")
 
 
 def configure_console() -> None:
@@ -272,6 +282,158 @@ def apply_path_renames(
         completed_renames.append((old_path, new_path))
 
 
+def copy_to_build_environment(root: Path, script_path: Path, build_root: Path) -> None:
+    resolved_root = root.resolve()
+
+    def ignore_files(directory: str, names: list[str]) -> set[str]:
+        ignored = {name for name in names if name in SKIP_DIRS}
+        if Path(directory).resolve() == resolved_root:
+            ignored.add(script_path.name)
+        return ignored
+
+    shutil.copytree(root, build_root, ignore=ignore_files, dirs_exist_ok=True)
+
+
+def build_spell_icon_package(build_root: Path) -> Path:
+    asset_root = (build_root / "Assets").resolve()
+    spell_root = (asset_root / "Spell").resolve()
+    manifest_path = asset_root / "SpellIconManifest.json"
+    output_path = asset_root / "SpellIcons.shgpack"
+
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"找不到法术图标清单: {manifest_path}")
+    if not spell_root.is_dir():
+        raise FileNotFoundError(f"找不到法术图标目录: {spell_root}")
+
+    with manifest_path.open("r", encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    rows = manifest.get("spells")
+    if not isinstance(rows, list):
+        raise ValueError("法术图标清单缺少 spells 数组。")
+
+    spells: list[tuple[int, str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        spell_id = int(row.get("spellId", 0))
+        target = str(row.get("target", "")).strip().replace("\\", "/")
+        name = str(row.get("name", "")).strip()
+        if spell_id > 0 and target:
+            spells.append((spell_id, target, name))
+
+    spells.sort(key=lambda item: item[0])
+    if len(spells) < 100_000:
+        raise ValueError(f"法术图标清单记录过少: {len(spells)}")
+    if any(spells[index - 1][0] == spells[index][0] for index in range(1, len(spells))):
+        raise ValueError("法术图标清单包含重复 spellId。")
+
+    targets = sorted({target for _, target, _ in spells}, key=str.casefold)
+    if len(targets) < 10_000:
+        raise ValueError(f"法术图标数量过少: {len(targets)}")
+    target_indices = {target: index for index, target in enumerate(targets)}
+
+    icon_paths: list[Path] = []
+    for target in targets:
+        icon_path = (asset_root / target).resolve()
+        if (
+            icon_path.parent != spell_root
+            or not icon_path.name.startswith("icon-")
+            or icon_path.suffix.casefold() != ".jpg"
+            or not icon_path.is_file()
+        ):
+            raise ValueError(f"无效或缺失的法术图标: {target}")
+        icon_paths.append(icon_path)
+
+    seen_names: set[str] = set()
+    name_records: list[tuple[int, bytes]] = []
+    for spell_id, _, name in spells:
+        if not name or name in seen_names:
+            continue
+        encoded = name.encode("utf-8")
+        if len(encoded) > 4096:
+            raise ValueError(f"法术名称异常过长: {spell_id}")
+        seen_names.add(name)
+        name_records.append((spell_id, encoded))
+
+    spell_map_offset = SPELL_ICON_PACKAGE_HEADER.size
+    icon_index_offset = (
+        spell_map_offset + len(spells) * SPELL_ICON_PACKAGE_SPELL_RECORD.size
+    )
+    name_index_offset = (
+        icon_index_offset + len(icon_paths) * SPELL_ICON_PACKAGE_ICON_RECORD.size
+    )
+    data_offset = name_index_offset + sum(
+        SPELL_ICON_PACKAGE_NAME_RECORD.size + len(name)
+        for _, name in name_records
+    )
+
+    icon_records: list[tuple[int, int]] = []
+    next_offset = data_offset
+    for icon_path in icon_paths:
+        length = icon_path.stat().st_size
+        if length < 512 or length > 10 * 1024 * 1024:
+            raise ValueError(f"图标文件大小异常: {icon_path.name} ({length})")
+        icon_records.append((next_offset, length))
+        next_offset += length
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{output_path.name}.",
+        suffix=".building",
+        dir=output_path.parent,
+    )
+    os.close(descriptor)
+    temporary_path = Path(temporary_name)
+    try:
+        with temporary_path.open("wb") as output:
+            output.write(SPELL_ICON_PACKAGE_HEADER.pack(
+                SPELL_ICON_PACKAGE_MAGIC,
+                SPELL_ICON_PACKAGE_VERSION,
+                len(spells),
+                len(icon_paths),
+                len(name_records),
+                spell_map_offset,
+                icon_index_offset,
+                name_index_offset,
+                data_offset,
+            ))
+            for spell_id, target, _ in spells:
+                output.write(SPELL_ICON_PACKAGE_SPELL_RECORD.pack(
+                    spell_id,
+                    target_indices[target],
+                ))
+            for offset, length in icon_records:
+                output.write(SPELL_ICON_PACKAGE_ICON_RECORD.pack(offset, length))
+            for spell_id, name in name_records:
+                output.write(SPELL_ICON_PACKAGE_NAME_RECORD.pack(spell_id, len(name)))
+                output.write(name)
+            for icon_path in icon_paths:
+                with icon_path.open("rb") as icon:
+                    shutil.copyfileobj(icon, output, length=1024 * 1024)
+
+        if temporary_path.stat().st_size != next_offset:
+            raise IOError(
+                f"法术图标数据包大小不一致: 预计 {next_offset}，"
+                f"实际 {temporary_path.stat().st_size}"
+            )
+        os.replace(temporary_path, output_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+    digest = hashlib.sha256()
+    with output_path.open("rb") as package:
+        while chunk := package.read(1024 * 1024):
+            digest.update(chunk)
+
+    print(
+        "法术图标数据包生成完成: "
+        f"spellId={len(spells)}，图标={len(icon_paths)}，名称={len(name_records)}，"
+        f"大小={output_path.stat().st_size / 1024 / 1024:.2f} MiB，"
+        f"SHA-256={digest.hexdigest()}"
+    )
+    return output_path
+
+
 def get_required_dotnet_sdk(project_path: Path) -> tuple[str, int]:
     result = read_text(project_path)
     if result is None:
@@ -400,7 +562,15 @@ def ensure_dotnet_sdk(project_path: Path) -> str:
     return dotnet_command
 
 
-def publish(root: Path, new_name: str, dotnet_command: str) -> None:
+def publish(
+    build_root: Path,
+    new_name: str,
+    dotnet_command: str,
+    output_dir: Path,
+) -> None:
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     command = [
         dotnet_command,
         "publish",
@@ -414,13 +584,13 @@ def publish(root: Path, new_name: str, dotnet_command: str) -> None:
         "-p:PublishSingleFile=true",
         "-p:EnableCompressionInSingleFile=true",
         "-o",
-        ".\\artifacts\\publish\\win-x64",
+        str(output_dir),
     ]
 
     print()
     print("开始执行发布命令:")
     print(subprocess.list2cmdline(command))
-    subprocess.run(command, cwd=root, check=True)
+    subprocess.run(command, cwd=build_root, check=True)
 
 
 def open_publish_folder(root: Path) -> None:
@@ -446,11 +616,10 @@ def main() -> int:
         return 1
 
     if should_rename:
-        backups = collect_replacements(root, script_path)
-        preview_files = list(backups)
-        rename_plan = collect_path_renames(root, script_path, new_name)
+        preview_files = list(collect_replacements(root, script_path))
+        preview_rename_plan = collect_path_renames(root, script_path, new_name)
         try:
-            validate_path_renames(root, rename_plan)
+            validate_path_renames(root, preview_rename_plan)
         except (FileExistsError, ValueError) as exc:
             print(exc)
             return 1
@@ -460,19 +629,18 @@ def main() -> int:
             f"将把文本和路径中的 {OLD_NAME}、{ADDON_OLD_NAME} 按原文大小写形式 "
             f"替换为 {new_name}，并把 /fu 替换为 /{new_name[:2].lower()}。"
         )
-        print(f"预计永久修改 {len(preview_files)} 个文本文件，打包结束后不会恢复。")
+        print(f"将在隔离副本中修改 {len(preview_files)} 个文本文件。")
         for path in preview_files:
             print(f"- {path.relative_to(root)}")
-        print(f"预计永久重命名 {len(rename_plan)} 个文件或目录，打包结束后不会恢复。")
-        for old_path, new_path in rename_plan:
+        print(f"将在隔离副本中重命名 {len(preview_rename_plan)} 个文件或目录。")
+        for old_path, new_path in preview_rename_plan:
             print(f"- {old_path.relative_to(root)} -> {new_path.relative_to(root)}")
     else:
-        backups = {}
-        rename_plan = []
         print()
-        print(f"新名称和原名称相同，将直接使用 {OLD_NAME}.csproj 打包。")
+        print(f"新名称和原名称相同，将在隔离副本中使用 {OLD_NAME}.csproj 打包。")
 
     print(f"公司名称将设置为: {company_name}")
+    print("所有名称修改仅发生在临时构建环境，不会修改当前项目源码。")
 
     confirm = input("确认继续？输入 Y/y 继续，其它任意内容取消: ").strip()
     if confirm.casefold() != "y":
@@ -483,37 +651,54 @@ def main() -> int:
         dotnet_command = ensure_dotnet_sdk(source_csproj)
     except BaseException as exc:
         if isinstance(exc, KeyboardInterrupt):
-            print("依赖安装已中断，项目名称尚未修改。")
+            print("依赖安装已中断，当前项目未被修改。")
         else:
-            print(f"依赖检测或安装失败，项目名称尚未修改: {exc}")
+            print(f"依赖检测或安装失败，当前项目未被修改: {exc}")
         return 1
 
-    completed_renames: list[tuple[Path, Path]] = []
     try:
-        if should_rename:
-            apply_replacements(backups, new_name)
-            apply_path_renames(rename_plan, completed_renames)
-
+        with tempfile.TemporaryDirectory(prefix="shigure-build-") as temp_dir:
+            build_root = Path(temp_dir) / "project"
             print()
-            print(f"名称替换完成，已永久修改 {len(backups)} 个文本文件。")
-            print(f"已重命名 {len(completed_renames)} 个文件或目录。")
+            print(f"正在创建临时构建环境: {build_root}")
+            copy_to_build_environment(root, script_path, build_root)
 
-        project_path = root / f"{new_name}.csproj"
-        update_company_name(project_path, company_name)
-        print(f"公司名称修改完成: {company_name}")
+            build_script_path = build_root / script_path.name
+            if should_rename:
+                build_backups = collect_replacements(build_root, build_script_path)
+                build_rename_plan = collect_path_renames(
+                    build_root,
+                    build_script_path,
+                    new_name,
+                )
+                validate_path_renames(build_root, build_rename_plan)
 
-        publish(root, new_name, dotnet_command)
+                completed_renames: list[tuple[Path, Path]] = []
+                apply_replacements(build_backups, new_name)
+                apply_path_renames(build_rename_plan, completed_renames)
+
+                print(f"隔离副本中已修改 {len(build_backups)} 个文本文件。")
+                print(f"隔离副本中已重命名 {len(completed_renames)} 个文件或目录。")
+
+            project_path = build_root / f"{new_name}.csproj"
+            update_company_name(project_path, company_name)
+            print(f"隔离副本中的公司名称已设置为: {company_name}")
+
+            print("正在生成只读法术图标数据包……")
+            build_spell_icon_package(build_root)
+
+            output_dir = root / "artifacts" / "publish" / "win-x64"
+            publish(build_root, new_name, dotnet_command, output_dir)
     except BaseException as exc:
         if isinstance(exc, KeyboardInterrupt):
             print("执行已中断。")
         else:
             print(f"执行失败: {exc}")
-        if should_rename:
-            print("名称替换已保留，不会恢复。")
+        print("临时构建环境已清理，当前项目源码未被修改。")
         return 1
 
     print()
-    print("打包完成。")
+    print("打包完成，临时构建环境已自动清理，当前项目源码未被修改。")
     open_publish_folder(root)
     return 0
 

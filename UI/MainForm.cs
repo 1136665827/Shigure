@@ -265,7 +265,7 @@ public sealed class MainForm : Form, IMessageFilter
         if (result.HasChanges)
         {
             AppendLog(
-                $"已从模块补充本地依赖: 配置 {result.ConfigAdded} 项，宏 {result.MacrosAdded} 项；模块 {string.Join("、", result.ChangedModules)}");
+                $"已从模块补充本地依赖: 配置新增 {result.ConfigAdded} 项、整理 {result.ConfigUpdated} 项，宏 {result.MacrosAdded} 项；模块 {string.Join("、", result.ChangedModules)}");
             _classConfigEditor.ReloadFromAddon();
             _classMacrosEditor.ReloadFromAddon();
             try
@@ -284,7 +284,7 @@ public sealed class MainForm : Form, IMessageFilter
             var lines = new List<string>();
             if (result.HasChanges)
             {
-                lines.Add($"成功补充配置 {result.ConfigAdded} 项、宏 {result.MacrosAdded} 项。");
+                lines.Add($"成功处理配置：新增 {result.ConfigAdded} 项、整理 {result.ConfigUpdated} 项；宏 {result.MacrosAdded} 项。");
             }
             if (result.Rejected.Count > 0)
             {
@@ -2042,6 +2042,7 @@ public sealed class MainForm : Form, IMessageFilter
     {
         var latestCache = UiCacheStore.Load();
         _uiCache.ModuleRulesGridColumns = latestCache.ModuleRulesGridColumns;
+        _uiCache.ColumnWidths = latestCache.ColumnWidths;
 
         var currentBounds = CaptureMainWindowBounds();
         _uiCache.MainWindowBounds = currentBounds;

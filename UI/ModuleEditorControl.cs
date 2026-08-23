@@ -56,9 +56,6 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ModuleValueAdjustment> _valueAdjustments = new();
     private HashSet<string>? _availableConditionFields;
     private HashSet<string>? _availableGroupConditionFields;
-    // 程序化恢复列宽时置真, 避免 ColumnWidthChanged 把默认值回写覆盖用户保存的宽度。
-    private bool _suppressColumnSave;
-    private bool _suppressUnitsColumnResize;
     // 载入时程序化写入"类型"单元格会触发 CellValueChanged; 置真以跳过"按类型清空数值"的联动。
     private bool _suppressAdjustmentTypeChange;
     private bool _moduleCommandInProgress;
@@ -73,8 +70,6 @@ public sealed class ModuleEditorControl : UserControl
         new("队伍 (46)", "46")
     ];
     private static readonly MatchOption[] ClassOptions = BuildClassOptions();
-    // 这些列固定宽度并缓存; "条件"列为 Fill, 图标列固定且不缓存。
-    private static readonly string[] FixedWidthColumns = ["Enabled", "Spell", "Unit", "MacroCondition"];
     private static readonly HashSet<string> NonAuraGroupFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "生命值",
@@ -107,7 +102,18 @@ public sealed class ModuleEditorControl : UserControl
         _fieldCatalog = ConditionFieldCatalog.Load(baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(baseDirectory);
         InitializeComponent();
+        SpellIconCatalog.IconAvailable += OnSpellIconAvailable;
         LoadModules();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
+        }
+
+        base.Dispose(disposing);
     }
 
     public void ReloadCatalogs()
@@ -427,24 +433,16 @@ public sealed class ModuleEditorControl : UserControl
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        foreach (var column in new[] { ("名称", 210), ("类型", 80), ("摘要", 160) })
-        {
-            _unitsList.Columns.Add(column.Item1, column.Item2);
-        }
-
+        UiTheme.ConfigureListViewColumns(
+            _unitsList,
+            Font,
+            "module-units",
+            new UiTheme.ListColumn("名称", 210, 420),
+            new UiTheme.ListColumn("类型", 80, 240),
+            new UiTheme.ListColumn("摘要", 160, 2000, FillRemaining: true));
         _unitsList.MultiSelect = false;
-        UiTheme.StyleListView(_unitsList, Font);
         _unitsList.DoubleClick += (_, _) => EditSelectedUnit();
         _unitsList.KeyDown += OnUnitsListKeyDown;
-        _unitsList.Resize += (_, _) => StretchUnitsSummaryColumn();
-        _unitsList.HandleCreated += (_, _) => StretchUnitsSummaryColumn();
-        _unitsList.ColumnWidthChanged += (_, _) =>
-        {
-            if (!_suppressUnitsColumnResize)
-            {
-                StretchUnitsSummaryColumn();
-            }
-        };
 
         _unitsEmptyHint.Text = "暂无动态单位 / 数量\n点击右侧「添加」创建";
         _unitsEmptyHint.Dock = DockStyle.Fill;
@@ -681,6 +679,7 @@ public sealed class ModuleEditorControl : UserControl
             }
         };
         RefreshAdjustmentFieldColumn();
+        UiTheme.CacheDataGridViewColumnWidths(_adjustmentsGrid, "module-adjustments");
         return _adjustmentsGrid;
     }
 
@@ -730,6 +729,7 @@ public sealed class ModuleEditorControl : UserControl
             }
         };
         RefreshAdjustmentFieldColumn();
+        UiTheme.CacheDataGridViewColumnWidths(_formulaAdjustmentsGrid, "module-formula-adjustments");
         return _formulaAdjustmentsGrid;
     }
 
@@ -832,12 +832,11 @@ public sealed class ModuleEditorControl : UserControl
         _rulesGrid.DragLeave += (_, _) => ClearDragIndicator();
         _rulesGrid.Paint += OnRulesGridPaint;
         _rulesGrid.DataError += (_, e) => e.ThrowException = false;
-        _rulesGrid.ColumnWidthChanged += OnColumnWidthChanged;
         _rulesGrid.CellValueChanged += OnRulesGridCellValueChanged;
         _rulesGrid.HandleCreated += (_, _) => SetCompactRulePrefixColumns();
         SetCompactRulePrefixColumns();
         RefreshKeymapColumns();
-        ApplyColumnWidths(UiCacheStore.Load().ModuleRulesGridColumns);
+        UiTheme.CacheDataGridViewColumnWidths(_rulesGrid, "module-rules");
 
         return _rulesGrid;
     }
@@ -1131,6 +1130,30 @@ public sealed class ModuleEditorControl : UserControl
         {
             UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
         }
+    }
+
+    private void OnSpellIconAvailable(long spellId)
+    {
+        if (IsDisposed || Disposing || !IsHandleCreated)
+        {
+            return;
+        }
+
+        BeginInvoke((Action)(() =>
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            foreach (DataGridViewRow row in _rulesGrid.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.Cells["SpellIcon"].Value = SpellIconCatalog.Get(CellText(row, "Spell"));
+                }
+            }
+        }));
     }
 
     private static void EnsureComboItem(DataGridViewComboBoxColumn column, object? value)
@@ -1653,55 +1676,6 @@ public sealed class ModuleEditorControl : UserControl
         public int? LogicDelayMs { get; set; } = logicDelayMs;
     }
 
-    private void ApplyColumnWidths(Dictionary<string, int>? widths)
-    {
-        if (widths is null || widths.Count == 0)
-        {
-            return;
-        }
-
-        _suppressColumnSave = true;
-        try
-        {
-            foreach (var name in FixedWidthColumns)
-            {
-                if (widths.TryGetValue(name, out var width) && width > 0)
-                {
-                    var column = _rulesGrid.Columns[name]!;
-                    column.Width = Math.Max(column.MinimumWidth, width);
-                }
-            }
-        }
-        finally
-        {
-            _suppressColumnSave = false;
-        }
-    }
-
-    private void OnColumnWidthChanged(object? sender, DataGridViewColumnEventArgs e)
-    {
-        // Fill 列(条件)宽度随窗口/其它列变化, 不参与保存; 程序化恢复期间也跳过。
-        if (_suppressColumnSave || e.Column.Name == "Condition")
-        {
-            return;
-        }
-
-        SaveColumnWidths();
-    }
-
-    private void SaveColumnWidths()
-    {
-        var cache = UiCacheStore.Load();
-        cache.ModuleRulesGridColumns ??= new();
-
-        foreach (var name in FixedWidthColumns)
-        {
-            cache.ModuleRulesGridColumns[name] = _rulesGrid.Columns[name]!.Width;
-        }
-
-        UiCacheStore.Save(cache);
-    }
-
     private void OnRulesGridCellClick(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
@@ -1928,6 +1902,13 @@ public sealed class ModuleEditorControl : UserControl
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
         var row = _rulesGrid.Rows[e.RowIndex];
+        if (columnName == "SpellIcon" && row.IsNewRow)
+        {
+            e.Value = SpellIconCatalog.GetLastRuleRowIcon();
+            e.FormattingApplied = true;
+            return;
+        }
+
         if (!row.IsNewRow && GetMissingConditionFields(row).Count > 0)
         {
             // 缺失字段会让条件静默不命中；用整行红色状态在保存前就提醒用户修复配置。
@@ -3204,7 +3185,6 @@ public sealed class ModuleEditorControl : UserControl
 
         _rulesGrid.Rows.Clear();
         RefreshKeymapColumns();
-        ApplyColumnWidths(UiCacheStore.Load().ModuleRulesGridColumns);
 
         foreach (var rule in module.Rules)
         {
@@ -3624,27 +3604,6 @@ public sealed class ModuleEditorControl : UserControl
             {
                 button.Width = width;
             }
-        }
-    }
-
-    private void StretchUnitsSummaryColumn()
-    {
-        if (_unitsList.Columns.Count < 3 || _suppressUnitsColumnResize)
-        {
-            return;
-        }
-
-        _suppressUnitsColumnResize = true;
-        try
-        {
-            var summaryWidth = _unitsList.ClientSize.Width
-                - _unitsList.Columns[0].Width
-                - _unitsList.Columns[1].Width;
-            _unitsList.Columns[2].Width = Math.Max(120, summaryWidth);
-        }
-        finally
-        {
-            _suppressUnitsColumnResize = false;
         }
     }
 
