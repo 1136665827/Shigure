@@ -54,6 +54,8 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ModuleUnit> _units = new();
     private readonly List<ModuleCountField> _counts = new();
     private readonly List<ModuleValueAdjustment> _valueAdjustments = new();
+    private readonly Dictionary<string, List<long>> _currentClassSpellIdsByName =
+        new(StringComparer.Ordinal);
     private HashSet<string>? _availableConditionFields;
     private HashSet<string>? _availableGroupConditionFields;
     // 载入时程序化写入"类型"单元格会触发 CellValueChanged; 置真以跳过"按类型清空数值"的联动。
@@ -120,10 +122,12 @@ public sealed class ModuleEditorControl : UserControl
     {
         _fieldCatalog = ConditionFieldCatalog.Load(_baseDirectory);
         _keymapCatalog = KeymapCatalog.Load(_baseDirectory);
+        ReloadCurrentClassSpellIds();
         // “更新配置”可能刚重建了 keymap；立即刷新当前规则的技能/目标/宏条件下拉，
         // 避免必须切换职业或重启应用后才能看到新解析出的宏条件。
         RefreshKeymapColumns();
         RefreshAdjustmentFieldColumn();
+        RefreshRuleSpellIcons();
         _rulesGrid.Invalidate();
     }
 
@@ -567,8 +571,10 @@ public sealed class ModuleEditorControl : UserControl
         {
             ResetSpecOptions(_specBox, ReadMatchCombo(_classBox));
             ResetHeroTalentOptions(_heroTalentBox, ReadMatchCombo(_classBox), ReadMatchCombo(_specBox));
+            ReloadCurrentClassSpellIds();
             RefreshKeymapColumns();
             RefreshAdjustmentFieldColumn();
+            RefreshRuleSpellIcons();
         };
         _specBox.SelectedIndexChanged += (_, _) =>
         {
@@ -1122,7 +1128,7 @@ public sealed class ModuleEditorControl : UserControl
         if (columnName == "Spell")
         {
             _rulesGrid.Rows[e.RowIndex].Cells["SpellIcon"].Value =
-                SpellIconCatalog.Get(CellText(_rulesGrid.Rows[e.RowIndex], "Spell"));
+                GetRuleSpellIcon(CellText(_rulesGrid.Rows[e.RowIndex], "Spell"));
             UpdateUnitCellItems(_rulesGrid.Rows[e.RowIndex]);
             UpdateMacroConditionCellItems(_rulesGrid.Rows[e.RowIndex]);
         }
@@ -1146,14 +1152,84 @@ public sealed class ModuleEditorControl : UserControl
                 return;
             }
 
-            foreach (DataGridViewRow row in _rulesGrid.Rows)
+            RefreshRuleSpellIcons();
+        }));
+    }
+
+    private void ReloadCurrentClassSpellIds()
+    {
+        _currentClassSpellIdsByName.Clear();
+        var classId = ReadMatchCombo(_classBox);
+        if (classId is null)
+        {
+            return;
+        }
+
+        var classPath = Path.Combine(
+            _baseDirectory,
+            "Fuyutsui",
+            "class",
+            $"{ClassNames.GetConfigFileName(classId.Value)}.lua");
+        try
+        {
+            var document = ClassBlocksStore.Load(classPath);
+            foreach (var spell in document.SpellsList
+                         .Where(spell => spell.SpellId > 0 && !string.IsNullOrWhiteSpace(spell.Name))
+                         .OrderBy(spell => spell.Index)
+                         .ThenBy(spell => spell.SpellId))
             {
-                if (!row.IsNewRow)
+                var name = spell.Name.Trim();
+                if (!_currentClassSpellIdsByName.TryGetValue(name, out var spellIds))
                 {
-                    row.Cells["SpellIcon"].Value = SpellIconCatalog.Get(CellText(row, "Spell"));
+                    spellIds = [];
+                    _currentClassSpellIdsByName[name] = spellIds;
+                }
+
+                if (!spellIds.Contains(spell.SpellId))
+                {
+                    spellIds.Add(spell.SpellId);
                 }
             }
-        }));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or InvalidDataException or ArgumentException)
+        {
+            // 当前职业文件缺失或暂时不可读时，继续使用全局名称匹配。
+        }
+    }
+
+    private Image? GetRuleSpellIcon(string? spellName)
+    {
+        var normalized = spellName?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        if (_currentClassSpellIdsByName.TryGetValue(normalized, out var spellIds))
+        {
+            foreach (var spellId in spellIds)
+            {
+                var icon = SpellIconCatalog.Get(spellId);
+                if (icon is not null)
+                {
+                    return icon;
+                }
+            }
+        }
+
+        return SpellIconCatalog.Get(normalized);
+    }
+
+    private void RefreshRuleSpellIcons()
+    {
+        foreach (DataGridViewRow row in _rulesGrid.Rows)
+        {
+            if (!row.IsNewRow)
+            {
+                row.Cells["SpellIcon"].Value = GetRuleSpellIcon(CellText(row, "Spell"));
+            }
+        }
     }
 
     private static void EnsureComboItem(DataGridViewComboBoxColumn column, object? value)
@@ -3196,7 +3272,7 @@ public sealed class ModuleEditorControl : UserControl
             // 先加行(目标先留空), 再按技能重建目标选项并写回目标值, 避免值不在选项内被吞掉。
             var index = _rulesGrid.Rows.Add(
                 rule.Enabled,
-                SpellIconCatalog.Get(rule.Spell)!,
+                GetRuleSpellIcon(rule.Spell)!,
                 rule.Spell,
                 string.Empty,
                 string.Empty,
