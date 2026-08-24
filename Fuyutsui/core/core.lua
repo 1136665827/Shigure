@@ -165,6 +165,10 @@ Fuyutsui.state = {
 Fuyutsui.blocks = {}
 Fuyutsui.target = {}
 Fuyutsui.focus = {}
+Fuyutsui.boss = {}
+for index = 1, 5 do
+    Fuyutsui.boss["boss" .. index] = {}
+end
 Fuyutsui.nameplate = {}
 Fuyutsui.group = {}
 Fuyutsui.groupList = {}

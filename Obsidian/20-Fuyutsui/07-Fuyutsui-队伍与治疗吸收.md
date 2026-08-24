@@ -82,7 +82,6 @@ GROUP_ROSTER_UPDATE / 专精重建
      -> 清空并按顺序重建 groupList/group
      -> 初始化每名成员健康与有效性
      -> RefreshGroupAuraContainers()
-     -> RefreshOtherPriestAuraContainers()
      -> RefreshGroupHealAbsorbBars()
 
 每帧

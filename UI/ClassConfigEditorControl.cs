@@ -462,7 +462,7 @@ public sealed class ClassConfigEditorControl : UserControl
         for (var i = 0; i < categories.Length; i++)
         {
             var category = categories[i];
-            var tab = new UiPillTab(category);
+            var tab = new UiPillTab(ClassStateCatalog.GetCategoryDisplayName(category));
             tab.Click += (_, _) => SelectCategory(category);
             tabs[i] = tab;
             tabBar.Controls.Add(tab, i, 0);

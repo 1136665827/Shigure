@@ -33,7 +33,12 @@ internal static class FuyutsuiConfigConverter
         ClassStateCatalog.CategoryItem,
         ClassStateCatalog.CategoryConfig,
         ClassStateCatalog.CategoryTarget,
-        ClassStateCatalog.CategoryFocus
+        ClassStateCatalog.CategoryFocus,
+        ClassStateCatalog.CategoryBoss1,
+        ClassStateCatalog.CategoryBoss2,
+        ClassStateCatalog.CategoryBoss3,
+        ClassStateCatalog.CategoryBoss4,
+        ClassStateCatalog.CategoryBoss5
     ];
 
     public sealed record UpdateResult(
@@ -216,10 +221,10 @@ internal static class FuyutsuiConfigConverter
                         }
 
                         var stateName = NormalizeStateName(nameValue.Value);
-                        var key = category is ClassStateCatalog.CategoryTarget or ClassStateCatalog.CategoryFocus
+                        var key = IsUnitStateCategory(category)
                             ? category + stateName
                             : stateName;
-                        AddStateField(result, key, index, skipCommon: true);
+                        AddStateField(result, key, index, skipCommon: true, category);
                         index++;
                     }
                 }
@@ -233,7 +238,13 @@ internal static class FuyutsuiConfigConverter
                         continue;
                     }
 
-                    AddStateField(result, NormalizeStateName(nameValue.Value), index, skipCommon: true);
+                    var stateName = NormalizeStateName(nameValue.Value);
+                    AddStateField(
+                        result,
+                        stateName,
+                        index,
+                        skipCommon: true,
+                        ClassStateCatalog.FindCategory(stateName) ?? ClassStateCatalog.CategoryState);
                     index++;
                 }
             }
@@ -251,22 +262,22 @@ internal static class FuyutsuiConfigConverter
 
             if (nested)
             {
-                AppendAuraList(auras.GetTable("player"), "player", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
+                AppendAuraList(auras.GetTable("player"), "player", "玩家", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
                 if (auras.GetTable("target") is { } target)
                 {
-                    AppendAuraList(target.GetTable("harmful"), "target", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
-                    AppendAuraList(target.GetTable("helpful"), "target", false, aurasObject, ref index, playerAuraBarNames, warnings, label);
+                    AppendAuraList(target.GetTable("harmful"), "target", "目标减益", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
+                    AppendAuraList(target.GetTable("helpful"), "target", "目标增益", false, aurasObject, ref index, playerAuraBarNames, warnings, label);
                 }
 
                 if (auras.GetTable("focus") is { } focus)
                 {
-                    AppendAuraList(focus.GetTable("harmful"), "focus", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
-                    AppendAuraList(focus.GetTable("helpful"), "focus", false, aurasObject, ref index, playerAuraBarNames, warnings, label);
+                    AppendAuraList(focus.GetTable("harmful"), "focus", "焦点减益", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
+                    AppendAuraList(focus.GetTable("helpful"), "focus", "焦点增益", false, aurasObject, ref index, playerAuraBarNames, warnings, label);
                 }
             }
             else
             {
-                AppendAuraList(auras, "player", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
+                AppendAuraList(auras, "player", "玩家", true, aurasObject, ref index, playerAuraBarNames, warnings, label);
             }
         }
 
@@ -394,6 +405,7 @@ internal static class FuyutsuiConfigConverter
     private static void AppendAuraList(
         TableValue? list,
         string unit,
+        string classification,
         bool includeApplicationBars,
         JsonObject aurasObject,
         ref int index,
@@ -432,7 +444,7 @@ internal static class FuyutsuiConfigConverter
                 _ => name
             };
 
-            aurasObject[fieldName] = Field(index, "int");
+            aurasObject[fieldName] = Field(index, "int", classification);
             index++;
 
             if (aura.GetNumber("maxApps") is not null && includeApplicationBars)
@@ -442,14 +454,19 @@ internal static class FuyutsuiConfigConverter
         }
     }
 
-    private static void AddStateField(JsonObject result, string name, int step, bool skipCommon)
+    private static void AddStateField(
+        JsonObject result,
+        string name,
+        int step,
+        bool skipCommon,
+        string classification)
     {
         if (skipCommon && CommonStateNames.Contains(name))
         {
             return;
         }
 
-        result[name] = Field(step, BoolFieldNames.Contains(name) ? "bool" : "int");
+        result[name] = Field(step, BoolFieldNames.Contains(name) ? "bool" : "int", classification);
     }
 
     private static void AddGroupOffset(JsonObject groupJson, double? offset, string name)
@@ -462,11 +479,20 @@ internal static class FuyutsuiConfigConverter
         groupJson[name] = Field((int)offset.Value, "int");
     }
 
-    private static JsonObject Field(int step, string type) => new()
+    private static JsonObject Field(int step, string type, string? classification = null)
     {
-        ["step"] = step,
-        ["type"] = type
-    };
+        var field = new JsonObject
+        {
+            ["step"] = step,
+            ["type"] = type
+        };
+        if (!string.IsNullOrWhiteSpace(classification))
+        {
+            field["category"] = classification;
+        }
+
+        return field;
+    }
 
     private static JsonObject BarField(int bar) => new()
     {
@@ -482,4 +508,13 @@ internal static class FuyutsuiConfigConverter
         => string.Equals(name, "法术失败", StringComparison.Ordinal)
             ? ModuleSpecialActions.InsertSpellState
             : name;
+
+    private static bool IsUnitStateCategory(string category)
+        => category is ClassStateCatalog.CategoryTarget
+            or ClassStateCatalog.CategoryFocus
+            or ClassStateCatalog.CategoryBoss1
+            or ClassStateCatalog.CategoryBoss2
+            or ClassStateCatalog.CategoryBoss3
+            or ClassStateCatalog.CategoryBoss4
+            or ClassStateCatalog.CategoryBoss5;
 }

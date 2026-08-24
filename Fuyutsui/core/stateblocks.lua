@@ -5,6 +5,7 @@ local EvaluateColorFromBoolean = C_CurveUtil.EvaluateColorFromBoolean
 local state = Fuyutsui.state
 local target = Fuyutsui.target
 local focus = Fuyutsui.focus
+local boss = Fuyutsui.boss
 
 local ColorValue0 = CreateColor(0, 0, 0, 1)
 local ColorValue1 = CreateColor(0, 0, 1 / 255, 1)
@@ -40,7 +41,7 @@ local function GetItemCooldownPixel(self, countKey, itemID)
     return 1
 end
 
---- mode: "cast" | "channel"
+--- mode: "cast" | "castElapsed" | "channel"
 function Fuyutsui:GetUnitCastPixel(unit, mode)
     local castCurve = self.castCurve
     if mode == "channel" then
@@ -56,7 +57,12 @@ function Fuyutsui:GetUnitCastPixel(unit, mode)
 
     local cast = UnitCastingDuration(unit)
     if not cast then return 0 end
-    local castingDurationColor = cast:EvaluateRemainingDuration(castCurve)
+    local castingDurationColor
+    if mode == "castElapsed" then
+        castingDurationColor = cast:EvaluateElapsedDuration(castCurve)
+    else
+        castingDurationColor = cast:EvaluateRemainingDuration(castCurve)
+    end
     ---@diagnostic disable-next-line: param-type-mismatch
     local _, _, b = castingDurationColor:GetRGB()
     return b
@@ -83,7 +89,7 @@ function Fuyutsui:GetUnitInterruptiblePixel(unit, mode)
     return interruptible
 end
 
--- blocks.state 键：下列分类用名称本身；目标/焦点用 分类..名称
+-- blocks.state 键：下列分类用名称本身；单位分类用 分类..名称
 local bareKeyCategories = {
     ["状态"] = true,
     ["能量"] = true,
@@ -144,22 +150,8 @@ local stateBlockGetters = {
         ["鲁莽药水"] = function(self) return GetItemCooldownPixel(self, "RecklessnessCount", 241288) end,
         ["圣光潜力"] = function(self) return GetItemCooldownPixel(self, "LightsPotentialCount", 241308) end,
 
-        ["施法"] = function(self)
-            if not state.casting then
-                state.castingDuration = 0
-                return 0
-            end
-            local cast = UnitCastingDuration("player")
-            if cast then
-                local castingDurationColor = cast:EvaluateElapsedDuration(self.castCurve)
-                ---@diagnostic disable-next-line: param-type-mismatch
-                local _, _, b = castingDurationColor:GetRGB()
-                state.castingDuration = b
-                return b
-            end
-            state.castingDuration = 0
-            return 0
-        end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel("player", "castElapsed") end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel("player", "cast") end,
         ["引导"] = function(self)
             if not state.channeling then
                 state.channelingDuration = 0
@@ -241,7 +233,8 @@ local stateBlockGetters = {
             if not target.maxRange then return nil end
             return target.maxRange / 255
         end,
-        ["施法"] = function(self) return self:GetUnitCastPixel("target", "cast") end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel("target", "cast") end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel("target", "castElapsed") end,
         ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel("target", "cast") end,
         ["引导"] = function(self) return self:GetUnitCastPixel("target", "channel") end,
         ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel("target", "channel") end,
@@ -254,12 +247,34 @@ local stateBlockGetters = {
             if not focus.maxRange then return nil end
             return focus.maxRange / 255
         end,
-        ["施法"] = function(self) return self:GetUnitCastPixel("focus", "cast") end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel("focus", "cast") end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel("focus", "castElapsed") end,
         ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel("focus", "cast") end,
         ["引导"] = function(self) return self:GetUnitCastPixel("focus", "channel") end,
         ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel("focus", "channel") end,
     },
 }
+
+for index = 1, 5 do
+    local unit = "boss" .. index
+    local category = "首领" .. index
+    local cache = boss[unit]
+
+    stateBlockGetters[category] = {
+        ["类型"] = function() return cache.type or 0 end,
+        ["驱散类型"] = function() return 0 end,
+        ["生命值"] = function() return cache.healthPercent or 0 end,
+        ["距离"] = function()
+            if not cache.maxRange then return nil end
+            return cache.maxRange / 255
+        end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel(unit, "cast") end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel(unit, "castElapsed") end,
+        ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel(unit, "cast") end,
+        ["引导"] = function(self) return self:GetUnitCastPixel(unit, "channel") end,
+        ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel(unit, "channel") end,
+    }
+end
 
 for powerType, powerName in pairs(Fuyutsui.powerNameMap) do
     if powerName ~= "符文" then

@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -138,13 +139,15 @@ public static class ConditionExpression
 /// </summary>
 public sealed class ConditionEditorForm : Form
 {
-    private const int ConnectorWidth = 100;
-    private const int CategoryWidth = 140;
-    private const int FieldWidth = 230;
-    private const int OpWidth = 90;
-    private const int ValueWidth = 130;
-    private const int DeleteWidth = 36;
-    private const int RowTotalWidth = ConnectorWidth + CategoryWidth + FieldWidth + OpWidth + ValueWidth + DeleteWidth;
+    private const string ConnectorColumn = "Connector";
+    private const string TypeColumn = "Type";
+    private const string ClassificationColumn = "Classification";
+    private const string FieldColumn = "Field";
+    private const string OperatorColumn = "Operator";
+    private const string ValueColumn = "Value";
+    private const string DeleteColumn = "Delete";
+    private const string Unclassified = "未分类";
+    private const int ConditionRowHeight = 46;
 
     private static readonly string[] AllOperators = ["==", "!=", ">", ">=", "<", "<=", "in", "not in"];
     private static readonly string[] TextOperators = ["==", "!=", "in", "not in"];
@@ -165,12 +168,13 @@ public sealed class ConditionEditorForm : Form
     private readonly string _originalCondition;
     private readonly bool _allowSubConditions;
     private readonly bool _allowRuleSettings;
-    private readonly FlowLayoutPanel _rowsPanel = new();
+    private readonly DataGridView _conditionsGrid = new();
     private readonly Label _previewLabel = new();
     private readonly ToolTip _previewToolTip = new();
-    private readonly List<ConditionRow> _rows = new();
     private readonly List<string> _subConditions = new();
     private readonly ListBox _subList = new();
+    private ToolStripDropDown? _conditionComboDropDown;
+    private bool _updatingGrid;
 
     public string ConditionText { get; private set; } = string.Empty;
     public int? DelayMs { get; private set; }
@@ -229,7 +233,7 @@ public sealed class ConditionEditorForm : Form
         }
 
         // 空条件直接落在一条可填行上, 无需先去找"添加条件"。
-        if (_rows.Count == 0)
+        if (_conditionsGrid.Rows.Count == 0)
         {
             AddRow(null);
         }
@@ -244,23 +248,82 @@ public sealed class ConditionEditorForm : Form
         UiTheme.ApplyDarkTitleBar(this);
     }
 
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        RestoreCachedWindowSize();
+    }
+
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        SaveWindowSize();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        CloseConditionComboDropDown();
+        SaveWindowSize();
+        base.OnFormClosed(e);
+    }
+
+    private void RestoreCachedWindowSize()
+    {
+        var cached = UiCacheStore.Load().ConditionEditorWindowSize;
+        if (cached is null || cached.Width <= 0 || cached.Height <= 0)
+        {
+            return;
+        }
+
+        var workingArea = Owner is not null
+            ? Screen.FromControl(Owner).WorkingArea
+            : Screen.FromControl(this).WorkingArea;
+        var maximumWidth = Math.Max(MinimumSize.Width, workingArea.Width - 40);
+        var maximumHeight = Math.Max(MinimumSize.Height, workingArea.Height - 40);
+        Size = new Size(
+            Math.Clamp(cached.Width, MinimumSize.Width, maximumWidth),
+            Math.Clamp(cached.Height, MinimumSize.Height, maximumHeight));
+
+        if (Owner is not null)
+        {
+            CenterToParent();
+        }
+        else
+        {
+            CenterToScreen();
+        }
+    }
+
+    private void SaveWindowSize()
+    {
+        if (WindowState != FormWindowState.Normal || Width <= 0 || Height <= 0)
+        {
+            return;
+        }
+
+        var cache = UiCacheStore.Load();
+        cache.ConditionEditorWindowSize = new WindowSize
+        {
+            Width = Width,
+            Height = Height
+        };
+        UiCacheStore.Save(cache);
+    }
+
     private void InitializeComponent()
     {
         Text = "编辑条件";
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         BackColor = UiTheme.Background;
         ForeColor = UiTheme.Text;
-        // 加一个滚动条宽度, 避免行数多时垂直滚动条盖住每行的 ✕ 删除按钮。
-        // 子条件区会额外占高度, 允许时把窗口加高, 给主条件行留出空间。
         var initialHeight = _allowSubConditions ? 650 : 460;
-        ClientSize = new Size(RowTotalWidth + 50 + SystemInformation.VerticalScrollBarWidth, initialHeight);
+        ClientSize = new Size(1080, initialHeight);
         FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.CenterParent;
-        // 允许纵向放大以一次看到更多条件行; 不小于初始尺寸。
-        MinimumSize = Size;
+        MinimumSize = new Size(780, initialHeight);
 
         var root = new TableLayoutPanel
         {
@@ -271,27 +334,19 @@ public sealed class ConditionEditorForm : Form
         };
         Controls.Add(root);
 
-        var rowIndex = 0;
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        root.Controls.Add(BuildHeaderRow(), 0, rowIndex++);
+        ConfigureConditionsGrid();
 
-        _rowsPanel.Dock = DockStyle.Fill;
-        _rowsPanel.BackColor = UiTheme.SurfaceRaised;
-        _rowsPanel.FlowDirection = FlowDirection.TopDown;
-        _rowsPanel.WrapContents = false;
-        _rowsPanel.AutoScroll = true;
-        _rowsPanel.Margin = new Padding(0, 4, 0, 6);
-        _rowsPanel.Padding = new Padding(8, 6, 8, 6);
+        var rowIndex = 0;
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.Controls.Add(_rowsPanel, 0, rowIndex++);
+        root.Controls.Add(_conditionsGrid, 0, rowIndex++);
 
         // 「添加条件」紧贴主条件行下方, 明确它作用于上面的主条件(而非子条件)。
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         root.Controls.Add(BuildAddConditionRow(), 0, rowIndex++);
 
         if (_allowSubConditions)
         {
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 172));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 188));
             root.Controls.Add(BuildSubConditionsPanel(), 0, rowIndex++);
         }
 
@@ -321,8 +376,8 @@ public sealed class ConditionEditorForm : Form
             RowCount = 2
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 116));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var title = new Label
@@ -341,7 +396,7 @@ public sealed class ConditionEditorForm : Form
         _subList.ForeColor = UiTheme.Text;
         _subList.BorderStyle = BorderStyle.FixedSingle;
         _subList.IntegralHeight = false;
-        _subList.Margin = new Padding(0, 0, 8, 0);
+        _subList.Margin = new Padding(0, 0, 12, 0);
         _subList.DoubleClick += (_, _) => EditSelectedSubCondition();
         panel.Controls.Add(_subList, 0, 1);
 
@@ -351,7 +406,8 @@ public sealed class ConditionEditorForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             BackColor = UiTheme.Background,
-            Margin = new Padding(0)
+            Margin = new Padding(0),
+            Padding = new Padding(0, 0, 4, 0)
         };
         buttons.Controls.Add(CreateSubButton("添加子条件", UiTheme.Text, AddSubCondition));
         buttons.Controls.Add(CreateSubButton("编辑", UiTheme.Text, EditSelectedSubCondition));
@@ -365,9 +421,10 @@ public sealed class ConditionEditorForm : Form
     private static Button CreateSubButton(string text, Color foreColor, Action onClick)
     {
         var button = UiTheme.CreateButton(text, UiTheme.Field, foreColor);
-        button.Width = 108;
-        button.Height = 30;
-        button.Margin = new Padding(0, 0, 0, 6);
+        button.AutoSize = false;
+        button.Width = 124;
+        button.Height = 36;
+        button.Margin = new Padding(0, 0, 0, 8);
         button.Click += (_, _) => onClick();
         return button;
     }
@@ -450,31 +507,429 @@ public sealed class ConditionEditorForm : Form
         _subList.EndUpdate();
     }
 
-    private Control BuildHeaderRow()
+    private void ConfigureConditionsGrid()
     {
-        var header = new TableLayoutPanel
-        {
-            Width = RowTotalWidth,
-            Height = 24,
-            BackColor = UiTheme.Background,
-            Margin = new Padding(0),
-            ColumnCount = 6,
-            RowCount = 1
-        };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ConnectorWidth));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, CategoryWidth));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FieldWidth));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OpWidth));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ValueWidth));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DeleteWidth));
+        UiTheme.StyleDataGridView(_conditionsGrid);
+        _conditionsGrid.Dock = DockStyle.Fill;
+        _conditionsGrid.Margin = new Padding(0, 4, 0, 6);
+        _conditionsGrid.AllowUserToAddRows = false;
+        _conditionsGrid.AllowUserToDeleteRows = false;
+        _conditionsGrid.AllowUserToResizeColumns = true;
+        _conditionsGrid.AllowUserToResizeRows = false;
+        _conditionsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+        _conditionsGrid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+        _conditionsGrid.RowHeadersVisible = false;
+        _conditionsGrid.RowTemplate.Height = UiTheme.Scale(_conditionsGrid, ConditionRowHeight);
+        _conditionsGrid.SelectionMode = DataGridViewSelectionMode.CellSelect;
+        _conditionsGrid.MultiSelect = false;
+        // 下拉单元格由深色受控列表处理；文本值单元格在 CellClick 中显式进入编辑态。
+        _conditionsGrid.EditMode = DataGridViewEditMode.EditProgrammatically;
 
-        header.Controls.Add(CreateHeaderLabel("连接"), 0, 0);
-        header.Controls.Add(CreateHeaderLabel("类型"), 1, 0);
-        header.Controls.Add(CreateHeaderLabel("字段"), 2, 0);
-        header.Controls.Add(CreateHeaderLabel("判断"), 3, 0);
-        header.Controls.Add(CreateHeaderLabel("值"), 4, 0);
-        header.Controls.Add(CreateHeaderLabel(string.Empty), 5, 0);
-        return header;
+        _conditionsGrid.Columns.Add(CreateComboColumn(ConnectorColumn, "连接", 82, 64));
+        _conditionsGrid.Columns.Add(CreateComboColumn(TypeColumn, "类型", 118, 90));
+        _conditionsGrid.Columns.Add(CreateComboColumn(ClassificationColumn, "分类", 130, 100));
+
+        var fieldColumn = CreateComboColumn(FieldColumn, "字段", 260, 160);
+        fieldColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+        fieldColumn.FillWeight = 180;
+        // 字段列始终保存唯一字段名，显示名称只负责界面文本。
+        // 避免 DataGridView 在对象值与格式化字符串之间切换，导致预览丢行或跨行串值。
+        fieldColumn.DisplayMember = nameof(FieldItem.Display);
+        fieldColumn.ValueMember = nameof(FieldItem.Name);
+        fieldColumn.ValueType = typeof(string);
+        _conditionsGrid.Columns.Add(fieldColumn);
+
+        _conditionsGrid.Columns.Add(CreateComboColumn(OperatorColumn, "判断", 88, 70));
+        _conditionsGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = ValueColumn,
+            HeaderText = "值",
+            Width = 140,
+            MinimumWidth = 100,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _conditionsGrid.Columns.Add(new DataGridViewButtonColumn
+        {
+            Name = DeleteColumn,
+            HeaderText = string.Empty,
+            Text = "✕",
+            UseColumnTextForButtonValue = true,
+            Width = 42,
+            MinimumWidth = 42,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            Resizable = DataGridViewTriState.False,
+            SortMode = DataGridViewColumnSortMode.NotSortable,
+            FlatStyle = FlatStyle.Flat
+        });
+        _conditionsGrid.Columns[DeleteColumn]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+        _conditionsGrid.Columns[DeleteColumn]!.DefaultCellStyle.ForeColor = UiTheme.Danger;
+
+        if (_conditionsGrid.Columns[TypeColumn] is DataGridViewComboBoxColumn typeColumn)
+        {
+            typeColumn.Items.AddRange(CategoryItems
+                .Where(item => item.Category != ConditionFieldCategory.Shigure || _allowRuleSettings)
+                .Select(item => item.Display)
+                .ToArray());
+        }
+
+        if (_conditionsGrid.Columns[ConnectorColumn] is DataGridViewComboBoxColumn connectorColumn)
+        {
+            connectorColumn.Items.AddRange([string.Empty, "且", "或"]);
+        }
+
+        _conditionsGrid.CurrentCellDirtyStateChanged += (_, _) =>
+        {
+            if (_conditionsGrid.IsCurrentCellDirty
+                && _conditionsGrid.CurrentCell is DataGridViewComboBoxCell)
+            {
+                _conditionsGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
+        };
+        _conditionsGrid.CellValueChanged += OnGridCellValueChanged;
+        _conditionsGrid.CellEndEdit += (_, _) => UpdatePreview();
+        _conditionsGrid.CellClick += OnConditionsGridCellClick;
+        _conditionsGrid.CellPainting += OnConditionsGridCellPainting;
+        _conditionsGrid.KeyDown += OnConditionsGridKeyDown;
+        _conditionsGrid.CellContentClick += (_, e) =>
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex == _conditionsGrid.Columns[DeleteColumn]!.Index)
+            {
+                _conditionsGrid.Rows.RemoveAt(e.RowIndex);
+                RefreshConnectors();
+                UpdatePreview();
+            }
+        };
+        _conditionsGrid.DataError += (_, e) => e.ThrowException = false;
+        UiTheme.CacheDataGridViewColumnWidths(_conditionsGrid, "condition-editor");
+    }
+
+    private static DataGridViewComboBoxColumn CreateComboColumn(
+        string name,
+        string headerText,
+        int width,
+        int minimumWidth)
+        => new()
+        {
+            Name = name,
+            HeaderText = headerText,
+            Width = width,
+            MinimumWidth = minimumWidth,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
+            FlatStyle = FlatStyle.Flat,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+
+    private void OnConditionsGridCellClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0 || e.ColumnIndex < 0)
+        {
+            return;
+        }
+
+        var cell = _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+        if (cell is DataGridViewComboBoxCell combo
+            && !combo.ReadOnly
+            && combo.DisplayStyle != DataGridViewComboBoxDisplayStyle.Nothing)
+        {
+            ShowConditionComboDropDown(e.RowIndex, e.ColumnIndex);
+            return;
+        }
+
+        CloseConditionComboDropDown();
+        if (_conditionsGrid.Columns[e.ColumnIndex].Name == ValueColumn && !cell.ReadOnly)
+        {
+            _conditionsGrid.CurrentCell = cell;
+            _conditionsGrid.BeginEdit(selectAll: true);
+        }
+    }
+
+    private void OnConditionsGridKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_conditionsGrid.CurrentCell is not DataGridViewComboBoxCell cell
+            || cell.ReadOnly
+            || cell.DisplayStyle == DataGridViewComboBoxDisplayStyle.Nothing
+            || e.KeyCode is not (Keys.Enter or Keys.Space or Keys.F4 or Keys.Down))
+        {
+            return;
+        }
+
+        if (e.KeyCode == Keys.Down && !e.Alt)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        e.SuppressKeyPress = true;
+        ShowConditionComboDropDown(cell.RowIndex, cell.ColumnIndex);
+    }
+
+    private void ShowConditionComboDropDown(int rowIndex, int columnIndex)
+    {
+        CloseConditionComboDropDown();
+        _conditionsGrid.EndEdit();
+
+        if (rowIndex < 0
+            || rowIndex >= _conditionsGrid.Rows.Count
+            || _conditionsGrid.Rows[rowIndex].Cells[columnIndex] is not DataGridViewComboBoxCell cell
+            || cell.ReadOnly
+            || cell.DisplayStyle == DataGridViewComboBoxDisplayStyle.Nothing)
+        {
+            return;
+        }
+
+        _conditionsGrid.CurrentCell = cell;
+        var sourceItems = cell.Items.Cast<object>().ToList();
+        if (sourceItems.Count == 0 && cell.OwningColumn is DataGridViewComboBoxColumn column)
+        {
+            sourceItems.AddRange(column.Items.Cast<object>());
+        }
+
+        var items = sourceItems
+            .Select(CreateConditionComboItem)
+            .DistinctBy(item => item.Value, StringComparer.Ordinal)
+            .ToList();
+        var currentValue = cell.Value is FieldItem field
+            ? field.Name
+            : cell.Value?.ToString() ?? string.Empty;
+        if (!items.Any(item => string.Equals(item.Value, currentValue, StringComparison.Ordinal)))
+        {
+            items.Insert(0, new ConditionComboItem(
+                currentValue,
+                cell.FormattedValue?.ToString() ?? currentValue));
+        }
+
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        var scale = Math.Max(1f, _conditionsGrid.DeviceDpi / 96f);
+        var itemHeight = Math.Max(
+            (int)Math.Round(32 * scale),
+            _conditionsGrid.Font.Height + (int)Math.Round(12 * scale));
+        var visibleItems = Math.Clamp(items.Count, 1, 9);
+        var cellBounds = _conditionsGrid.GetCellDisplayRectangle(columnIndex, rowIndex, cutOverflow: true);
+        var measuredWidth = items.Max(item =>
+            TextRenderer.MeasureText(DisplayConditionComboValue(item.Display), _conditionsGrid.Font).Width);
+        var listWidth = Math.Clamp(
+            Math.Max(cellBounds.Width, measuredWidth + (int)Math.Round(40 * scale)),
+            (int)Math.Round(120 * scale),
+            (int)Math.Round(420 * scale));
+        var listHeight = visibleItems * itemHeight + 2;
+
+        var listBox = new ListBox
+        {
+            BackColor = UiTheme.Surface,
+            ForeColor = UiTheme.Text,
+            BorderStyle = BorderStyle.None,
+            DrawMode = DrawMode.OwnerDrawFixed,
+            IntegralHeight = false,
+            ItemHeight = itemHeight,
+            Font = _conditionsGrid.Font,
+            Size = new Size(listWidth, listHeight)
+        };
+        listBox.Items.AddRange(items.Cast<object>().ToArray());
+        listBox.DrawItem += OnConditionComboListDrawItem;
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index >= 0 && index != listBox.SelectedIndex)
+            {
+                listBox.SelectedIndex = index;
+            }
+        };
+
+        var selectedIndex = items.FindIndex(item =>
+            string.Equals(item.Value, currentValue, StringComparison.Ordinal));
+        if (selectedIndex >= 0)
+        {
+            listBox.SelectedIndex = selectedIndex;
+        }
+
+        var host = new ToolStripControlHost(listBox)
+        {
+            AutoSize = false,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+            Size = listBox.Size
+        };
+        var dropDown = new ToolStripDropDown
+        {
+            AutoSize = false,
+            AutoClose = true,
+            BackColor = UiTheme.Border,
+            DropShadowEnabled = true,
+            Margin = Padding.Empty,
+            Padding = new Padding(1),
+            Size = new Size(listWidth + 2, listHeight + 2)
+        };
+        dropDown.Items.Add(host);
+        _conditionComboDropDown = dropDown;
+
+        void ApplySelectedValue()
+        {
+            if (listBox.SelectedItem is not ConditionComboItem selected)
+            {
+                return;
+            }
+
+            cell.Value = selected.Value;
+            _conditionsGrid.InvalidateCell(cell);
+            dropDown.Close(ToolStripDropDownCloseReason.ItemClicked);
+        }
+
+        listBox.Click += (_, _) => ApplySelectedValue();
+        listBox.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.Handled = true;
+                ApplySelectedValue();
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                e.Handled = true;
+                dropDown.Close(ToolStripDropDownCloseReason.Keyboard);
+            }
+        };
+        dropDown.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_conditionComboDropDown, dropDown))
+            {
+                _conditionComboDropDown = null;
+            }
+        };
+
+        dropDown.Show(
+            _conditionsGrid,
+            new Point(cellBounds.Left, cellBounds.Bottom),
+            ToolStripDropDownDirection.BelowRight);
+        listBox.Focus();
+    }
+
+    private static ConditionComboItem CreateConditionComboItem(object item)
+        => item is FieldItem field
+            ? new ConditionComboItem(field.Name, field.Display)
+            : new ConditionComboItem(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty);
+
+    private static string DisplayConditionComboValue(string value)
+        => string.IsNullOrEmpty(value) ? "（留空）" : value;
+
+    private static void OnConditionComboListDrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (sender is not ListBox listBox
+            || e.Index < 0
+            || e.Index >= listBox.Items.Count
+            || listBox.Items[e.Index] is not ConditionComboItem item)
+        {
+            return;
+        }
+
+        var selected = (e.State & DrawItemState.Selected) != 0;
+        using (var background = new SolidBrush(selected ? UiTheme.AccentSoft : UiTheme.Surface))
+        {
+            e.Graphics.FillRectangle(background, e.Bounds);
+        }
+
+        var textBounds = new Rectangle(
+            e.Bounds.Left + 10,
+            e.Bounds.Top,
+            Math.Max(0, e.Bounds.Width - 20),
+            e.Bounds.Height);
+        TextRenderer.DrawText(
+            e.Graphics,
+            DisplayConditionComboValue(item.Display),
+            listBox.Font,
+            textBounds,
+            selected ? UiTheme.Accent : UiTheme.Text,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+    }
+
+    private void CloseConditionComboDropDown()
+    {
+        _conditionComboDropDown?.Close(ToolStripDropDownCloseReason.AppClicked);
+        _conditionComboDropDown = null;
+    }
+
+    private void OnConditionsGridCellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
+    {
+        if (e.RowIndex < 0
+            || e.ColumnIndex < 0
+            || _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        PaintConditionComboBoxCell(e, cell);
+    }
+
+    private void PaintConditionComboBoxCell(
+        DataGridViewCellPaintingEventArgs e,
+        DataGridViewComboBoxCell cell)
+    {
+        e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+        if (e.Graphics is null)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var selected = (cell.State & DataGridViewElementStates.Selected) != 0;
+        var cellStyle = e.CellStyle ?? _conditionsGrid.DefaultCellStyle;
+        var textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
+        var showButton = !cell.ReadOnly
+            && cell.DisplayStyle != DataGridViewComboBoxDisplayStyle.Nothing;
+        var buttonSize = Math.Min(24, Math.Max(18, e.CellBounds.Height - 12));
+        var buttonBounds = new Rectangle(
+            e.CellBounds.Right - buttonSize - 7,
+            e.CellBounds.Top + (e.CellBounds.Height - buttonSize) / 2,
+            buttonSize,
+            buttonSize);
+        var textBounds = new Rectangle(
+            e.CellBounds.Left + 10,
+            e.CellBounds.Top,
+            Math.Max(0, (showButton ? buttonBounds.Left : e.CellBounds.Right) - e.CellBounds.Left - 16),
+            e.CellBounds.Height);
+
+        TextRenderer.DrawText(
+            e.Graphics,
+            e.FormattedValue?.ToString() ?? string.Empty,
+            cellStyle.Font ?? _conditionsGrid.Font,
+            textBounds,
+            textColor,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+        if (!showButton)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var oldSmoothingMode = e.Graphics.SmoothingMode;
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var path = UiTheme.CreateRoundedRectanglePath(buttonBounds, 4))
+        using (var background = new SolidBrush(selected ? UiTheme.Pressed : UiTheme.Hover))
+        using (var border = new Pen(selected ? UiTheme.Accent : UiTheme.Border))
+        {
+            e.Graphics.FillPath(background, path);
+            e.Graphics.DrawPath(border, path);
+        }
+
+        var centerX = buttonBounds.Left + buttonBounds.Width / 2;
+        var centerY = buttonBounds.Top + buttonBounds.Height / 2 + 1;
+        var arrow = new[]
+        {
+            new Point(centerX - 4, centerY - 2),
+            new Point(centerX + 4, centerY - 2),
+            new Point(centerX, centerY + 3)
+        };
+        using (var arrowBrush = new SolidBrush(selected ? UiTheme.Accent : UiTheme.Muted))
+        {
+            e.Graphics.FillPolygon(arrowBrush, arrow);
+        }
+
+        e.Graphics.SmoothingMode = oldSmoothingMode;
+        e.Handled = true;
     }
 
     // 「添加条件」按钮单独成行, 放在主条件行下方、子条件区上方。
@@ -486,20 +941,22 @@ public sealed class ConditionEditorForm : Form
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
             BackColor = UiTheme.Background,
-            Margin = new Padding(0, 2, 0, 2)
+            Margin = new Padding(0, 4, 0, 4)
         };
 
         var addButton = UiTheme.CreateButton("添加条件", UiTheme.Field, UiTheme.Text);
-        addButton.Width = 96;
-        addButton.Height = 30;
-        addButton.Margin = new Padding(0, 2, 0, 0);
+        addButton.AutoSize = false;
+        addButton.Width = 114;
+        addButton.Height = 36;
+        addButton.Margin = new Padding(0);
         addButton.Click += (_, _) =>
         {
+            _conditionsGrid.EndEdit();
             var row = AddRow(null);
             RefreshConnectors();
             UpdatePreview();
-            _rowsPanel.ScrollControlIntoView(row.Panel);
-            row.CategoryBox.Focus();
+            _conditionsGrid.CurrentCell = row.Cells[TypeColumn];
+            _conditionsGrid.BeginEdit(true);
         };
         panel.Controls.Add(addButton);
         return panel;
@@ -551,7 +1008,8 @@ public sealed class ConditionEditorForm : Form
     // 提交前对两类静默丢失给出确认: 不完整行被忽略、或结果为空会把条件清成"始终命中"。
     private void TryConfirm()
     {
-        var incomplete = _rows.Count(IsRowIncomplete);
+        _conditionsGrid.EndEdit();
+        var incomplete = _conditionsGrid.Rows.Cast<DataGridViewRow>().Count(IsRowIncomplete);
         if (incomplete > 0
             && MessageBox.Show(
                 $"有 {incomplete} 行不完整(字段或值为空), 将被忽略。继续？",
@@ -593,163 +1051,248 @@ public sealed class ConditionEditorForm : Form
     }
 
     // 恰好字段与值一空一非空 → 不完整; 两者都空只是空行(静默忽略, 不算不完整)。
-    private static bool IsRowIncomplete(ConditionRow row)
+    private static bool IsRowIncomplete(DataGridViewRow row)
     {
-        if (IsRuleSettingField(row.SelectedField))
+        if (IsRuleSettingField(SelectedField(row)))
         {
             return false;
         }
 
-        var field = row.SelectedField?.Name.Trim() ?? string.Empty;
+        var field = SelectedField(row)?.Name.Trim() ?? string.Empty;
         var value = ReadRowValue(row);
         return (field.Length == 0) ^ (value.Length == 0);
     }
 
-    private ConditionRow AddRow(ConditionTerm? term)
+    private DataGridViewRow AddRow(ConditionTerm? term)
     {
-        var panel = new TableLayoutPanel
+        var index = _conditionsGrid.Rows.Add();
+        var row = _conditionsGrid.Rows[index];
+        row.Height = _conditionsGrid.RowTemplate.Height;
+        row.Cells[ConnectorColumn].Value = term?.OrWithPrevious == true ? "或" : "且";
+
+        var category = ResolveCategory(term?.Field);
+        var classification = ResolveClassification(term?.Field, category);
+        _updatingGrid = true;
+        try
         {
-            Width = RowTotalWidth,
-            Height = 34,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0, 1, 0, 5),
-            ColumnCount = 6,
-            RowCount = 1
-        };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ConnectorWidth));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, CategoryWidth));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, FieldWidth));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OpWidth));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ValueWidth));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DeleteWidth));
-
-        var connectorBox = new ComboBox();
-        UiTheme.StyleComboBox(connectorBox);
-        connectorBox.Items.AddRange(["且", "或"]);
-        connectorBox.SelectedIndex = term?.OrWithPrevious == true ? 1 : 0;
-        connectorBox.Dock = DockStyle.Fill;
-        connectorBox.Margin = new Padding(0, 2, 8, 2);
-
-        var categoryBox = new ComboBox();
-        UiTheme.StyleComboBox(categoryBox);
-        categoryBox.Items.AddRange(CategoryItems
-            .Where(item => item.Category != ConditionFieldCategory.Shigure || _allowRuleSettings)
-            .ToArray());
-        categoryBox.Dock = DockStyle.Fill;
-        categoryBox.Margin = new Padding(0, 2, 8, 2);
-
-        var fieldBox = new ComboBox();
-        UiTheme.StyleComboBox(fieldBox);
-        fieldBox.Dock = DockStyle.Fill;
-        fieldBox.Margin = new Padding(0, 2, 8, 2);
-        fieldBox.AutoCompleteSource = AutoCompleteSource.ListItems;
-        fieldBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
-
-        var opBox = new ComboBox();
-        UiTheme.StyleComboBox(opBox);
-        opBox.Dock = DockStyle.Fill;
-        opBox.Margin = new Padding(0, 2, 8, 2);
-
-        var valueHost = new Panel
+            row.Cells[TypeColumn].Value = CategoryItems.First(item => item.Category == category).Display;
+            ConfigureType(row, term?.Field, classification, term?.Op, term?.Value, preserveRaw: true);
+        }
+        finally
         {
-            Dock = DockStyle.Fill,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0, 2, 8, 2)
-        };
+            _updatingGrid = false;
+        }
 
-        var deleteButton = UiTheme.CreateButton("✕", UiTheme.Field, UiTheme.Danger);
-        deleteButton.AutoSize = false;
-        deleteButton.Width = DeleteWidth - 6;
-        deleteButton.Height = 30;
-        deleteButton.Margin = new Padding(0, 2, 0, 2);
-        deleteButton.Padding = new Padding(0);
-
-        panel.Controls.Add(connectorBox, 0, 0);
-        panel.Controls.Add(categoryBox, 1, 0);
-        panel.Controls.Add(fieldBox, 2, 0);
-        panel.Controls.Add(opBox, 3, 0);
-        panel.Controls.Add(valueHost, 4, 0);
-        panel.Controls.Add(deleteButton, 5, 0);
-
-        var row = new ConditionRow(panel, connectorBox, categoryBox, fieldBox, opBox, valueHost);
-        SelectCategory(row, ResolveCategory(term?.Field));
-        PopulateFields(row, term?.Field);
-        PopulateOps(row, term?.Op);
-        CreateValueControl(row, term?.Value, preserveRaw: true);
-
-        connectorBox.SelectedIndexChanged += (_, _) => UpdatePreview();
-        categoryBox.SelectedIndexChanged += (_, _) =>
-        {
-            PopulateFields(row, null);
-            OnFieldChanged(row);
-            RefreshConnectors();
-            UpdatePreview();
-        };
-        fieldBox.SelectedIndexChanged += (_, _) =>
-        {
-            OnFieldChanged(row);
-            RefreshConnectors();
-            UpdatePreview();
-        };
-        opBox.SelectedIndexChanged += (_, _) =>
-        {
-            OnOperatorChanged(row);
-            UpdatePreview();
-        };
-        deleteButton.Click += (_, _) => RemoveRow(row);
-
-        _rows.Add(row);
-        _rowsPanel.Controls.Add(panel);
+        RefreshConnectors();
         return row;
     }
 
-    private void RemoveRow(ConditionRow row)
+    private void OnGridCellValueChanged(object? sender, DataGridViewCellEventArgs e)
     {
-        _rows.Remove(row);
-        _rowsPanel.Controls.Remove(row.Panel);
-        row.Panel.Dispose();
+        if (_updatingGrid || e.RowIndex < 0 || e.ColumnIndex < 0)
+        {
+            return;
+        }
+
+        var row = _conditionsGrid.Rows[e.RowIndex];
+        var columnName = _conditionsGrid.Columns[e.ColumnIndex].Name;
+        _updatingGrid = true;
+        try
+        {
+            if (columnName == TypeColumn)
+            {
+                ConfigureType(row, null, null, null, null, preserveRaw: false);
+            }
+            else if (columnName == ClassificationColumn)
+            {
+                ConfigureFields(row, null);
+                ConfigureField(row, null, null, preserveRaw: false);
+            }
+            else if (columnName == FieldColumn)
+            {
+                ConfigureField(
+                    row,
+                    row.Cells[OperatorColumn].Value?.ToString(),
+                    ReadRowValue(row),
+                    preserveRaw: false);
+            }
+            else if (columnName == OperatorColumn)
+            {
+                ConfigureValueCell(row, ReadRowValue(row), preserveRaw: true);
+            }
+        }
+        finally
+        {
+            _updatingGrid = false;
+        }
+
         RefreshConnectors();
         UpdatePreview();
     }
 
     private void RefreshConnectors()
     {
-        for (var i = 0; i < _rows.Count; i++)
+        var wasUpdating = _updatingGrid;
+        _updatingGrid = true;
+        try
         {
-            _rows[i].Connector.Visible = i > 0 && !IsRuleSettingField(_rows[i].SelectedField);
+            for (var i = 0; i < _conditionsGrid.Rows.Count; i++)
+            {
+                var cell = (DataGridViewComboBoxCell)_conditionsGrid.Rows[i].Cells[ConnectorColumn];
+                var visible = i > 0 && !IsRuleSettingField(SelectedField(_conditionsGrid.Rows[i]));
+                cell.ReadOnly = !visible;
+                cell.DisplayStyle = visible
+                    ? DataGridViewComboBoxDisplayStyle.DropDownButton
+                    : DataGridViewComboBoxDisplayStyle.Nothing;
+                var desiredValue = visible && cell.Value?.ToString() is ("且" or "或")
+                    ? cell.Value?.ToString()
+                    : visible ? "且" : string.Empty;
+                if (!string.Equals(cell.Value?.ToString(), desiredValue, StringComparison.Ordinal))
+                {
+                    cell.Value = desiredValue;
+                }
+            }
+        }
+        finally
+        {
+            _updatingGrid = wasUpdating;
         }
     }
 
-    private void PopulateFields(ConditionRow row, string? currentField)
+    private void ConfigureType(
+        DataGridViewRow row,
+        string? currentField,
+        string? desiredClassification,
+        string? desiredOp,
+        string? rawValue,
+        bool preserveRaw)
     {
-        var fieldBox = row.FieldBox;
-        var category = row.SelectedCategory?.Category ?? ConditionFieldCategory.State;
-        fieldBox.DropDownStyle = ComboBoxStyle.DropDownList;
-        fieldBox.Items.Clear();
-        foreach (var field in _fields.Where(field => field.Category == category))
+        var category = SelectedCategory(row);
+        ConfigureClassification(row, category, currentField, desiredClassification);
+        ConfigureFields(row, currentField);
+        ConfigureField(row, desiredOp, rawValue, preserveRaw);
+    }
+
+    private void ConfigureClassification(
+        DataGridViewRow row,
+        ConditionFieldCategory category,
+        string? currentField,
+        string? desiredClassification)
+    {
+        var cell = (DataGridViewComboBoxCell)row.Cells[ClassificationColumn];
+        cell.Items.Clear();
+        var enabled = category is ConditionFieldCategory.State or ConditionFieldCategory.Aura;
+        cell.ReadOnly = !enabled;
+        cell.DisplayStyle = enabled
+            ? DataGridViewComboBoxDisplayStyle.DropDownButton
+            : DataGridViewComboBoxDisplayStyle.Nothing;
+        if (!enabled)
         {
-            fieldBox.Items.Add(new FieldItem(field.Name, field.DisplayName, field.Type, field.Category, IsCustom: false));
-        }
-
-        if (!string.IsNullOrWhiteSpace(currentField))
-        {
-            var index = FindFieldIndex(fieldBox, currentField);
-            if (index < 0)
-            {
-                // 目录里没有的字段(如 group.* 或手写字段)保留为自定义项, 避免丢失原条件。
-                fieldBox.Items.Add(new FieldItem(currentField, $"{currentField} (自定义)", ConditionFieldType.Int, category, IsCustom: true));
-
-                index = fieldBox.Items.Count - 1;
-            }
-
-            fieldBox.SelectedIndex = index;
+            cell.Value = null;
             return;
         }
 
-        if (fieldBox.Items.Count > 0)
+        var options = category == ConditionFieldCategory.State
+            ? ClassStateCatalog.TopCategories.ToList()
+            : _fields
+                .Where(field => field.Category == category)
+                .Select(field => NormalizeClassification(field.Classification))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        if (category == ConditionFieldCategory.State)
         {
-            fieldBox.SelectedIndex = 0;
+            // 固定分类之后仍保留配置中出现的扩展分类。
+            foreach (var classification in _fields
+                         .Where(field => field.Category == category)
+                         .Select(field => NormalizeClassification(field.Classification))
+                         .Distinct(StringComparer.Ordinal))
+            {
+                if (!options.Contains(classification, StringComparer.Ordinal))
+                {
+                    options.Add(classification);
+                }
+            }
         }
+
+        if (options.Count == 0)
+        {
+            options.Add(Unclassified);
+        }
+
+        cell.Items.AddRange(options
+            .Select(option => GetClassificationDisplayName(category, option))
+            .Cast<object>()
+            .ToArray());
+        var currentDefinition = FindField(currentField);
+        var selected = desiredClassification
+            ?? currentDefinition?.Classification;
+        selected = string.IsNullOrWhiteSpace(selected)
+            ? options[0]
+            : NormalizeClassification(selected);
+        if (!options.Contains(selected, StringComparer.Ordinal))
+        {
+            cell.Items.Add(selected);
+        }
+
+        cell.Value = GetClassificationDisplayName(category, selected);
+    }
+
+    private void ConfigureFields(DataGridViewRow row, string? currentField)
+    {
+        var category = SelectedCategory(row);
+        var classification = GetClassificationStorageName(
+            category,
+            row.Cells[ClassificationColumn].Value?.ToString());
+        var cell = (DataGridViewComboBoxCell)row.Cells[FieldColumn];
+        cell.Items.Clear();
+
+        foreach (var field in _fields.Where(field =>
+                     field.Category == category
+                     && (category is not (ConditionFieldCategory.State or ConditionFieldCategory.Aura)
+                         || string.Equals(
+                             NormalizeClassification(field.Classification),
+                             classification,
+                             StringComparison.Ordinal))))
+        {
+            cell.Items.Add(new FieldItem(
+                field.Name,
+                field.DisplayName,
+                field.Type,
+                field.Category,
+                field.Classification,
+                IsCustom: false));
+        }
+
+        FieldItem? selected = null;
+        if (!string.IsNullOrWhiteSpace(currentField))
+        {
+            selected = cell.Items.Cast<FieldItem>().FirstOrDefault(item =>
+                string.Equals(item.Name, currentField, StringComparison.OrdinalIgnoreCase));
+            if (selected is null)
+            {
+                selected = new FieldItem(
+                    currentField,
+                    $"{currentField} (自定义)",
+                    ConditionFieldType.Int,
+                    category,
+                    classification,
+                    IsCustom: true);
+                cell.Items.Add(selected);
+            }
+        }
+
+        selected ??= cell.Items.Cast<FieldItem>().FirstOrDefault();
+        cell.Value = selected?.Name;
+    }
+
+    private void ConfigureField(
+        DataGridViewRow row,
+        string? desiredOp,
+        string? rawValue,
+        bool preserveRaw)
+    {
+        PopulateOps(row, desiredOp);
+        ConfigureValueCell(row, rawValue, preserveRaw);
     }
 
     private ConditionFieldCategory ResolveCategory(string? fieldName)
@@ -781,37 +1324,30 @@ public sealed class ConditionEditorForm : Form
         return ConditionFieldCategory.State;
     }
 
-    private static void SelectCategory(ConditionRow row, ConditionFieldCategory category)
+    private string? ResolveClassification(string? fieldName, ConditionFieldCategory category)
     {
-        for (var i = 0; i < row.CategoryBox.Items.Count; i++)
-        {
-            if (row.CategoryBox.Items[i] is CategoryItem item && item.Category == category)
-            {
-                row.CategoryBox.SelectedIndex = i;
-                return;
-            }
-        }
-
-        row.CategoryBox.SelectedIndex = 0;
+        var field = FindField(fieldName);
+        return field?.Classification
+            ?? (category == ConditionFieldCategory.Aura
+                ? fieldName?.StartsWith("auras.目标", StringComparison.OrdinalIgnoreCase) == true
+                    ? "目标光环"
+                    : fieldName?.StartsWith("auras.焦点", StringComparison.OrdinalIgnoreCase) == true
+                        ? "焦点光环"
+                        : "玩家"
+                : ClassStateCatalog.CategoryState);
     }
 
-    private static int FindFieldIndex(ComboBox fieldBox, string fieldName)
+    private ConditionField? FindField(string? fieldName)
     {
-        for (var i = 0; i < fieldBox.Items.Count; i++)
-        {
-            if (fieldBox.Items[i] is FieldItem item
-                && string.Equals(item.Name, fieldName, StringComparison.OrdinalIgnoreCase))
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return string.IsNullOrWhiteSpace(fieldName)
+            ? null
+            : _fields.FirstOrDefault(field =>
+                string.Equals(field.Name, fieldName, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void PopulateOps(ConditionRow row, string? desiredOp)
+    private static void PopulateOps(DataGridViewRow row, string? desiredOp)
     {
-        var field = row.SelectedField;
+        var field = SelectedField(row);
         var isRuleSetting = IsRuleSettingField(field);
         var ops = isRuleSetting
             ? DelayOperators
@@ -821,114 +1357,67 @@ public sealed class ConditionEditorForm : Form
                 ? TextOperators
                 : AllOperators;
 
-        row.OpBox.Items.Clear();
-        row.OpBox.Items.AddRange(ops);
+        var cell = (DataGridViewComboBoxCell)row.Cells[OperatorColumn];
+        cell.Items.Clear();
+        cell.Items.AddRange(ops);
         var normalizedOp = isRuleSetting ? "==" : ConditionExpression.NormalizeOperator(desiredOp);
         var index = normalizedOp.Length == 0 ? -1 : Array.IndexOf(ops, normalizedOp);
-        row.OpBox.SelectedIndex = index >= 0 ? index : 0;
-        row.OpBox.Enabled = !isRuleSetting;
+        cell.Value = ops[index >= 0 ? index : 0];
+        cell.ReadOnly = isRuleSetting;
+        cell.DisplayStyle = isRuleSetting
+            ? DataGridViewComboBoxDisplayStyle.Nothing
+            : DataGridViewComboBoxDisplayStyle.DropDownButton;
     }
 
-    private void CreateValueControl(ConditionRow row, string? rawValue, bool preserveRaw)
+    private static void ConfigureValueCell(DataGridViewRow row, string? rawValue, bool preserveRaw)
     {
-        foreach (Control old in row.ValueHost.Controls)
+        var field = SelectedField(row);
+        if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
         {
-            old.Dispose();
-        }
-
-        row.ValueHost.Controls.Clear();
-
-        var field = row.SelectedField;
-        var usesListValue = ConditionExpression.IsInOperator(row.OpBox.SelectedItem?.ToString());
-        Control control;
-        if (IsRuleSettingField(field))
-        {
-            var numeric = new NumericUpDown
+            var combo = new DataGridViewComboBoxCell
             {
-                Minimum = 0,
-                Maximum = int.MaxValue,
-                Value = TryParseDelayText(rawValue, out var delay) ? delay : 0,
-                ThousandsSeparator = true
+                DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
+                FlatStyle = FlatStyle.Flat
             };
-            UiTheme.StyleNumericUpDown(numeric);
-            numeric.ValueChanged += (_, _) => UpdatePreview();
-            numeric.TextChanged += (_, _) => UpdatePreview();
-            control = numeric;
-        }
-        else if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
-        {
-            var combo = new ComboBox();
-            UiTheme.StyleComboBox(combo);
             combo.Items.AddRange(["是 (true)", "否 (false)"]);
-            combo.SelectedIndex = IsFalseText(rawValue) ? 1 : 0;
-            combo.SelectedIndexChanged += (_, _) => UpdatePreview();
-            control = combo;
+            combo.Value = IsFalseText(rawValue) ? "否 (false)" : "是 (true)";
+            row.Cells[ValueColumn] = combo;
+            return;
         }
-        else if (!usesListValue
-            && field is { IsCustom: false, Type: ConditionFieldType.Int }
-            && (TryParseIntegerText(rawValue, out var number) || !preserveRaw))
+
+        var text = rawValue?.Trim() ?? string.Empty;
+        if (ConditionExpression.IsInOperator(row.Cells[OperatorColumn].Value?.ToString()))
         {
-            // 解析失败时 number 为 0, 仅在 preserveRaw=false 的字段切换场景下走到这里。
-            var numeric = new NumericUpDown
-            {
-                Minimum = -1000000,
-                Maximum = 1000000,
-                Value = number
-            };
-            UiTheme.StyleNumericUpDown(numeric);
-            numeric.ValueChanged += (_, _) => UpdatePreview();
-            numeric.TextChanged += (_, _) => UpdatePreview();
-            control = numeric;
+            text = ConditionExpression.NormalizeInValue(text);
         }
-        else
+        else if (!preserveRaw && field is { IsCustom: false, Type: ConditionFieldType.Int })
         {
-            // 字符串字段、自定义字段或无法转成数字的旧值用文本框兜底。
-            var box = new TextBox
-            {
-                Text = usesListValue ? ConditionExpression.NormalizeInValue(rawValue) : rawValue ?? string.Empty
-            };
-            UiTheme.StyleTextBox(box);
-            if (usesListValue)
-            {
-                box.PlaceholderText = "例如: 12, 13";
-            }
-
-            box.TextChanged += (_, _) => UpdatePreview();
-            control = box;
+            text = TryParseIntegerText(text, out var number)
+                ? number.ToString("0", CultureInfo.InvariantCulture)
+                : "0";
+        }
+        else if (text.Length == 0 && field is { IsCustom: false, Type: ConditionFieldType.Int })
+        {
+            text = "0";
         }
 
-        control.Dock = DockStyle.Fill;
-        row.ValueHost.Controls.Add(control);
-        row.ValueControl = control;
-    }
-
-    private void OnFieldChanged(ConditionRow row)
-    {
-        var currentOp = row.OpBox.SelectedItem?.ToString();
-        var currentValue = ReadRowValue(row);
-        PopulateOps(row, currentOp);
-        CreateValueControl(row, currentValue, preserveRaw: false);
-    }
-
-    private void OnOperatorChanged(ConditionRow row)
-    {
-        var currentValue = ReadRowValue(row);
-        CreateValueControl(row, currentValue, preserveRaw: true);
+        row.Cells[ValueColumn] = new DataGridViewTextBoxCell { Value = text };
     }
 
     private List<ConditionTerm> CollectTerms()
     {
         var terms = new List<ConditionTerm>();
-        for (var i = 0; i < _rows.Count; i++)
+        for (var i = 0; i < _conditionsGrid.Rows.Count; i++)
         {
-            var row = _rows[i];
-            if (IsRuleSettingField(row.SelectedField))
+            var row = _conditionsGrid.Rows[i];
+            var fieldItem = SelectedField(row);
+            if (IsRuleSettingField(fieldItem))
             {
                 continue;
             }
 
-            var field = row.SelectedField?.Name.Trim() ?? string.Empty;
-            var op = row.OpBox.SelectedItem?.ToString() ?? "==";
+            var field = fieldItem?.Name.Trim() ?? string.Empty;
+            var op = row.Cells[OperatorColumn].Value?.ToString() ?? "==";
             var value = ReadRowValue(row);
             if (field.Length == 0 || value.Length == 0)
             {
@@ -936,7 +1425,7 @@ public sealed class ConditionEditorForm : Form
             }
 
             terms.Add(new ConditionTerm(
-                OrWithPrevious: i > 0 && row.Connector.SelectedIndex == 1,
+                OrWithPrevious: i > 0 && row.Cells[ConnectorColumn].Value?.ToString() == "或",
                 field,
                 op,
                 value));
@@ -945,25 +1434,65 @@ public sealed class ConditionEditorForm : Form
         return terms;
     }
 
-    private static string ReadRowValue(ConditionRow row)
+    private static string ReadRowValue(DataGridViewRow row)
     {
-        return row.ValueControl switch
-        {
-            NumericUpDown numeric => ReadNumericText(numeric),
-            ComboBox combo => combo.SelectedIndex == 1 ? "false" : "true",
-            TextBox box => ConditionExpression.IsInOperator(row.OpBox.SelectedItem?.ToString())
-                ? ConditionExpression.NormalizeInValue(box.Text)
-                : box.Text.Trim(),
-            _ => string.Empty
-        };
+        var value = row.Cells[ValueColumn].Value?.ToString() ?? string.Empty;
+        return SelectedField(row) is { IsCustom: false, Type: ConditionFieldType.Bool }
+            ? value.StartsWith("否", StringComparison.Ordinal) ? "false" : "true"
+            : ConditionExpression.IsInOperator(row.Cells[OperatorColumn].Value?.ToString())
+                ? ConditionExpression.NormalizeInValue(value)
+                : value.Trim();
     }
 
-    private static string ReadNumericText(NumericUpDown numeric)
+    private static FieldItem? SelectedField(DataGridViewRow row)
     {
-        // 输入中的文本可能尚未提交到 Value, 优先读文本。
-        return decimal.TryParse(numeric.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var typed)
-            ? decimal.Truncate(typed).ToString("0", CultureInfo.InvariantCulture)
-            : numeric.Value.ToString("0", CultureInfo.InvariantCulture);
+        var cell = row.Cells[FieldColumn];
+        if (cell.Value is FieldItem selected)
+        {
+            return selected;
+        }
+
+        // 新表格统一保存字段名；同时兼容已创建单元格或 WinForms 回写的显示文字。
+        var text = cell.Value?.ToString()?.Trim();
+
+        if (string.IsNullOrWhiteSpace(text) || cell is not DataGridViewComboBoxCell combo)
+        {
+            return null;
+        }
+
+        return combo.Items
+            .OfType<FieldItem>()
+            .FirstOrDefault(item =>
+                string.Equals(item.Name, text, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.Display, text, StringComparison.Ordinal));
+    }
+
+    private static ConditionFieldCategory SelectedCategory(DataGridViewRow row)
+    {
+        var display = row.Cells[TypeColumn].Value?.ToString();
+        return CategoryItems.FirstOrDefault(item =>
+            string.Equals(item.Display, display, StringComparison.Ordinal))?.Category
+            ?? ConditionFieldCategory.State;
+    }
+
+    private static string NormalizeClassification(string? value)
+        => string.IsNullOrWhiteSpace(value) ? Unclassified : value.Trim();
+
+    private static string GetClassificationDisplayName(
+        ConditionFieldCategory category,
+        string classification)
+        => category == ConditionFieldCategory.State
+            ? ClassStateCatalog.GetCategoryDisplayName(classification)
+            : classification;
+
+    private static string GetClassificationStorageName(
+        ConditionFieldCategory category,
+        string? displayName)
+    {
+        var normalized = NormalizeClassification(displayName);
+        return category == ConditionFieldCategory.State
+            ? ClassStateCatalog.GetStorageCategoryFromDisplay(normalized)
+            : normalized;
     }
 
     private void UpdatePreview()
@@ -1028,7 +1557,10 @@ public sealed class ConditionEditorForm : Form
         bool showWarning)
     {
         delayMs = null;
-        var delayRows = _rows.Where(row => IsRuleSettingField(row.SelectedField, fieldName)).ToList();
+        var delayRows = _conditionsGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(row => IsRuleSettingField(SelectedField(row), fieldName))
+            .ToList();
         if (delayRows.Count > 1)
         {
             if (showWarning)
@@ -1124,45 +1656,24 @@ public sealed class ConditionEditorForm : Form
         return true;
     }
 
-    private static Label CreateHeaderLabel(string text)
-    {
-        return new Label
-        {
-            Text = text,
-            Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Muted,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0)
-        };
-    }
-
     private sealed record CategoryItem(string Display, ConditionFieldCategory Category)
     {
         public override string ToString() => Display;
     }
 
-    private sealed record FieldItem(string Name, string Display, ConditionFieldType Type, ConditionFieldCategory Category, bool IsCustom)
+    private sealed record ConditionComboItem(string Value, string Display)
     {
         public override string ToString() => Display;
     }
 
-    private sealed class ConditionRow(
-        TableLayoutPanel panel,
-        ComboBox connector,
-        ComboBox categoryBox,
-        ComboBox fieldBox,
-        ComboBox opBox,
-        Panel valueHost)
+    private sealed record FieldItem(
+        string Name,
+        string Display,
+        ConditionFieldType Type,
+        ConditionFieldCategory Category,
+        string? Classification,
+        bool IsCustom)
     {
-        public TableLayoutPanel Panel { get; } = panel;
-        public ComboBox Connector { get; } = connector;
-        public ComboBox CategoryBox { get; } = categoryBox;
-        public ComboBox FieldBox { get; } = fieldBox;
-        public ComboBox OpBox { get; } = opBox;
-        public Panel ValueHost { get; } = valueHost;
-        public Control? ValueControl { get; set; }
-
-        public CategoryItem? SelectedCategory => CategoryBox.SelectedItem as CategoryItem;
-        public FieldItem? SelectedField => FieldBox.SelectedItem as FieldItem;
+        public override string ToString() => Display;
     }
 }

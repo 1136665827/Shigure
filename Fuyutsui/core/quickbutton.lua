@@ -1,7 +1,7 @@
 --[[
 摘要：
     Fuyutsui 快捷控件：panel.lua 蓝本——barLayer 爆发计时条（BurstTime 时长驱动，
-    左键 +15 秒 / 右键取消 / 中键永久爆发）+ 三按钮行（自动/手动/不喝药）。
+    左键 +15 秒 / 右键取消 / 中键永久爆发）+ 双按钮行（自动/单体、不喝药/爆发药）。
 描述：
     面板无标题栏、位置可拖动并记忆（quickButtonPoint/RelPoint/X/Y，无存档时默认 CENTER +
     quickButtonCX/quickButtonCY），采用 PhantomProject 手法：WindowBorder 1px 边框 + WindowBg
@@ -32,7 +32,7 @@
     pressX/pressY：barLayer 按下时记录的光标位置，抬起时判定点击还是拖动
 修改记录：
     2026-08-18：整体重写——旧单按钮 50x64 四行文字（爆/群/模/药）UI 移除，改为 panel.lua
-        蓝本面板（barLayer 计时条 + 三按钮行）；爆发状态模型升级为 Fuyutsui.BurstTime
+        蓝本面板（barLayer 计时条 + 双按钮行）；爆发状态模型升级为 Fuyutsui.BurstTime
         时间戳驱动，独立 driver frame 派生 c.cooldowns；/fu cd 命令与新模型适配
 --]]
 
@@ -117,7 +117,7 @@ function Fuyutsui:ShowQuickToggleButton()
     print("|cff00ff00[Fuyutsui]|r 快捷控件已显示。")
 end
 
--- 三按钮显示态的唯一刷新入口：按 GetCharConfig() 配置派生（命令改配置与按钮点击共用单一数据源）
+-- 双按钮显示态的唯一刷新入口：按 GetCharConfig() 配置派生（命令改配置与按钮点击共用单一数据源）
 function Fuyutsui:RefreshQuickToggleAppearance()
     local f = self.quickToggleFrame
     if not f or not f.buttons then return end
@@ -284,14 +284,14 @@ function Fuyutsui:InitQuickToggleButton()
     end)
     -- 计时条层结束
 
-    -- 三个状态切换按钮：等宽铺满按钮行，按钮间距 SPACING
+    -- 两个状态切换按钮：各占一半可用宽度，按钮间距 SPACING
     local buttonRow = CreateFrame("Frame", nil, f) -- 按钮行层：位于计时条层下方 SPACING 处，高 ROW_HEIGHT
     buttonRow:SetPoint("TOPLEFT", barLayer, "BOTTOMLEFT", 0, -SPACING)
     buttonRow:SetPoint("TOPRIGHT", barLayer, "BOTTOMRIGHT", 0, -SPACING)
     buttonRow:SetHeight(ROW_HEIGHT)
 
     local contentWidth = PANEL_WIDTH - 2 * PANEL_BORDER  -- 面板内缩边框后的内容区宽度
-    local buttonWidth = (contentWidth - 2 * SPACING) / 3 -- 单个按钮宽：内容区宽减去两端间距后三等分
+    local buttonWidth = (contentWidth - SPACING) / 2 -- 单个按钮宽：扣除按钮间距后，两按钮各占一半
 
     -- 字体：从 GameFontHighlightSmall 取字体文件/样式标志与阴影，只取一次供所有按钮使用
     local fontFile, _, fontFlags = GameFontHighlightSmall:GetFont()                    -- 字体文件路径与样式标志（居中位丢弃）

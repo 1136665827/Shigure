@@ -30,7 +30,8 @@ public sealed record ConditionField(
     string Name,
     string DisplayName,
     ConditionFieldType Type,
-    ConditionFieldCategory Category = ConditionFieldCategory.State)
+    ConditionFieldCategory Category = ConditionFieldCategory.State,
+    string? Classification = null)
 {
     public override string ToString() => DisplayName;
 }
@@ -41,23 +42,37 @@ public sealed record ConditionField(
 /// </summary>
 public sealed class ConditionFieldCatalog
 {
-    private readonly ConfigService? _config;
+    private static readonly HashSet<string> RemovedCastFields = new(StringComparer.Ordinal)
+    {
+        "施法",
+        "目标施法",
+        "焦点施法",
+        "首领1施法",
+        "首领2施法",
+        "首领3施法",
+        "首领4施法",
+        "首领5施法"
+    };
 
-    private ConditionFieldCatalog(ConfigService? config)
+    private readonly ConfigService? _config;
+    private readonly string _baseDirectory;
+
+    private ConditionFieldCatalog(ConfigService? config, string baseDirectory)
     {
         _config = config;
+        _baseDirectory = baseDirectory;
     }
 
     public static ConditionFieldCatalog Load(string baseDirectory)
     {
         try
         {
-            return new ConditionFieldCatalog(ConfigService.LoadFromBaseDirectory(baseDirectory));
+            return new ConditionFieldCatalog(ConfigService.LoadFromBaseDirectory(baseDirectory), baseDirectory);
         }
         catch
         {
             // config 缺失或损坏时返回空目录，编辑器降级为手动输入。
-            return new ConditionFieldCatalog(null);
+            return new ConditionFieldCatalog(null, baseDirectory);
         }
     }
 
@@ -74,18 +89,29 @@ public sealed class ConditionFieldCatalog
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var stateConfig = _config.BuildStateConfig(classId, specId);
+        var sourceClassifications = LoadSourceClassifications(classId, specId);
 
         foreach (var (key, node) in stateConfig)
         {
             if (key is "group" or "spells" or "auras"
-                || key == "锚点")
+                || key == "锚点"
+                || RemovedCastFields.Contains(key))
             {
                 continue;
             }
 
             if (node is JsonObject field && field.ContainsKey("step"))
             {
-                AddField(fields, seen, key, key, ReadType(field), ConditionFieldCategory.State);
+                AddField(
+                    fields,
+                    seen,
+                    key,
+                    key,
+                    ReadType(field),
+                    ConditionFieldCategory.State,
+                    ReadClassification(field)
+                        ?? sourceClassifications.GetValueOrDefault(key)
+                        ?? InferStateClassification(key));
             }
         }
 
@@ -95,7 +121,16 @@ public sealed class ConditionFieldCatalog
             {
                 if (node is JsonObject field && field.ContainsKey("step"))
                 {
-                    AddField(fields, seen, $"auras.{auraName}", $"光环: {auraName}", ReadType(field), ConditionFieldCategory.Aura);
+                    AddField(
+                        fields,
+                        seen,
+                        $"auras.{auraName}",
+                        auraName,
+                        ReadType(field),
+                        ConditionFieldCategory.Aura,
+                        ReadClassification(field)
+                            ?? sourceClassifications.GetValueOrDefault($"auras.{auraName}")
+                            ?? InferAuraClassification(auraName));
                 }
             }
         }
@@ -118,7 +153,8 @@ public sealed class ConditionFieldCatalog
             ModuleSpecialActions.FailedSpell,
             ModuleSpecialActions.FailedSpell,
             ConditionFieldType.String,
-            ConditionFieldCategory.State);
+            ConditionFieldCategory.State,
+            ClassStateCatalog.CategoryState);
 
         return fields;
     }
@@ -170,13 +206,128 @@ public sealed class ConditionFieldCatalog
         string name,
         string displayName,
         ConditionFieldType type,
-        ConditionFieldCategory category = ConditionFieldCategory.State)
+        ConditionFieldCategory category = ConditionFieldCategory.State,
+        string? classification = null)
     {
         if (seen.Add(name))
         {
-            fields.Add(new ConditionField(name, displayName, type, category));
+            fields.Add(new ConditionField(name, displayName, type, category, classification));
         }
     }
+
+    private Dictionary<string, string> LoadSourceClassifications(int? classId, int? specId)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (classId is null || specId is null)
+        {
+            return result;
+        }
+
+        try
+        {
+            var path = Path.Combine(
+                _baseDirectory,
+                "Fuyutsui",
+                "class",
+                $"{ClassNames.GetConfigFileName(classId.Value)}.lua");
+            if (!File.Exists(path))
+            {
+                return result;
+            }
+
+            var document = ClassBlocksStore.Load(path);
+            if (!document.Specs.TryGetValue(specId.Value, out var spec))
+            {
+                return result;
+            }
+
+            if (spec.NestedStates)
+            {
+                foreach (var (classification, names) in spec.CategorizedStates)
+                {
+                    foreach (var sourceName in names)
+                    {
+                        var name = NormalizeStateName(sourceName);
+                        var key = IsUnitStateClassification(classification)
+                            ? classification + name
+                            : name;
+                        result[key] = classification;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var sourceName in spec.FlatStates)
+                {
+                    var name = NormalizeStateName(sourceName);
+                    result[name] = InferStateClassification(name);
+                }
+            }
+
+            AddAuraClassifications(result, spec.PlayerAuras, string.Empty, "玩家");
+            AddAuraClassifications(result, spec.TargetHarmfulAuras, "目标", "目标减益");
+            AddAuraClassifications(result, spec.TargetHelpfulAuras, "目标", "目标增益");
+            AddAuraClassifications(result, spec.FocusHarmfulAuras, "焦点", "焦点减益");
+            AddAuraClassifications(result, spec.FocusHelpfulAuras, "焦点", "焦点增益");
+        }
+        catch
+        {
+            // Lua 配置暂不可读时继续使用生成 config 内的分类或名称推断。
+        }
+
+        return result;
+    }
+
+    private static void AddAuraClassifications(
+        Dictionary<string, string> target,
+        IEnumerable<ClassBlocksStore.AuraEntry> auras,
+        string namePrefix,
+        string classification)
+    {
+        foreach (var aura in auras)
+        {
+            target[$"auras.{namePrefix}{aura.Name}"] = classification;
+        }
+    }
+
+    private static string? ReadClassification(JsonObject field)
+        => JsonHelpers.GetString(JsonHelpers.Get(field, "category"))?.Trim() is { Length: > 0 } value
+            ? value
+            : null;
+
+    private static string InferStateClassification(string name)
+    {
+        foreach (var classification in ClassStateCatalog.TopCategories.Where(IsUnitStateClassification))
+        {
+            if (name.StartsWith(classification, StringComparison.Ordinal))
+            {
+                return classification;
+            }
+        }
+
+        return ClassStateCatalog.FindCategory(name) ?? ClassStateCatalog.CategoryState;
+    }
+
+    private static string InferAuraClassification(string name)
+        => name.StartsWith("目标", StringComparison.Ordinal)
+            ? "目标光环"
+            : name.StartsWith("焦点", StringComparison.Ordinal)
+                ? "焦点光环"
+                : "玩家";
+
+    private static bool IsUnitStateClassification(string classification)
+        => classification is ClassStateCatalog.CategoryTarget
+            or ClassStateCatalog.CategoryFocus
+            or ClassStateCatalog.CategoryBoss1
+            or ClassStateCatalog.CategoryBoss2
+            or ClassStateCatalog.CategoryBoss3
+            or ClassStateCatalog.CategoryBoss4
+            or ClassStateCatalog.CategoryBoss5;
+
+    private static string NormalizeStateName(string name)
+        => string.Equals(name, "法术失败", StringComparison.Ordinal)
+            ? ModuleSpecialActions.InsertSpellState
+            : name;
 
     private static ConditionFieldType ReadType(JsonObject field)
     {
