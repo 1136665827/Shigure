@@ -449,81 +449,73 @@
       "step": 20,
       "type": "int"
     },
-    "救赎之魂1": {
+    "法力值": {
       "step": 21,
       "type": "int"
     },
-    "救赎之魂2": {
+    "目标类型": {
       "step": 22,
       "type": "int"
     },
-    "法力值": {
+    "目标施法": {
       "step": 23,
       "type": "int"
     },
-    "目标类型": {
-      "step": 24,
-      "type": "int"
-    },
-    "目标施法": {
-      "step": 25,
-      "type": "int"
-    },
     "目标施法可打断": {
-      "step": 26,
+      "step": 24,
       "type": "int"
     },
     "auras": {
       "神圣化身": {
-        "step": 27,
+        "step": 25,
         "type": "int"
       },
       "神圣镜像": {
-        "step": 28,
+        "step": 26,
         "type": "int"
       },
       "圣光涌动": {
-        "step": 29,
+        "step": 27,
         "type": "int"
       },
       "祈福": {
-        "step": 30,
+        "step": 28,
         "type": "int"
       },
       "救赎之魂": {
-        "step": 31,
+        "step": 29,
         "type": "int"
       },
       "目标暗言术：痛": {
-        "step": 32,
+        "step": 30,
         "type": "int"
       },
       "目标神圣之火": {
-        "step": 33,
+        "step": 31,
         "type": "int"
       },
       "目标愈合祷言": {
-        "step": 34,
+        "step": 32,
         "type": "int"
       },
       "目标恢复": {
-        "step": 35,
+        "step": 33,
         "type": "int"
       },
       "焦点暗言术：痛": {
-        "step": 36,
+        "step": 34,
         "type": "int"
       },
       "焦点神圣之火": {
-        "step": 37,
+        "step": 35,
         "type": "int"
       },
       "焦点愈合祷言": {
-        "step": 38,
+        "step": 36,
         "type": "int"
       },
       "焦点恢复": {
-        "step": 39,
+        "step": 37,
         "type": "int"
       },
       "圣光涌动层数": {
@@ -534,31 +526,31 @@
     },
     "spells": {
       "心灵尖啸": {
-        "step": 40,
+        "step": 38,
         "type": "int"
       },
       "群体驱散": {
-        "step": 41,
+        "step": 39,
         "type": "int"
       },
       "纯净术": {
-        "step": 42,
+        "step": 40,
         "type": "int"
       },
       "绝望祷言": {
-        "step": 43,
+        "step": 41,
         "type": "int"
       },
       "奥术洪流": {
-        "step": 44,
+        "step": 42,
         "type": "int"
       },
       "愈合祷言": {
-        "step": 45,
+        "step": 43,
         "type": "int"
       },
       "愈合祷言充能": {
-        "step": 46,
+        "step": 44,
         "type": "int"
       },
       "愈合祷言层数": {
@@ -567,11 +559,11 @@
         "type": "int"
       },
       "圣言术：静": {
-        "step": 47,
+        "step": 45,
         "type": "int"
       },
       "圣言术：静充能": {
-        "step": 48,
+        "step": 46,
         "type": "int"
       },
       "圣言术：静层数": {
@@ -580,28 +572,28 @@
         "type": "int"
       },
       "圣言术：罚": {
-        "step": 49,
+        "step": 47,
         "type": "int"
       },
       "神圣化身": {
-        "step": 50,
+        "step": 48,
         "type": "int"
       },
       "神圣之火": {
-        "step": 51,
+        "step": 49,
         "type": "int"
       },
       "光晕": {
-        "step": 52,
+        "step": 50,
         "type": "int"
       },
       "神圣赞美诗": {
-        "step": 53,
+        "step": 51,
         "type": "int"
       }
     },
     "group": {
-      "start": 54,
+      "start": 52,
       "num": 5,
       "生命值": {
         "step": 1,

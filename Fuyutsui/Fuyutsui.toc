@@ -4,7 +4,7 @@
 ## Version: 1.2.1.10
 ## Author: Wayne Bian
 ## IconTexture: Interface\AddOns\Fuyutsui\core\Spell_Misc_EmotionHappy.blp
-## OptionalDeps: LibRangeCheck-3.0
+## OptionalDeps: LibRangeCheck-3.0, ExwindTools, EXBoss
 ## SavedVariables: FuyutsuiADB
 
 ## Category-enUS: Combat
@@ -31,6 +31,7 @@ core/config.lua
 core/curves.lua
 core/block.lua
 core/stateblocks.lua
+core/exboss.lua
 core/commands.lua
 core/quickbutton.lua
 core/macro.lua

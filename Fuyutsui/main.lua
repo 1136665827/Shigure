@@ -189,9 +189,6 @@ function Fuyutsui:LoadPlayerBlocks(specIndex)
     if self.ReleaseGroupAuraContainers then
         self:ReleaseGroupAuraContainers()
     end
-    if self.ReleaseOtherPriestAuraContainers then
-        self:ReleaseOtherPriestAuraContainers()
-    end
 end
 
 -- 解析 dynamicSpells：common + [specIndex] 追加；旧纯数组原样返回

@@ -147,13 +147,9 @@ WoW 在敌对单位上处理 `HELPFUL`、友方单位上处理 `HARMFUL` 时，S
 
 成员地址及 30 人边界见 [[20-Fuyutsui/07-Fuyutsui-队伍与治疗吸收]]。
 
-## 其他牧师特殊槽
-
-`救赎之魂1/2` 不是 `stateBlockGetters` 的普通 getter。神圣牧师职业表声明这两个状态名后，`RefreshOtherPriestAuraContainers()` 在团队中寻找除玩家外前两名牧师；当对方存在 SpellID `194384` 光环时，相应顶部像素写其 `raidIndex/255`。这是一条直接由 AuraContainer 覆盖状态槽的例外链路。
-
 ## 过场后的重绑
 
-影片或过场结束后，事件层延迟调用 `RebindAuraSpellFilters()`，依次重绑玩家/目标/焦点、玩家层数条、队伍和其他牧师容器。原因是过场可能使候选过滤丢失或容器重新分配；只调用 `SetUnit` 不足以恢复 SpellID 精确过滤。
+影片或过场结束后，事件层延迟调用 `RebindAuraSpellFilters()`，依次重绑玩家/目标/焦点、玩家层数条和队伍容器。原因是过场可能使候选过滤丢失或容器重新分配；只调用 `SetUnit` 不足以恢复 SpellID 精确过滤。
 
 ## 核心数据与不变量
 
