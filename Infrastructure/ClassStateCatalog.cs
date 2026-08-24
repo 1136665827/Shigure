@@ -7,6 +7,7 @@ namespace Shigure;
 internal static class ClassStateCatalog
 {
     public const string CategoryState = "状态";
+    public const string CategoryPlayerDisplay = "玩家";
     public const string CategoryConfig = "配置开关";
     public const string CategoryItem = "物品";
     public const string CategoryResource = "能量";
@@ -99,6 +100,16 @@ internal static class ClassStateCatalog
 
     public static IReadOnlyList<StateOption> GetAllOptions(string category)
         => GetOptions(category);
+
+    public static string GetCategoryDisplayName(string category)
+        => string.Equals(category, CategoryState, StringComparison.Ordinal)
+            ? CategoryPlayerDisplay
+            : category;
+
+    public static string GetStorageCategoryFromDisplay(string displayName)
+        => string.Equals(displayName, CategoryPlayerDisplay, StringComparison.Ordinal)
+            ? CategoryState
+            : displayName;
 
     public static bool IsKnown(string category, string name)
         => !string.IsNullOrWhiteSpace(name)
