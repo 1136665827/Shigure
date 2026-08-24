@@ -41,6 +41,18 @@ public sealed record ConditionField(
 /// </summary>
 public sealed class ConditionFieldCatalog
 {
+    private static readonly HashSet<string> RemovedCastFields = new(StringComparer.Ordinal)
+    {
+        "施法",
+        "目标施法",
+        "焦点施法",
+        "首领1施法",
+        "首领2施法",
+        "首领3施法",
+        "首领4施法",
+        "首领5施法"
+    };
+
     private readonly ConfigService? _config;
 
     private ConditionFieldCatalog(ConfigService? config)
@@ -78,7 +90,8 @@ public sealed class ConditionFieldCatalog
         foreach (var (key, node) in stateConfig)
         {
             if (key is "group" or "spells" or "auras"
-                || key == "锚点")
+                || key == "锚点"
+                || RemovedCastFields.Contains(key))
             {
                 continue;
             }

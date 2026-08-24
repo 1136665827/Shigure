@@ -20,7 +20,12 @@ internal static class ClassBlocksStore
         ClassStateCatalog.CategoryItem,
         ClassStateCatalog.CategoryConfig,
         ClassStateCatalog.CategoryTarget,
-        ClassStateCatalog.CategoryFocus
+        ClassStateCatalog.CategoryFocus,
+        ClassStateCatalog.CategoryBoss1,
+        ClassStateCatalog.CategoryBoss2,
+        ClassStateCatalog.CategoryBoss3,
+        ClassStateCatalog.CategoryBoss4,
+        ClassStateCatalog.CategoryBoss5
     ];
 
     public sealed class ClassFileDocument
@@ -55,7 +60,12 @@ internal static class ClassBlocksStore
             [ClassStateCatalog.CategoryItem] = new List<string>(),
             [ClassStateCatalog.CategoryConfig] = new List<string>(),
             [ClassStateCatalog.CategoryTarget] = new List<string>(),
-            [ClassStateCatalog.CategoryFocus] = new List<string>()
+            [ClassStateCatalog.CategoryFocus] = new List<string>(),
+            [ClassStateCatalog.CategoryBoss1] = new List<string>(),
+            [ClassStateCatalog.CategoryBoss2] = new List<string>(),
+            [ClassStateCatalog.CategoryBoss3] = new List<string>(),
+            [ClassStateCatalog.CategoryBoss4] = new List<string>(),
+            [ClassStateCatalog.CategoryBoss5] = new List<string>()
         };
 
         public List<AuraEntry> PlayerAuras { get; } = new();

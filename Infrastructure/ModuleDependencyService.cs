@@ -10,7 +10,12 @@ internal sealed class ModuleDependencyService
         ClassStateCatalog.CategoryItem,
         ClassStateCatalog.CategoryConfig,
         ClassStateCatalog.CategoryTarget,
-        ClassStateCatalog.CategoryFocus
+        ClassStateCatalog.CategoryFocus,
+        ClassStateCatalog.CategoryBoss1,
+        ClassStateCatalog.CategoryBoss2,
+        ClassStateCatalog.CategoryBoss3,
+        ClassStateCatalog.CategoryBoss4,
+        ClassStateCatalog.CategoryBoss5
     ];
 
     private readonly string _classDirectory;

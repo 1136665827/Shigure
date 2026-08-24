@@ -150,22 +150,8 @@ local stateBlockGetters = {
         ["鲁莽药水"] = function(self) return GetItemCooldownPixel(self, "RecklessnessCount", 241288) end,
         ["圣光潜力"] = function(self) return GetItemCooldownPixel(self, "LightsPotentialCount", 241308) end,
 
-        ["施法"] = function(self)
-            if not state.casting then
-                state.castingDuration = 0
-                return 0
-            end
-            local cast = UnitCastingDuration("player")
-            if cast then
-                local castingDurationColor = cast:EvaluateElapsedDuration(self.castCurve)
-                ---@diagnostic disable-next-line: param-type-mismatch
-                local _, _, b = castingDurationColor:GetRGB()
-                state.castingDuration = b
-                return b
-            end
-            state.castingDuration = 0
-            return 0
-        end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel("player", "castElapsed") end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel("player", "cast") end,
         ["引导"] = function(self)
             if not state.channeling then
                 state.channelingDuration = 0
@@ -310,10 +296,6 @@ function Fuyutsui:UpdateStateBlock(category, name)
     local cat = stateBlockGetters[category]
     if not cat then return end
     local getter = cat[name]
-    -- 兼容已有职业配置中的旧名称；新配置统一使用“施法(倒计时)”
-    if not getter and name == "施法" and category ~= "状态" then
-        getter = cat["施法(倒计时)"]
-    end
     if not getter then return end
     local key = bareKeyCategories[category] and name or (category .. name)
     local b = self.blocks

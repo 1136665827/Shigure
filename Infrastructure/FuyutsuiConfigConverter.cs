@@ -33,7 +33,12 @@ internal static class FuyutsuiConfigConverter
         ClassStateCatalog.CategoryItem,
         ClassStateCatalog.CategoryConfig,
         ClassStateCatalog.CategoryTarget,
-        ClassStateCatalog.CategoryFocus
+        ClassStateCatalog.CategoryFocus,
+        ClassStateCatalog.CategoryBoss1,
+        ClassStateCatalog.CategoryBoss2,
+        ClassStateCatalog.CategoryBoss3,
+        ClassStateCatalog.CategoryBoss4,
+        ClassStateCatalog.CategoryBoss5
     ];
 
     public sealed record UpdateResult(
@@ -216,7 +221,7 @@ internal static class FuyutsuiConfigConverter
                         }
 
                         var stateName = NormalizeStateName(nameValue.Value);
-                        var key = category is ClassStateCatalog.CategoryTarget or ClassStateCatalog.CategoryFocus
+                        var key = IsUnitStateCategory(category)
                             ? category + stateName
                             : stateName;
                         AddStateField(result, key, index, skipCommon: true);
@@ -482,4 +487,13 @@ internal static class FuyutsuiConfigConverter
         => string.Equals(name, "法术失败", StringComparison.Ordinal)
             ? ModuleSpecialActions.InsertSpellState
             : name;
+
+    private static bool IsUnitStateCategory(string category)
+        => category is ClassStateCatalog.CategoryTarget
+            or ClassStateCatalog.CategoryFocus
+            or ClassStateCatalog.CategoryBoss1
+            or ClassStateCatalog.CategoryBoss2
+            or ClassStateCatalog.CategoryBoss3
+            or ClassStateCatalog.CategoryBoss4
+            or ClassStateCatalog.CategoryBoss5;
 }
