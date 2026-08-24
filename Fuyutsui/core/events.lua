@@ -379,6 +379,11 @@ end
 function Fuyutsui:NAME_PLATE_UNIT_ADDED(_, unit)
     self:AddNameplate(unit)
     self:UpdateTargetCanAttack()
+    for index = 1, 5 do
+        local boss = "boss" .. index
+        self:UpdateUnitCanAttack(boss)
+        self:UpdateUnitRangeBlock(boss)
+    end
 end
 
 function Fuyutsui:NAME_PLATE_UNIT_REMOVED(_, unit)
@@ -458,11 +463,7 @@ function Fuyutsui:OnUpdate(elapsed)
         self:UpdateRune()
         self:UpdateTargetRangeBlock()
         self:UpdateFocusRangeBlock()
-        for index = 1, 5 do
-            local unit = "boss" .. index
-            self:UpdateUnitCanAttack(unit)
-            self:UpdateUnitRangeBlock(unit)
-        end
+
         self:UpdateEnemyCount()
         self:UpdateItemCooldown()
         self.timeElapsed = 0
