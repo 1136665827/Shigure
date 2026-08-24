@@ -7,6 +7,8 @@ namespace Shigure;
 public sealed class ModuleEditorControl : UserControl
 {
     private const string ModuleWebsiteUrl = "https://www.shigure.club";
+    // 使用独立列名避开旧版“注释”文字列缓存的较大宽度；新图标列从紧凑宽度重新开始缓存。
+    private const string RuleCommentColumnName = "RuleComment";
 
     private readonly ModuleStore _moduleStore;
     private readonly Func<Task> _runtimeRestartRequested;
@@ -789,6 +791,28 @@ public sealed class ModuleEditorControl : UserControl
             MinimumWidth = 220,
             ReadOnly = true,
             SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _rulesGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = RuleCommentColumnName,
+            HeaderText = "注释",
+            Width = 64,
+            MinimumWidth = 40,
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            ReadOnly = true,
+            SortMode = DataGridViewColumnSortMode.NotSortable,
+            HeaderCell = new DataGridViewColumnHeaderCell
+            {
+                Value = "注释",
+                Style = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                }
+            },
+            DefaultCellStyle = new DataGridViewCellStyle
+            {
+                Alignment = DataGridViewContentAlignment.MiddleCenter
+            }
         });
         AddRuleIconColumn("MoveUp", "▲", "上移");
         AddRuleIconColumn("MoveDown", "▼", "下移");
@@ -1738,6 +1762,7 @@ public sealed class ModuleEditorControl : UserControl
         string UnitText,
         string MacroCondition,
         string Condition,
+        string Comment,
         IReadOnlyList<string> SubConditions,
         int? DelayMs,
         int? LogicDelayMs);
@@ -1799,6 +1824,12 @@ public sealed class ModuleEditorControl : UserControl
         if (columnName == "Condition")
         {
             OpenConditionEditor(e.RowIndex);
+            return;
+        }
+
+        if (columnName == RuleCommentColumnName && !_rulesGrid.Rows[e.RowIndex].IsNewRow)
+        {
+            OpenRuleTextEditor(e.RowIndex);
         }
     }
 
@@ -2173,6 +2204,16 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
+        if (columnName == RuleCommentColumnName)
+        {
+            if (!_rulesGrid.Rows[e.RowIndex].IsNewRow)
+            {
+                PaintRuleCommentCell(e);
+            }
+
+            return;
+        }
+
         if (columnName is not ("MoveUp" or "MoveDown" or "Copy" or "InsertBlank" or "Delete"))
         {
             return;
@@ -2196,6 +2237,36 @@ public sealed class ModuleEditorControl : UserControl
         PaintGridIconCell(_rulesGrid, e, icon, color);
     }
 
+    private void PaintRuleCommentCell(DataGridViewCellPaintingEventArgs e)
+    {
+        e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+        if (e.Graphics is null)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var hasComment = !string.IsNullOrWhiteSpace(CellText(_rulesGrid.Rows[e.RowIndex], RuleCommentColumnName));
+        var color = hasComment ? UiTheme.Accent : UiTheme.Muted;
+        var left = e.CellBounds.Left + (e.CellBounds.Width - 19f) / 2f;
+        var top = e.CellBounds.Top + (e.CellBounds.Height - 18f) / 2f;
+        var oldSmoothingMode = e.Graphics.SmoothingMode;
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+        using var outlinePen = new Pen(color, 1.5f);
+        using var detailPen = new Pen(color, 1.2f);
+        e.Graphics.DrawRectangle(outlinePen, left + 4.5f, top + 1.5f, 13f, 15f);
+        e.Graphics.DrawLine(detailPen, left + 7.5f, top + 2.5f, left + 7.5f, top + 15.5f);
+        e.Graphics.DrawLine(outlinePen, left + 1.5f, top + 5f, left + 6f, top + 5f);
+        e.Graphics.DrawLine(outlinePen, left + 1.5f, top + 9f, left + 6f, top + 9f);
+        e.Graphics.DrawLine(outlinePen, left + 1.5f, top + 13f, left + 6f, top + 13f);
+        e.Graphics.DrawLine(detailPen, left + 10f, top + 6f, left + 15f, top + 6f);
+        e.Graphics.DrawLine(detailPen, left + 10f, top + 9.5f, left + 15f, top + 9.5f);
+        e.Graphics.DrawLine(detailPen, left + 10f, top + 13f, left + 14f, top + 13f);
+        e.Graphics.SmoothingMode = oldSmoothingMode;
+        e.Handled = true;
+    }
+
     private void OnRulesGridCellMouseEnter(object? sender, DataGridViewCellEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
@@ -2205,11 +2276,11 @@ public sealed class ModuleEditorControl : UserControl
 
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
 
-        // 条件列(点击编辑) → 手型; 拖拽手柄列 → 移动光标; 其它 → 默认。
+        // 条件/注释列 → 手型; 拖拽手柄列 → 移动光标; 其它 → 默认。
         var isExisting = !_rulesGrid.Rows[e.RowIndex].IsNewRow;
         _rulesGrid.Cursor = columnName switch
         {
-            "Condition" when isExisting => Cursors.Hand,
+            "Condition" or RuleCommentColumnName when isExisting => Cursors.Hand,
             "Drag" when isExisting => Cursors.SizeAll,
             _ => Cursors.Default
         };
@@ -2237,6 +2308,12 @@ public sealed class ModuleEditorControl : UserControl
         if (rowIndex >= _rulesGrid.Rows.Count || _rulesGrid.Rows[rowIndex].IsNewRow)
         {
             return string.Empty;
+        }
+
+        if (columnName == RuleCommentColumnName)
+        {
+            var comment = CellText(_rulesGrid.Rows[rowIndex], RuleCommentColumnName);
+            return comment.Length == 0 ? "点击编辑注释" : comment;
         }
 
         var missingFields = GetMissingConditionFields(_rulesGrid.Rows[rowIndex]);
@@ -2701,6 +2778,7 @@ public sealed class ModuleEditorControl : UserControl
             string.Empty,
             string.Empty,
             string.Empty,
+            string.Empty,
             Array.Empty<string>(),
             null,
             null));
@@ -2914,6 +2992,7 @@ public sealed class ModuleEditorControl : UserControl
             CellText(row, "Unit"),
             CellText(row, "MacroCondition"),
             CellText(row, "Condition"),
+            CellText(row, RuleCommentColumnName),
             // 子条件和延迟挂在 row.Tag, 随行一起被移动/拖拽/复制搬运。
             GetRuleMetadata(row).SubConditions,
             GetRuleMetadata(row).DelayMs,
@@ -2927,6 +3006,7 @@ public sealed class ModuleEditorControl : UserControl
         row.Cells["Spell"].Value = values.Spell;
         row.Cells["MacroCondition"].Value = string.Empty;
         row.Cells["Condition"].Value = values.Condition;
+        row.Cells[RuleCommentColumnName].Value = values.Comment;
         row.Tag = new RuleRowMetadata(values.SubConditions, values.DelayMs, values.LogicDelayMs);
         RebuildUnitCell(row, values.UnitText);
         RebuildMacroConditionCell(row, values.MacroCondition);
@@ -2975,6 +3055,24 @@ public sealed class ModuleEditorControl : UserControl
         row.Cells["Condition"].Value = editor.ConditionText;
         row.Tag = new RuleRowMetadata(subs, editor.DelayMs, editor.LogicDelayMs);
         // 让「条件」列的装饰显示(主条件 且任一(…))立即刷新。
+        _rulesGrid.InvalidateRow(rowIndex);
+    }
+
+    private void OpenRuleTextEditor(int rowIndex)
+    {
+        if (!IsExistingRuleRow(rowIndex))
+        {
+            return;
+        }
+
+        var row = _rulesGrid.Rows[rowIndex];
+        using var editor = new RuleTextEditorForm(CellText(row, RuleCommentColumnName));
+        if (editor.ShowDialog(FindForm()) != DialogResult.OK)
+        {
+            return;
+        }
+
+        row.Cells[RuleCommentColumnName].Value = editor.CommentText;
         _rulesGrid.InvalidateRow(rowIndex);
     }
 
@@ -3276,7 +3374,8 @@ public sealed class ModuleEditorControl : UserControl
                 rule.Spell,
                 string.Empty,
                 string.Empty,
-                rule.Condition);
+                rule.Condition,
+                rule.Comment);
             _rulesGrid.Rows[index].Tag = new RuleRowMetadata(
                 rule.SubConditions,
                 rule.DelayMs,
@@ -3564,11 +3663,13 @@ public sealed class ModuleEditorControl : UserControl
             }
 
             var condition = CellText(row, "Condition");
+            var comment = CellText(row, RuleCommentColumnName);
             var spell = CellText(row, "Spell");
             var unitText = CellText(row, "Unit");
             var macroCondition = CellText(row, "MacroCondition");
             var metadata = GetRuleMetadata(row);
             if (string.IsNullOrWhiteSpace(condition)
+                && string.IsNullOrWhiteSpace(comment)
                 && string.IsNullOrWhiteSpace(spell)
                 && string.IsNullOrWhiteSpace(unitText)
                 && string.IsNullOrWhiteSpace(macroCondition)
@@ -3589,6 +3690,7 @@ public sealed class ModuleEditorControl : UserControl
             {
                 Enabled = CellBool(row, "Enabled", defaultValue: true),
                 Condition = condition,
+                Comment = comment,
                 Unit = isDynamic ? null : ReservedUnit.ParseDisplayText(unitText),
                 UnitName = isDynamic ? unitText : null,
                 Spell = spell,

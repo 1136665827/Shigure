@@ -104,6 +104,7 @@ internal sealed class UiCacheState
     public WindowBounds? HorizontalMainWindowBounds { get; set; }
     public WindowBounds? VerticalMainWindowBounds { get; set; }
     public WindowBounds? SettingsWindowBounds { get; set; }
+    public WindowSize? ConditionEditorWindowSize { get; set; }
     public string? SelectedSettingsPage { get; set; }
     public string? MainWindowLayout { get; set; }
     public string? CloseButtonBehavior { get; set; }
@@ -123,6 +124,12 @@ internal sealed class WindowBounds
 {
     public int X { get; set; }
     public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+}
+
+internal sealed class WindowSize
+{
     public int Width { get; set; }
     public int Height { get; set; }
 }
