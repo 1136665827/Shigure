@@ -240,6 +240,9 @@ function Fuyutsui:UNIT_HEALTH(_, unit)
     if unit == "focus" then
         self:UpdateFocusHealth()
     end
+    if unit and unit:match("^boss[1-5]$") then
+        self:UpdateUnitHealthBlock(unit)
+    end
     if self.group[unit] then
         self:UpdateUnitDeath(unit, "health")
     end
@@ -248,6 +251,9 @@ end
 function Fuyutsui:UNIT_MAXHEALTH(_, unit)
     if unit == "player" then
         self:UpdatePlayerHealth()
+    end
+    if unit and unit:match("^boss[1-5]$") then
+        self:UpdateUnitHealthBlock(unit)
     end
     if self.group[unit] then
         self:UpdateUnitDeath(unit, "health")
@@ -440,6 +446,9 @@ function Fuyutsui:OnUpdate(elapsed)
     self:UpdatePlayerCastBlocks()
     self:UpdateUnitCastingOrChannelingInfo("target")
     self:UpdateUnitCastingOrChannelingInfo("focus")
+    for index = 1, 5 do
+        self:UpdateUnitCastingOrChannelingInfo("boss" .. index)
+    end
     self:UpdateGroupInRangeAndHealth()
 
     self.timeElapsed = self.timeElapsed + elapsed
@@ -449,6 +458,11 @@ function Fuyutsui:OnUpdate(elapsed)
         self:UpdateRune()
         self:UpdateTargetRangeBlock()
         self:UpdateFocusRangeBlock()
+        for index = 1, 5 do
+            local unit = "boss" .. index
+            self:UpdateUnitCanAttack(unit)
+            self:UpdateUnitRangeBlock(unit)
+        end
         self:UpdateEnemyCount()
         self:UpdateItemCooldown()
         self.timeElapsed = 0

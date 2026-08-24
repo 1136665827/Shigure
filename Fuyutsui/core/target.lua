@@ -5,6 +5,7 @@ local rc = LibStub("LibRangeCheck-3.0")
 local state = Fuyutsui.state
 local target = Fuyutsui.target
 local focus = Fuyutsui.focus
+local boss = Fuyutsui.boss
 local nameplate = Fuyutsui.nameplate
 
 function Fuyutsui:GetUnitRange(unit)
@@ -25,6 +26,7 @@ local unitZHMap = {
 local function GetUnitCache(unit)
     if unit == "target" then return target end
     if unit == "focus" then return focus end
+    if boss and boss[unit] then return boss[unit] end
 end
 
 local function isSameUnit(unit1, unit2)
@@ -110,7 +112,6 @@ function Fuyutsui:UpdateUnitRangeBlock(unit)
 end
 
 function Fuyutsui:UpdateUnitCastingOrChannelingInfo(unit)
-    if not UnitExists(unit) then return end
     local obj = unitZHMap[unit]
     if not obj then return end
 

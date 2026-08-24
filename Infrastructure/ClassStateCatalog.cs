@@ -12,6 +12,11 @@ internal static class ClassStateCatalog
     public const string CategoryResource = "能量";
     public const string CategoryTarget = "目标";
     public const string CategoryFocus = "焦点";
+    public const string CategoryBoss1 = "首领1";
+    public const string CategoryBoss2 = "首领2";
+    public const string CategoryBoss3 = "首领3";
+    public const string CategoryBoss4 = "首领4";
+    public const string CategoryBoss5 = "首领5";
 
     public static readonly string[] TopCategories =
     [
@@ -20,7 +25,12 @@ internal static class ClassStateCatalog
         CategoryItem,
         CategoryConfig,
         CategoryTarget,
-        CategoryFocus
+        CategoryFocus,
+        CategoryBoss1,
+        CategoryBoss2,
+        CategoryBoss3,
+        CategoryBoss4,
+        CategoryBoss5
     ];
 
     private static readonly (string Category, string[] Names)[] Categories =
@@ -50,11 +60,31 @@ internal static class ClassStateCatalog
         ]),
         (CategoryTarget,
         [
-            "类型", "驱散类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
         ]),
         (CategoryFocus,
         [
-            "类型", "驱散类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
+        ]),
+        (CategoryBoss1,
+        [
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
+        ]),
+        (CategoryBoss2,
+        [
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
+        ]),
+        (CategoryBoss3,
+        [
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
+        ]),
+        (CategoryBoss4,
+        [
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
+        ]),
+        (CategoryBoss5,
+        [
+            "类型", "驱散类型", "生命值", "距离", "施法", "施法(正计时)", "施法可打断", "引导", "引导可打断"
         ])
     ];
 
@@ -90,6 +120,12 @@ internal static class ClassStateCatalog
     public static bool IsInCategory(string name, string category)
     {
         if (IsKnown(category, name))
+        {
+            return true;
+        }
+
+        // 兼容旧职业配置：单位分类中的“施法”已更名为“施法(倒计时)”。
+        if (name == "施法" && category != CategoryState && TopCategories.Contains(category))
         {
             return true;
         }

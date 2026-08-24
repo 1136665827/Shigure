@@ -25,6 +25,10 @@ function Fuyutsui:UpdatePlayerBlocks()
     self:UpdateFocusRangeBlock()
     self:UpdateTargetHealth()
     self:UpdateFocusHealth()
+    for index = 1, 5 do
+        self:UpdateUnitFullInfo("boss" .. index)
+        self:UpdateUnitRangeBlock("boss" .. index)
+    end
     self:UpdateEnemyCount()
     self:UpdateGroup()
     self:GetItemCount()
@@ -51,10 +55,13 @@ function Fuyutsui:LoadPlayerBlocks(specIndex)
 
     local index = 1
 
-    -- states 支持分类表：状态/能量/物品/配置开关/目标/焦点
-    -- blocks.state 键：除目标/焦点外用名称本身；目标/焦点用 分类..名称（如 目标生命值）
+    -- states 支持分类表：状态/能量/物品/配置开关/目标/焦点/首领1-5
+    -- blocks.state 键：基础分类用名称本身；单位分类用 分类..名称（如 目标生命值）
     if type(t.states) == "table" then
-        local stateCategoryOrder = { "状态", "能量", "物品", "配置开关", "目标", "焦点" }
+        local stateCategoryOrder = {
+            "状态", "能量", "物品", "配置开关", "目标", "焦点",
+            "首领1", "首领2", "首领3", "首领4", "首领5",
+        }
         local bareKeyCategories = {
             ["状态"] = true,
             ["能量"] = true,
@@ -63,6 +70,8 @@ function Fuyutsui:LoadPlayerBlocks(specIndex)
         }
         local nested = t.states["状态"] or t.states["能量"] or t.states["物品"]
             or t.states["配置开关"] or t.states["目标"] or t.states["焦点"]
+            or t.states["首领1"] or t.states["首领2"] or t.states["首领3"]
+            or t.states["首领4"] or t.states["首领5"]
         if nested then
             for _, category in ipairs(stateCategoryOrder) do
                 local list = t.states[category]

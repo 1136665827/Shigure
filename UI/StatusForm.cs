@@ -798,11 +798,11 @@ public sealed class StatusForm : Form
             92), 1, 1);
         fields.Controls.Add(CreateAboutFieldCard(
             "目标",
-            ["类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"],
+            ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
             104), 0, 2);
         fields.Controls.Add(CreateAboutFieldCard(
             "焦点",
-            ["类型", "生命值", "距离", "施法", "施法可打断", "引导", "引导可打断"],
+            ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
             104), 1, 2);
 
         panel.Controls.Add(fields, 0, 2);

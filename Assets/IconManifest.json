@@ -61,4 +61,4 @@
     { "kind": "spec", "classId": 13, "specId": 2, "wowSpecId": 1468, "fileDataId": 4511812, "class": "Evoker", "name": "Preservation", "nameZhCn": "恩护", "slug": "classicon_evoker_preservation", "target": "Spec/evoker-preservation.jpg" },
     { "kind": "spec", "classId": 13, "specId": 3, "wowSpecId": 1473, "fileDataId": 5198700, "class": "Evoker", "name": "Augmentation", "nameZhCn": "增辉", "slug": "classicon_evoker_augmentation", "target": "Spec/evoker-augmentation.jpg" }
   ]
-}
+}w
