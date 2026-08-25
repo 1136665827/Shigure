@@ -8,6 +8,14 @@ namespace Shigure;
 
 internal static class UiTheme
 {
+    public const int PageGap = 12;
+    public const int CardPadding = 14;
+    public const int ActionButtonHeight = 36;
+    public const int GridRowHeight = 40;
+    public const int TabBarHeight = 42;
+    public const int CardCornerRadius = 10;
+    public const int ControlCornerRadius = 8;
+
     private static readonly Dictionary<int, Image?> ClassIcons = new();
     private static readonly Dictionary<(int ClassId, int SpecId), Image?> SpecIcons = new();
     private static readonly ConditionalWeakTable<ListView, ListColumnLayoutState> ListColumnLayouts = new();
@@ -229,7 +237,50 @@ internal static class UiTheme
         button.FlatAppearance.BorderColor = backColor == Accent ? Accent : Border;
         button.FlatAppearance.MouseOverBackColor = backColor == Accent ? Color.FromArgb(112, 234, 221) : Hover;
         button.FlatAppearance.MouseDownBackColor = backColor == Accent ? Color.FromArgb(62, 194, 181) : Pressed;
-        ApplyControlRoundedRegion(button, 8);
+        ApplyControlRoundedRegion(button, ControlCornerRadius);
+
+        if (backColor == Accent)
+        {
+            // WinForms ignores ForeColor for a disabled flat button and falls back to
+            // the system disabled-text color, which is nearly black on our dark theme.
+            button.Paint += (_, e) => PaintDisabledPrimaryButton(button, e);
+        }
+
+        button.EnabledChanged += (_, _) =>
+        {
+            button.Cursor = button.Enabled ? Cursors.Hand : Cursors.Default;
+            button.ForeColor = button.Enabled ? foreColor : Muted;
+            button.BackColor = button.Enabled ? backColor : SurfaceRaised;
+            button.FlatAppearance.BorderColor = button.Enabled ? (backColor == Accent ? Accent : Border) : Border;
+            button.Invalidate();
+        };
+    }
+
+    private static void PaintDisabledPrimaryButton(Button button, PaintEventArgs e)
+    {
+        if (button.Enabled || button.ClientSize.Width <= 1 || button.ClientSize.Height <= 1)
+        {
+            return;
+        }
+
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        var bounds = new Rectangle(0, 0, button.ClientSize.Width - 1, button.ClientSize.Height - 1);
+        using var path = CreateRoundedRectanglePath(bounds, Scale(button, ControlCornerRadius));
+        using var backgroundBrush = new SolidBrush(SurfaceRaised);
+        using var borderPen = new Pen(Border);
+        e.Graphics.FillPath(backgroundBrush, path);
+        e.Graphics.DrawPath(borderPen, path);
+        TextRenderer.DrawText(
+            e.Graphics,
+            button.Text,
+            button.Font,
+            button.ClientRectangle,
+            Muted,
+            TextFormatFlags.HorizontalCenter
+            | TextFormatFlags.VerticalCenter
+            | TextFormatFlags.SingleLine
+            | TextFormatFlags.EndEllipsis
+            | TextFormatFlags.NoPadding);
     }
 
     public static Button CreateButton(string text, ButtonKind kind)
@@ -368,6 +419,12 @@ internal static class UiTheme
         textBox.BackColor = Field;
         textBox.ForeColor = Text;
         textBox.BorderStyle = BorderStyle.FixedSingle;
+        textBox.Margin = new Padding(0);
+        textBox.EnabledChanged += (_, _) =>
+        {
+            textBox.BackColor = textBox.Enabled ? Field : SurfaceRaised;
+            textBox.ForeColor = textBox.Enabled ? Text : Muted;
+        };
     }
 
     public static void StyleNumericUpDown(NumericUpDown numeric)
@@ -375,6 +432,12 @@ internal static class UiTheme
         numeric.BackColor = Field;
         numeric.ForeColor = Text;
         numeric.BorderStyle = BorderStyle.FixedSingle;
+        numeric.Margin = new Padding(0);
+        numeric.EnabledChanged += (_, _) =>
+        {
+            numeric.BackColor = numeric.Enabled ? Field : SurfaceRaised;
+            numeric.ForeColor = numeric.Enabled ? Text : Muted;
+        };
     }
 
     public static void StyleCheckedListBox(CheckedListBox listBox)
@@ -387,6 +450,56 @@ internal static class UiTheme
         listBox.ItemHeight = Math.Max(30, listBox.Font.Height + 14);
     }
 
+    public static void StyleCheckBox(CheckBox checkBox, Color? backColor = null)
+    {
+        checkBox.AutoSize = true;
+        checkBox.ForeColor = Text;
+        checkBox.BackColor = backColor ?? Color.Transparent;
+        checkBox.Cursor = Cursors.Hand;
+        checkBox.FlatStyle = FlatStyle.Flat;
+        checkBox.FlatAppearance.BorderColor = Border;
+        checkBox.FlatAppearance.CheckedBackColor = AccentSoft;
+        checkBox.FlatAppearance.MouseOverBackColor = Hover;
+        checkBox.UseVisualStyleBackColor = false;
+        checkBox.EnabledChanged += (_, _) =>
+        {
+            checkBox.Cursor = checkBox.Enabled ? Cursors.Hand : Cursors.Default;
+            checkBox.ForeColor = checkBox.Enabled ? Text : Muted;
+        };
+    }
+
+    public static void StyleActionButton(Button button, int width = 110)
+    {
+        button.AutoSize = false;
+        button.Size = new Size(width, ActionButtonHeight);
+        button.TextAlign = ContentAlignment.MiddleCenter;
+    }
+
+    public static Label CreateSectionTitle(Font baseFont, string text)
+        => new()
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            ForeColor = Text,
+            BackColor = Color.Transparent,
+            Font = new Font(baseFont.FontFamily, 10F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = new Padding(0)
+        };
+
+    public static Label CreateDescription(string text)
+        => new()
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            ForeColor = Muted,
+            BackColor = Color.Transparent,
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = new Padding(0)
+        };
+
     public static void StyleComboBox(ComboBox comboBox)
     {
         comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -396,6 +509,8 @@ internal static class UiTheme
         comboBox.DrawMode = DrawMode.OwnerDrawFixed;
         comboBox.ItemHeight = Math.Max(28, comboBox.Font.Height + 12);
         comboBox.DropDownHeight = 320;
+        comboBox.Margin = new Padding(0);
+        comboBox.EnabledChanged += (_, _) => comboBox.Invalidate();
 
         comboBox.DrawItem += (_, e) =>
         {
@@ -407,12 +522,23 @@ internal static class UiTheme
             var isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
             var isEditBox = (e.State & DrawItemState.ComboBoxEdit) == DrawItemState.ComboBoxEdit;
 
-            using (var background = new SolidBrush(isEditBox ? Field : isSelected ? Hover : Surface))
+            var backgroundColor = !comboBox.Enabled
+                ? SurfaceRaised
+                : isEditBox
+                    ? Field
+                    : isSelected
+                        ? Hover
+                        : Surface;
+            using (var background = new SolidBrush(backgroundColor))
             {
                 e.Graphics.FillRectangle(background, e.Bounds);
             }
 
-            var textColor = !isEditBox && isSelected ? Accent : Text;
+            var textColor = !comboBox.Enabled
+                ? Muted
+                : !isEditBox && isSelected
+                    ? Accent
+                    : Text;
             var textBounds = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 8, e.Bounds.Height);
             TextRenderer.DrawText(
                 e.Graphics,
@@ -444,6 +570,7 @@ internal static class UiTheme
             Scale(listBox, logicalItemHeight),
             font.Height + Scale(listBox, 14));
 
+        var hoveredIndex = -1;
         listBox.DrawItem += (_, e) =>
         {
             if (e.Index < 0)
@@ -454,6 +581,8 @@ internal static class UiTheme
             var selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
             var backgroundColor = selected
                 ? Hover
+                : e.Index == hoveredIndex
+                    ? SurfaceRaised
                 : e.Index % 2 == 0
                     ? listBox.BackColor
                     : RowAlt;
@@ -522,6 +651,23 @@ internal static class UiTheme
                 textBounds,
                 selected ? Text : Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+        };
+
+        listBox.MouseMove += (_, e) =>
+        {
+            var index = listBox.IndexFromPoint(e.Location);
+            if (index == hoveredIndex)
+            {
+                return;
+            }
+
+            hoveredIndex = index;
+            listBox.Invalidate();
+        };
+        listBox.MouseLeave += (_, _) =>
+        {
+            hoveredIndex = -1;
+            listBox.Invalidate();
         };
     }
 
@@ -900,7 +1046,7 @@ internal static class UiTheme
         grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         grid.AlternatingRowsDefaultCellStyle.BackColor = RowAlt;
         grid.AlternatingRowsDefaultCellStyle.ForeColor = Text;
-        grid.RowTemplate.Height = Math.Max(40, grid.Font.Height + 16);
+        grid.RowTemplate.Height = Math.Max(GridRowHeight, grid.Font.Height + 16);
         grid.RowHeadersVisible = false;
         grid.AllowUserToResizeRows = false;
         grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
@@ -910,7 +1056,7 @@ internal static class UiTheme
         {
             var verticalPadding = Scale(grid, 12);
             grid.ColumnHeadersHeight = Math.Max(Scale(grid, 38), grid.Font.Height + verticalPadding);
-            grid.RowTemplate.Height = Math.Max(Scale(grid, 40), grid.Font.Height + verticalPadding);
+            grid.RowTemplate.Height = Math.Max(Scale(grid, GridRowHeight), grid.Font.Height + verticalPadding);
             foreach (DataGridViewRow row in grid.Rows)
             {
                 if (!row.IsNewRow)

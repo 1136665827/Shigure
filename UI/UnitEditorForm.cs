@@ -146,7 +146,8 @@ public sealed class UnitEditorForm : Form
     {
         Text = "编辑单位";
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
-        BackColor = UiTheme.Background;
+        AutoScaleMode = AutoScaleMode.Dpi;
+        BackColor = UiTheme.Surface;
         ForeColor = UiTheme.Text;
         ClientSize = new Size(RowWidth + 36, 534);
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -158,16 +159,15 @@ public sealed class UnitEditorForm : Form
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Padding = new Padding(14, 12, 14, 12),
+            BackColor = UiTheme.Surface,
+            Padding = new Padding(UiTheme.CardPadding, 12, UiTheme.CardPadding, 12),
             ColumnCount = 1,
-            RowCount = 5
+            RowCount = 4
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
         Controls.Add(root);
 
         UiTheme.StyleComboBox(_categoryBox);
@@ -189,27 +189,56 @@ public sealed class UnitEditorForm : Form
             UpdateHealthNameState();
         };
 
-        root.Controls.Add(BuildSplitRow("类别", _categoryBox, "选择器", _selectorBox), 0, 0);
-        root.Controls.Add(BuildNameRow(), 0, 1);
+        var headerCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(4),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        headerCard.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        headerCard.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        headerCard.Controls.Add(BuildSplitRow("类别", _categoryBox, "选择器", _selectorBox), 0, 0);
+        headerCard.Controls.Add(BuildNameRow(), 0, 1);
+        root.Controls.Add(headerCard, 0, 0);
 
         _paramPanel.Dock = DockStyle.Fill;
-        _paramPanel.BackColor = UiTheme.SurfaceRaised;
+        _paramPanel.BackColor = Color.Transparent;
         _paramPanel.FlowDirection = FlowDirection.TopDown;
         _paramPanel.WrapContents = false;
         _paramPanel.AutoScroll = true;
-        _paramPanel.Margin = new Padding(0, 8, 0, 6);
-        _paramPanel.Padding = new Padding(8, 6, 8, 6);
+        _paramPanel.Margin = new Padding(0);
+        _paramPanel.Padding = new Padding(4, 6, 4, 6);
         BuildParamRows();
-        root.Controls.Add(_paramPanel, 0, 2);
+        var paramsCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(4),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
+            ColumnCount = 1,
+            RowCount = 1
+        };
+        paramsCard.Controls.Add(_paramPanel, 0, 0);
+        root.Controls.Add(paramsCard, 0, 1);
 
         _previewLabel.Dock = DockStyle.Fill;
         _previewLabel.ForeColor = UiTheme.Muted;
         _previewLabel.TextAlign = ContentAlignment.MiddleLeft;
         _previewLabel.AutoEllipsis = true;
-        _previewLabel.Margin = new Padding(2, 2, 2, 0);
-        root.Controls.Add(_previewLabel, 0, 3);
+        _previewLabel.Margin = new Padding(0);
+        var previewCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(UiTheme.CardPadding, 6, UiTheme.CardPadding, 6),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
+            ColumnCount = 1,
+            RowCount = 1
+        };
+        previewCard.Controls.Add(_previewLabel, 0, 0);
+        root.Controls.Add(previewCard, 0, 2);
 
-        root.Controls.Add(BuildActionRow(), 0, 4);
+        root.Controls.Add(BuildActionRow(), 0, 3);
 
         PopulateSelectors();
     }
@@ -260,8 +289,7 @@ public sealed class UnitEditorForm : Form
         _roleBox.SelectedIndex = 0;
 
         _reverseBox.Text = "取逆序最后一个匹配单位";
-        _reverseBox.ForeColor = UiTheme.Text;
-        _reverseBox.BackColor = UiTheme.SurfaceRaised;
+        UiTheme.StyleCheckBox(_reverseBox, UiTheme.SurfaceRaised);
         _reverseBox.AutoSize = false;
         _reverseBox.TextAlign = ContentAlignment.MiddleLeft;
 
@@ -329,29 +357,40 @@ public sealed class UnitEditorForm : Form
 
     private Control BuildActionRow()
     {
-        var row = new FlowLayoutPanel
+        var row = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10),
+            Margin = new Padding(0),
+            ColumnCount = 2,
+            RowCount = 1
+        };
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 184));
+        row.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var actions = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false,
-            BackColor = UiTheme.Background,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
 
-        var okButton = UiTheme.CreateButton("确定", UiTheme.Accent, Color.Black);
-        okButton.Width = 76;
-        okButton.Height = 30;
-        okButton.Margin = new Padding(6, 6, 0, 0);
+        var okButton = UiTheme.CreateButton("确定", UiTheme.ButtonKind.Primary);
+        UiTheme.StyleActionButton(okButton, 84);
+        okButton.Margin = new Padding(8, 0, 0, 0);
         okButton.Click += (_, _) => OnConfirm();
 
-        var cancelButton = UiTheme.CreateButton("取消", UiTheme.Field, UiTheme.Text);
-        cancelButton.Width = 76;
-        cancelButton.Height = 30;
-        cancelButton.Margin = new Padding(6, 6, 0, 0);
+        var cancelButton = UiTheme.CreateButton("取消", UiTheme.ButtonKind.Secondary);
+        UiTheme.StyleActionButton(cancelButton, 84);
+        cancelButton.Margin = new Padding(8, 0, 0, 0);
         cancelButton.Click += (_, _) => DialogResult = DialogResult.Cancel;
 
-        row.Controls.Add(okButton);
-        row.Controls.Add(cancelButton);
+        actions.Controls.Add(okButton);
+        actions.Controls.Add(cancelButton);
+        row.Controls.Add(actions, 1, 0);
         AcceptButton = okButton;
         CancelButton = cancelButton;
         return row;
@@ -1226,7 +1265,7 @@ public sealed class UnitEditorForm : Form
         return Math.Clamp(value, (int)box.Minimum, (int)box.Maximum);
     }
 
-    private static Panel BuildLabeledRow(string label, Control control, int height = 32)
+    private static Panel BuildLabeledRow(string label, Control control, int height = 44)
     {
         var panel = new Panel
         {
@@ -1241,7 +1280,7 @@ public sealed class UnitEditorForm : Form
             Text = label,
             ForeColor = UiTheme.Muted,
             TextAlign = ContentAlignment.MiddleLeft,
-            Bounds = new Rectangle(0, 4, LabelWidth, 24),
+            Bounds = new Rectangle(0, height > 50 ? 4 : Math.Max(0, (height - 24) / 2), LabelWidth, 24),
             AutoEllipsis = true
         };
 

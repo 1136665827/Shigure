@@ -314,7 +314,8 @@ public sealed class ConditionEditorForm : Form
     {
         Text = "编辑条件";
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
-        BackColor = UiTheme.Background;
+        AutoScaleMode = AutoScaleMode.Dpi;
+        BackColor = UiTheme.Surface;
         ForeColor = UiTheme.Text;
         var initialHeight = _allowSubConditions ? 650 : 460;
         ClientSize = new Size(1080, initialHeight);
@@ -328,8 +329,8 @@ public sealed class ConditionEditorForm : Form
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Padding = new Padding(12, 10, 12, 10),
+            BackColor = UiTheme.Surface,
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10),
             ColumnCount = 1
         };
         Controls.Add(root);
@@ -338,15 +339,11 @@ public sealed class ConditionEditorForm : Form
 
         var rowIndex = 0;
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.Controls.Add(_conditionsGrid, 0, rowIndex++);
-
-        // 「添加条件」紧贴主条件行下方, 明确它作用于上面的主条件(而非子条件)。
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        root.Controls.Add(BuildAddConditionRow(), 0, rowIndex++);
+        root.Controls.Add(BuildConditionsCard(), 0, rowIndex++);
 
         if (_allowSubConditions)
         {
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 188));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));
             root.Controls.Add(BuildSubConditionsPanel(), 0, rowIndex++);
         }
 
@@ -355,23 +352,50 @@ public sealed class ConditionEditorForm : Form
         _previewLabel.TextAlign = ContentAlignment.MiddleLeft;
         _previewLabel.AutoEllipsis = true;
         _previewLabel.Margin = new Padding(0);
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        root.Controls.Add(_previewLabel, 0, rowIndex++);
+        var previewCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(UiTheme.CardPadding, 6, UiTheme.CardPadding, 6),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
+            ColumnCount = 1,
+            RowCount = 1
+        };
+        previewCard.Controls.Add(_previewLabel, 0, 0);
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        root.Controls.Add(previewCard, 0, rowIndex++);
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
         root.Controls.Add(BuildActionRow(), 0, rowIndex++);
         root.RowCount = rowIndex;
+    }
+
+    private Control BuildConditionsCard()
+    {
+        var card = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        _conditionsGrid.Margin = new Padding(0);
+        card.Controls.Add(_conditionsGrid, 0, 0);
+        card.Controls.Add(BuildAddConditionRow(), 0, 1);
+        return card;
     }
 
     // 子条件区: 标题 + 暗色列表 + 添加/编辑/删除。每条子条件本身也是一条完整条件,
     // 通过嵌套的(无子条件区的)条件编辑弹窗来编辑。
     private Control BuildSubConditionsPanel()
     {
-        var panel = new TableLayoutPanel
+        var panel = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Margin = new Padding(0, 4, 0, 4),
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
             ColumnCount = 2,
             RowCount = 2
         };
@@ -392,10 +416,8 @@ public sealed class ConditionEditorForm : Form
         panel.SetColumnSpan(title, 2);
 
         _subList.Dock = DockStyle.Fill;
-        _subList.BackColor = UiTheme.Field;
-        _subList.ForeColor = UiTheme.Text;
-        _subList.BorderStyle = BorderStyle.FixedSingle;
-        _subList.IntegralHeight = false;
+        UiTheme.StyleListBox(_subList, Font);
+        _subList.BackColor = UiTheme.Surface;
         _subList.Margin = new Padding(0, 0, 12, 0);
         _subList.DoubleClick += (_, _) => EditSelectedSubCondition();
         panel.Controls.Add(_subList, 0, 1);
@@ -405,7 +427,7 @@ public sealed class ConditionEditorForm : Form
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            BackColor = UiTheme.Background,
+            BackColor = Color.Transparent,
             Margin = new Padding(0),
             Padding = new Padding(0, 0, 4, 0)
         };
@@ -940,8 +962,8 @@ public sealed class ConditionEditorForm : Form
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
-            BackColor = UiTheme.Background,
-            Margin = new Padding(0, 4, 0, 4)
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 8, 0, 0)
         };
 
         var addButton = UiTheme.CreateButton("添加条件", UiTheme.Field, UiTheme.Text);
@@ -955,8 +977,9 @@ public sealed class ConditionEditorForm : Form
             var row = AddRow(null);
             RefreshConnectors();
             UpdatePreview();
-            _conditionsGrid.CurrentCell = row.Cells[TypeColumn];
-            _conditionsGrid.BeginEdit(true);
+            ShowConditionComboDropDown(
+                row.Index,
+                _conditionsGrid.Columns[TypeColumn]!.Index);
         };
         panel.Controls.Add(addButton);
         return panel;
@@ -964,36 +987,35 @@ public sealed class ConditionEditorForm : Form
 
     private Control BuildActionRow()
     {
-        var row = new TableLayoutPanel
+        var row = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
             Margin = new Padding(0),
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10),
             ColumnCount = 2,
             RowCount = 1
         };
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 184));
+        row.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var rightButtons = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false,
-            BackColor = UiTheme.Background,
+            BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
 
-        var okButton = UiTheme.CreateButton("确定", UiTheme.Accent, Color.Black);
-        okButton.Width = 72;
-        okButton.Height = 30;
-        okButton.Margin = new Padding(6, 4, 0, 0);
+        var okButton = UiTheme.CreateButton("确定", UiTheme.ButtonKind.Primary);
+        UiTheme.StyleActionButton(okButton, 80);
+        okButton.Margin = new Padding(8, 0, 0, 0);
         okButton.Click += (_, _) => TryConfirm();
 
-        var cancelButton = UiTheme.CreateButton("取消", UiTheme.Field, UiTheme.Text);
-        cancelButton.Width = 72;
-        cancelButton.Height = 30;
-        cancelButton.Margin = new Padding(6, 4, 0, 0);
+        var cancelButton = UiTheme.CreateButton("取消", UiTheme.ButtonKind.Secondary);
+        UiTheme.StyleActionButton(cancelButton, 80);
+        cancelButton.Margin = new Padding(8, 0, 0, 0);
         cancelButton.Click += (_, _) => DialogResult = DialogResult.Cancel;
 
         rightButtons.Controls.Add(okButton);
