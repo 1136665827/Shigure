@@ -151,7 +151,7 @@ public sealed class ModuleEditorControl : UserControl
             RowCount = 2,
             Margin = new Padding(0)
         };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 280));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, ModuleFooterBarHeight));
@@ -168,8 +168,8 @@ public sealed class ModuleEditorControl : UserControl
         var sidebar = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 0, 12, 12),
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, UiTheme.PageGap, UiTheme.PageGap),
             ColumnCount = 1,
             RowCount = 1
         };
@@ -193,8 +193,8 @@ public sealed class ModuleEditorControl : UserControl
         var footer = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(14, 10, 14, 10),
-            Margin = new Padding(0, 0, 12, 0),
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10),
+            Margin = new Padding(0, 0, UiTheme.PageGap, 0),
             ColumnCount = 3,
             RowCount = 1
         };
@@ -258,7 +258,7 @@ public sealed class ModuleEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             Padding = new Padding(0),
-            Margin = new Padding(0, 0, 0, 12),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
             ColumnCount = 1,
             RowCount = 3
         };
@@ -277,13 +277,13 @@ public sealed class ModuleEditorControl : UserControl
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 12, 0, 0),
+            Margin = new Padding(0, UiTheme.PageGap, 0, 0),
             Padding = new Padding(0),
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
             RowCount = 2
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, UiTheme.TabBarHeight));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var tabBar = new TableLayoutPanel
@@ -390,7 +390,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(14),
+            Padding = new Padding(UiTheme.CardPadding),
             Margin = new Padding(0)
         };
 
@@ -415,7 +415,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 1,
             RowCount = 1,
-            Padding = new Padding(14),
+            Padding = new Padding(UiTheme.CardPadding),
             Margin = new Padding(0)
         };
 
@@ -432,7 +432,7 @@ public sealed class ModuleEditorControl : UserControl
             BackColor = UiTheme.SurfaceRaised,
             ColumnCount = 2,
             RowCount = 1,
-            Padding = new Padding(14),
+            Padding = new Padding(UiTheme.CardPadding),
             Margin = new Padding(0)
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -499,8 +499,8 @@ public sealed class ModuleEditorControl : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 4,
             RowCount = 2,
-            Padding = new Padding(14, 10, 14, 8),
-            Margin = new Padding(0, 0, 0, 12)
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 8),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap)
         };
         // 名称/作者各占剩余宽度的一半, 两个输入框等宽并铺满窗口。
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
@@ -551,7 +551,7 @@ public sealed class ModuleEditorControl : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 12,
             RowCount = 2,
-            Padding = new Padding(14),
+            Padding = new Padding(UiTheme.CardPadding),
             Margin = new Padding(0)
         };
         foreach (var label in matchLabels)
@@ -3161,7 +3161,7 @@ public sealed class ModuleEditorControl : UserControl
             ColumnCount = 3,
             RowCount = 1,
             Margin = new Padding(0),
-            Padding = new Padding(14, 10, 14, 10)
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10)
         };
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148));
         row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));

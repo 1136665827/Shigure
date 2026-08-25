@@ -27,7 +27,8 @@ internal sealed class RuleTextEditorForm : Form
     {
         Text = "编辑规则注释";
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
-        BackColor = UiTheme.Background;
+        AutoScaleMode = AutoScaleMode.Dpi;
+        BackColor = UiTheme.Surface;
         ForeColor = UiTheme.Text;
         ClientSize = new Size(760, 380);
         MinimumSize = new Size(620, 320);
@@ -40,46 +41,66 @@ internal sealed class RuleTextEditorForm : Form
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = UiTheme.Background,
-            Padding = new Padding(14, 12, 14, 12),
+            BackColor = UiTheme.Surface,
+            Padding = new Padding(UiTheme.CardPadding, 12, UiTheme.CardPadding, 12),
             ColumnCount = 1,
-            RowCount = 3
+            RowCount = 2
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
         Controls.Add(root);
 
-        root.Controls.Add(CreateLabel("注释"), 0, 0);
         ConfigureMultilineTextBox(_commentBox, wordWrap: true);
-        _commentBox.Margin = new Padding(0, 0, 0, 8);
-        root.Controls.Add(_commentBox, 0, 1);
+        _commentBox.Margin = new Padding(0);
+        var editorCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap),
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        editorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        editorCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        editorCard.Controls.Add(UiTheme.CreateSectionTitle(Font, "规则注释"), 0, 0);
+        editorCard.Controls.Add(_commentBox, 0, 1);
+        root.Controls.Add(editorCard, 0, 0);
+
+        var actionCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10),
+            ColumnCount = 2,
+            RowCount = 1
+        };
+        actionCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        actionCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 184));
+        actionCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var actions = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false,
-            BackColor = UiTheme.Background,
-            Margin = Padding.Empty,
-            Padding = new Padding(0, 8, 0, 0)
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty
         };
 
-        var saveButton = UiTheme.CreateButton("保存", UiTheme.Accent, Color.Black);
-        saveButton.AutoSize = false;
-        saveButton.Size = new Size(84, 36);
-        saveButton.Margin = Padding.Empty;
+        var saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
+        UiTheme.StyleActionButton(saveButton, 84);
+        saveButton.Margin = new Padding(8, 0, 0, 0);
         saveButton.Click += (_, _) => SaveAndClose();
 
-        var cancelButton = UiTheme.CreateButton("取消", UiTheme.Field, UiTheme.Text);
-        cancelButton.AutoSize = false;
-        cancelButton.Size = new Size(84, 36);
-        cancelButton.Margin = new Padding(0, 0, 10, 0);
+        var cancelButton = UiTheme.CreateButton("取消", UiTheme.ButtonKind.Secondary);
+        UiTheme.StyleActionButton(cancelButton, 84);
+        cancelButton.Margin = new Padding(8, 0, 0, 0);
         cancelButton.Click += (_, _) => DialogResult = DialogResult.Cancel;
 
         actions.Controls.Add(saveButton);
         actions.Controls.Add(cancelButton);
-        root.Controls.Add(actions, 0, 2);
+        actionCard.Controls.Add(actions, 1, 0);
+        root.Controls.Add(actionCard, 0, 1);
 
         AcceptButton = saveButton;
         CancelButton = cancelButton;

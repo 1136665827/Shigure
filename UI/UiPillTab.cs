@@ -27,7 +27,8 @@ internal sealed class UiPillTab : Control
         BackColor = Color.Transparent;
         ForeColor = UiTheme.Muted;
         Margin = new Padding(3, 2, 3, 2);
-        TabStop = false;
+        TabStop = true;
+        AccessibleRole = AccessibleRole.PageTab;
     }
 
     [Browsable(false)]
@@ -82,6 +83,29 @@ internal sealed class UiPillTab : Control
         }
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.KeyCode is Keys.Enter or Keys.Space)
+        {
+            OnClick(EventArgs.Empty);
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+        }
+    }
+
+    protected override void OnGotFocus(EventArgs e)
+    {
+        base.OnGotFocus(e);
+        Invalidate();
+    }
+
+    protected override void OnLostFocus(EventArgs e)
+    {
+        base.OnLostFocus(e);
+        Invalidate();
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         var graphics = e.Graphics;
@@ -98,7 +122,7 @@ internal sealed class UiPillTab : Control
 
         if (fill.A > 0)
         {
-            using var path = UiTheme.CreateRoundedRectanglePath(bounds, UiTheme.Scale(this, 8));
+            using var path = UiTheme.CreateRoundedRectanglePath(bounds, UiTheme.Scale(this, UiTheme.ControlCornerRadius));
             using var brush = new SolidBrush(fill);
             graphics.FillPath(brush, path);
             if (_selected)
@@ -125,5 +149,11 @@ internal sealed class UiPillTab : Control
             | TextFormatFlags.SingleLine
             | TextFormatFlags.EndEllipsis
             | TextFormatFlags.NoPrefix);
+
+        if (Focused && ShowFocusCues)
+        {
+            var focusBounds = Rectangle.Inflate(bounds, -4, -4);
+            ControlPaint.DrawFocusRectangle(graphics, focusBounds, UiTheme.Text, fill);
+        }
     }
 }

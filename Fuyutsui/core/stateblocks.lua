@@ -5,6 +5,7 @@ local EvaluateColorFromBoolean = C_CurveUtil.EvaluateColorFromBoolean
 local state = Fuyutsui.state
 local target = Fuyutsui.target
 local focus = Fuyutsui.focus
+local mouseover = Fuyutsui.mouseover
 local boss = Fuyutsui.boss
 
 local ColorValue0 = CreateColor(0, 0, 0, 1)
@@ -226,7 +227,6 @@ local stateBlockGetters = {
     },
     ["目标"] = {
         ["类型"] = function() return target.type or 0 end,
-        -- 实际颜色由 AuraContainer 覆盖；底层保持 0，避免无可驱散光环时残留旧值。
         ["驱散类型"] = function() return 0 end,
         ["生命值"] = function() return target.healthPercent or 0 end,
         ["距离"] = function()
@@ -252,6 +252,20 @@ local stateBlockGetters = {
         ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel("focus", "cast") end,
         ["引导"] = function(self) return self:GetUnitCastPixel("focus", "channel") end,
         ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel("focus", "channel") end,
+    },
+    ["鼠标"] = {
+        ["类型"] = function() return mouseover.type or 0 end,
+        ["驱散类型"] = function() return 0 end,
+        ["生命值"] = function() return mouseover.healthPercent or 0 end,
+        ["距离"] = function()
+            if not mouseover.maxRange then return nil end
+            return mouseover.maxRange / 255
+        end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel("mouseover", "cast") end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel("mouseover", "castElapsed") end,
+        ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel("mouseover", "cast") end,
+        ["引导"] = function(self) return self:GetUnitCastPixel("mouseover", "channel") end,
+        ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel("mouseover", "channel") end,
     },
 }
 

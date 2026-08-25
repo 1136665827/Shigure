@@ -6,7 +6,7 @@ namespace Shigure;
 internal sealed class UiCardPanel : TableLayoutPanel
 {
     private Color _fillColor = UiTheme.SurfaceRaised;
-    private int _cornerRadius = 10;
+    private int _cornerRadius = UiTheme.CardCornerRadius;
 
     public UiCardPanel()
     {

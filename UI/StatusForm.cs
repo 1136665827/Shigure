@@ -15,6 +15,8 @@ internal enum SettingsPage
     Party,
     Logic,
     Logs,
+    BossNumbers,
+    CommonFields,
     About
 }
 
@@ -28,6 +30,8 @@ internal enum SettingsNavIcon
     Party,
     Logic,
     Logs,
+    BossNumbers,
+    CommonFields,
     About
 }
 
@@ -37,6 +41,171 @@ public sealed class StatusForm : Form
     private const int AboutWatermarkSize = 440;
     private const int AboutWatermarkTopMargin = 16;
     private const float AboutWatermarkOpacity = 0.08F;
+    private const int BossNumberCardWidth = 400;
+
+    private static readonly IReadOnlyList<string> CurrentSeasonDungeonNames =
+    [
+        "烈毒之渊",
+        "潮缚石窟",
+        "毒牙祭坛",
+        "纳洛拉克的洞穴",
+        "密谋小径",
+        "夺目谷",
+        "诸王之眠",
+        "红玉新生法池",
+        "虚空之痕竞技场",
+        "塞塔里斯神庙"
+    ];
+
+    private static readonly IReadOnlyList<BossNumberGroup> BossNumberGroups =
+    [
+        new(string.Empty,
+        [
+            new("虚影尖塔",
+            [
+                new(1, "元首阿福扎恩", 1),
+                new(2, "弗拉希乌斯", 2),
+                new(3, "陨落之王萨哈达尔", 3),
+                new(4, "威厄高尔和艾佐拉克", 4),
+                new(5, "光盲先锋军", 5),
+                new(6, "宇宙之冕", 6)
+            ]),
+            new("梦境裂隙", [new(1, "奇美鲁斯，未梦之神", 7)]),
+            new("奎尔丹纳斯岛",
+            [
+                new(1, "贝洛朗，奥的子嗣", 8),
+                new(2, "至暗之夜降临", 9)
+            ]),
+            new("世界",
+            [
+                new(1, "鲁阿夏尔", 10),
+                new(2, "索姆贝兰", 11),
+                new(3, "普雷达萨斯", 12),
+                new(4, "克拉格平", 13)
+            ]),
+            new("孢陨幽境", [new(1, "腐沼", 14)]),
+            new("潮缚石窟", [new(1, "尼姆瑞莎·唤波者", 15)]),
+            new("烈毒之渊",
+            [
+                new(1, "盘魂者内克扎莉", 16),
+                new(2, "陵寝哨兵", 17),
+                new(3, "迷失的探险者", 18),
+                new(4, "万毒邪祟者瓦什尼克", 19),
+                new(5, "斯索拉克", 20),
+                new(6, "双子毒牙", 21),
+                new(7, "盘卷祭坛", 22),
+                new(8, "乌拉特克", 23)
+            ])
+        ]),
+        new("大米",
+        [
+            new("节点希纳斯",
+            [
+                new(1, "核技工程长卡斯雷瑟", 51),
+                new(2, "核心守卫奈萨拉", 52),
+                new(3, "洛萨克森", 53)
+            ]),
+            new("迈萨拉洞窟",
+            [
+                new(1, "姆罗金和内克拉克斯", 54),
+                new(2, "沃达扎", 55),
+                new(3, "拉克图尔，聚魂之器", 56)
+            ]),
+            new("风行者之塔",
+            [
+                new(1, "烬晓", 57),
+                new(2, "被遗弃的二人组", 58),
+                new(3, "指挥官克罗鲁科", 59),
+                new(4, "无眠之心", 60)
+            ]),
+            new("魔导师平台",
+            [
+                new(1, "奥能金刚库斯托斯", 61),
+                new(2, "瑟拉奈尔·日鞭", 62),
+                new(3, "吉美尔鲁斯", 63),
+                new(4, "迪詹崔乌斯", 64)
+            ]),
+            new("执政团之座",
+            [
+                new(1, "晋升者祖拉尔", 65),
+                new(2, "萨普瑞什", 66),
+                new(3, "总督奈扎尔", 67),
+                new(4, "鲁拉", 68)
+            ]),
+            new("艾杰斯亚学院",
+            [
+                new(1, "维克萨姆斯", 69),
+                new(2, "茂林古树", 70),
+                new(3, "克罗兹", 71),
+                new(4, "多拉苟萨的回响", 72)
+            ]),
+            new("萨隆矿坑",
+            [
+                new(1, "熔炉之主加弗斯特", 73),
+                new(2, "伊克和科瑞克", 74),
+                new(3, "天灾领主泰兰努斯", 75)
+            ]),
+            new("通天峰",
+            [
+                new(1, "兰吉特", 76),
+                new(2, "阿拉卡纳斯", 77),
+                new(3, "鲁克兰", 78),
+                new(4, "高阶贤者维里克斯", 79)
+            ]),
+            new("毒牙祭坛",
+            [
+                new(1, "拉维", 80),
+                new(2, "扭缠盘蛇", 81),
+                new(3, "祖尔加", 82)
+            ]),
+            new("纳洛拉克的洞穴",
+            [
+                new(1, "囤宝狂人", 83),
+                new(2, "寒冬哨兵", 84),
+                new(3, "纳洛拉克", 85)
+            ]),
+            new("密谋小径",
+            [
+                new(1, "凯斯媞亚·魔力之心", 86),
+                new(2, "赞恩·刃悲", 87),
+                new(3, "歼灭者萨祖克斯", 88),
+                new(4, "利希尔·烬怒", 89)
+            ]),
+            new("夺目谷",
+            [
+                new(1, "光明众花", 90),
+                new(2, "圣光猎手伊库兹", 91),
+                new(3, "护光者鲁伊亚", 92),
+                new(4, "兹欧凯特", 93)
+            ]),
+            new("诸王之眠",
+            [
+                new(1, "黄金风蛇", 94),
+                new(2, "部族议会", 95),
+                new(3, "殓尸者姆沁巴", 96),
+                new(4, "达萨大王", 97)
+            ]),
+            new("红玉新生法池",
+            [
+                new(1, "梅莉杜莎·寒妆", 98),
+                new(2, "柯姬雅·焰蹄", 99),
+                new(3, "基拉卡与厄克哈特·风脉", 100)
+            ]),
+            new("虚空之痕竞技场",
+            [
+                new(1, "塔兹拉尔", 101),
+                new(2, "阿特洛苏斯", 102),
+                new(3, "煞戎努斯", 103)
+            ]),
+            new("塞塔里斯神庙",
+            [
+                new(1, "阿德里斯和阿斯匹克斯", 104),
+                new(2, "米利克萨", 105),
+                new(3, "加瓦兹特", 106),
+                new(4, "塞塔里斯的化身", 107)
+            ])
+        ])
+    ];
 
     private readonly List<(SettingsNavButton Button, Control View, SettingsPage Page)> _navItems = new();
     private readonly Dictionary<ListView, Label> _listCounts = new();
@@ -113,7 +282,7 @@ public sealed class StatusForm : Form
         Size = new Size(1280, 800);
         BackColor = UiTheme.Background;
         ForeColor = UiTheme.Text;
-        ShowInTaskbar = false;
+        ShowInTaskbar = true;
         TopMost = false;
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -138,22 +307,22 @@ public sealed class StatusForm : Form
         _moduleHost = CreatePageHost();
         _aboutHost = CreatePageHost();
 
-        _stateList = UiTheme.CreateListView(Font, "status-state",
-            new UiTheme.ListColumn("#", 48, 48, FixedWidth: true),
-            new UiTheme.ListColumn("名称", 110, 260),
-            new UiTheme.ListColumn("值", 100, 900, FillRemaining: true));
-        _auraList = UiTheme.CreateListView(Font, "status-aura",
-            new UiTheme.ListColumn("#", 48, 48, FixedWidth: true),
-            new UiTheme.ListColumn("光环", 120, 300),
-            new UiTheme.ListColumn("值", 96, 900, FillRemaining: true));
-        _dynamicUnitList = UiTheme.CreateListView(Font, "status-dynamic-unit",
-            new UiTheme.ListColumn("类型", 72, 160),
-            new UiTheme.ListColumn("名称", 92, 280),
-            new UiTheme.ListColumn("值", 96, 900, FillRemaining: true));
-        _spellList = UiTheme.CreateListView(Font, "status-spell",
-            new UiTheme.ListColumn("#", 48, 48, FixedWidth: true),
-            new UiTheme.ListColumn("技能", 120, 300),
-            new UiTheme.ListColumn("状态", 100, 900, FillRemaining: true));
+        _stateList = UiTheme.CreateListView(Font, "status-state-v2",
+            new UiTheme.ListColumn("#", 28, 28, FixedWidth: true),
+            new UiTheme.ListColumn("名称", 40, 220),
+            new UiTheme.ListColumn("值", 40, 900, FillRemaining: true));
+        _auraList = UiTheme.CreateListView(Font, "status-aura-v2",
+            new UiTheme.ListColumn("#", 28, 28, FixedWidth: true),
+            new UiTheme.ListColumn("光环", 40, 260),
+            new UiTheme.ListColumn("值", 40, 900, FillRemaining: true));
+        _dynamicUnitList = UiTheme.CreateListView(Font, "status-dynamic-unit-v2",
+            new UiTheme.ListColumn("类型", 40, 140),
+            new UiTheme.ListColumn("名称", 40, 240),
+            new UiTheme.ListColumn("值", 40, 900, FillRemaining: true));
+        _spellList = UiTheme.CreateListView(Font, "status-spell-v2",
+            new UiTheme.ListColumn("#", 28, 28, FixedWidth: true),
+            new UiTheme.ListColumn("技能", 40, 260),
+            new UiTheme.ListColumn("状态", 40, 900, FillRemaining: true));
 
         _partyList = UiTheme.CreateListView(Font, "status-party",
             new UiTheme.ListColumn("单位", 120, 180, FixedWidth: true),
@@ -179,7 +348,7 @@ public sealed class StatusForm : Form
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            Padding = new Padding(20),
+            Padding = new Padding(16),
             Margin = new Padding(0)
         };
 
@@ -194,8 +363,11 @@ public sealed class StatusForm : Form
         AddNavItem(nav, SettingsPage.Party, SettingsNavIcon.Party, "队伍", CreatePageShell("队伍", "当前队伍单位与扫描字段摘要", BuildSection("队伍成员", _partyList, "实时队伍数据")));
         AddNavItem(nav, SettingsPage.Logic, SettingsNavIcon.Logic, "逻辑", CreatePageShell("逻辑", "运行时推荐目标与调试值", BuildSection("逻辑信息", _unitInfoList, "当前模块的决策输出")));
         AddNavItem(nav, SettingsPage.Logs, SettingsNavIcon.Logs, "日志", CreatePageShell("日志", "运行、模块匹配与施放记录", BuildLogPage()));
+        AddNavGroup(nav, "说明");
+        AddNavItem(nav, SettingsPage.BossNumbers, SettingsNavIcon.BossNumbers, "首领", CreatePageShell("首领编号", "副本首领的序号、名称与扫描编号", BuildBossNumbersPage()));
+        AddNavItem(nav, SettingsPage.CommonFields, SettingsNavIcon.CommonFields, "字段", CreatePageShell("常用字段", "模块条件可用的状态字段参考", BuildCommonFieldsPanel()));
         AddNavGroup(nav, "系统");
-        AddNavItem(nav, SettingsPage.About, SettingsNavIcon.About, "关于", CreatePageShell("关于", "应用信息与状态字段参考", _aboutHost));
+        AddNavItem(nav, SettingsPage.About, SettingsNavIcon.About, "关于", CreatePageShell("关于", "应用信息", _aboutHost));
         _aboutHost.Controls.Add(BuildAboutPanel());
 
         root.Controls.Add(navShell, 0, 0);
@@ -224,12 +396,12 @@ public sealed class StatusForm : Form
             BackColor = UiTheme.Background,
             ColumnCount = 1,
             RowCount = 3,
-            Padding = new Padding(12, 16, 12, 12),
+            Padding = new Padding(12, 10, 12, 8),
             Margin = new Padding(0)
         };
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
 
         var brand = new TableLayoutPanel
         {
@@ -309,40 +481,47 @@ public sealed class StatusForm : Form
             RowCount = 2,
             Margin = new Padding(0)
         };
-        // 预留标题实际高度与 header 的 14px 下边距，避免高 DPI 下标题被裁切。
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, hasSubtitle ? 84 : 60));
+        // 所有页面统一使用单行页头，标题与说明文字保持各自原有字号。
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var header = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
-            ColumnCount = 1,
-            RowCount = hasSubtitle ? 2 : 1,
-            Margin = new Padding(0, 0, 0, 14)
+            ColumnCount = hasSubtitle ? 2 : 1,
+            RowCount = 1,
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap)
         };
-        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        if (hasSubtitle)
+        {
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        }
+
         header.Controls.Add(new Label
         {
             Text = title,
             Dock = DockStyle.Fill,
+            AutoSize = true,
             ForeColor = UiTheme.Text,
             Font = new Font(Font.FontFamily, 16F, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0)
+            TextAlign = ContentAlignment.BottomLeft,
+            Margin = new Padding(0, 0, hasSubtitle ? 14 : 0, 0)
         }, 0, 0);
         if (hasSubtitle)
         {
-            header.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
             header.Controls.Add(new Label
             {
                 Text = subtitle,
                 Dock = DockStyle.Fill,
+                AutoEllipsis = true,
                 ForeColor = UiTheme.Muted,
                 Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
-                TextAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.BottomLeft,
                 Margin = new Padding(0)
-            }, 0, 1);
+            }, 1, 0);
         }
         shell.Controls.Add(header, 0, 0);
 
@@ -362,24 +541,61 @@ public sealed class StatusForm : Form
             RowCount = 1,
             Margin = new Padding(0)
         };
-        for (var i = 0; i < 4; i++)
-        {
-            statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        }
-        statusSplit.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var state = BuildSection("状态", _stateList, "基础字段与当前模块");
-        state.Margin = new Padding(0, 0, 6, 0);
-        var aura = BuildSection("光环", _auraList, "光环数值状态");
-        aura.Margin = new Padding(6, 0, 6, 0);
-        var spell = BuildSection("技能", _spellList, "冷却与可用状态");
-        spell.Margin = new Padding(6, 0, 6, 0);
-        var units = BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值");
-        units.Margin = new Padding(6, 0, 0, 0);
-        statusSplit.Controls.Add(state, 0, 0);
-        statusSplit.Controls.Add(aura, 1, 0);
-        statusSplit.Controls.Add(spell, 2, 0);
-        statusSplit.Controls.Add(units, 3, 0);
+        var sections = new[]
+        {
+            BuildSection("状态", _stateList, "基础字段与当前模块"),
+            BuildSection("光环", _auraList, "光环数值状态"),
+            BuildSection("技能", _spellList, "冷却与可用状态"),
+            BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值")
+        };
+        bool? usingCompactLayout = null;
+
+        void ApplyLayout()
+        {
+            // 四张卡片需要为三列表头保留可读宽度；不足时切成 2×2，避免原生横向滚动条。
+            // ClientSize 已是当前 WinForms 布局坐标，不再二次按 DPI 放大断点。
+            var compact = statusSplit.ClientSize.Width < 1100;
+            if (usingCompactLayout == compact)
+            {
+                return;
+            }
+
+            usingCompactLayout = compact;
+            statusSplit.SuspendLayout();
+            statusSplit.Controls.Clear();
+            statusSplit.ColumnStyles.Clear();
+            statusSplit.RowStyles.Clear();
+            statusSplit.ColumnCount = compact ? 2 : 4;
+            statusSplit.RowCount = compact ? 2 : 1;
+            for (var column = 0; column < statusSplit.ColumnCount; column++)
+            {
+                statusSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / statusSplit.ColumnCount));
+            }
+
+            for (var row = 0; row < statusSplit.RowCount; row++)
+            {
+                statusSplit.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / statusSplit.RowCount));
+            }
+
+            for (var i = 0; i < sections.Length; i++)
+            {
+                var column = compact ? i % 2 : i;
+                var row = compact ? i / 2 : 0;
+                sections[i].Margin = new Padding(
+                    column == 0 ? 0 : UiTheme.PageGap / 2,
+                    row == 0 ? 0 : UiTheme.PageGap / 2,
+                    column == statusSplit.ColumnCount - 1 ? 0 : UiTheme.PageGap / 2,
+                    row == statusSplit.RowCount - 1 ? 0 : UiTheme.PageGap / 2);
+                statusSplit.Controls.Add(sections[i], column, row);
+            }
+
+            statusSplit.ResumeLayout(true);
+        }
+
+        statusSplit.SizeChanged += (_, _) => ApplyLayout();
+        statusSplit.HandleCreated += (_, _) => BeginInvoke(ApplyLayout);
+        ApplyLayout();
         return statusSplit;
     }
 
@@ -390,11 +606,11 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            Padding = new Padding(16),
+            Padding = new Padding(UiTheme.CardPadding),
             Margin = new Padding(0)
         };
-        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        section.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
         section.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var heading = new TableLayoutPanel
@@ -428,6 +644,7 @@ public sealed class StatusForm : Form
                 TextAlign = ContentAlignment.MiddleCenter,
                 Margin = new Padding(4, 2, 0, 2)
             };
+            UiTheme.ApplyControlRoundedRegion(countLabel, UiTheme.ControlCornerRadius);
             _listCounts[listView] = countLabel;
             heading.Controls.Add(countLabel, 1, 0);
         }
@@ -443,7 +660,7 @@ public sealed class StatusForm : Form
         }, 0, 1);
 
         content.Dock = DockStyle.Fill;
-        content.Margin = new Padding(0, 12, 0, 0);
+        content.Margin = new Padding(0, 8, 0, 0);
         section.Controls.Add(content, 0, 2);
         return section;
     }
@@ -455,10 +672,10 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(16),
+            Padding = new Padding(UiTheme.CardPadding),
             Margin = new Padding(0)
         };
-        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var toolbar = new FlowLayoutPanel
@@ -470,6 +687,7 @@ public sealed class StatusForm : Form
             Margin = new Padding(0)
         };
         var copyButton = UiTheme.CreateButton("复制全部", UiTheme.ButtonKind.Secondary);
+        UiTheme.StyleActionButton(copyButton, 96);
         copyButton.Margin = new Padding(0, 0, 8, 6);
         copyButton.Click += (_, _) =>
         {
@@ -479,17 +697,16 @@ public sealed class StatusForm : Form
             }
         };
         var clearButton = UiTheme.CreateButton("清空显示", UiTheme.ButtonKind.Danger);
+        UiTheme.StyleActionButton(clearButton, 96);
         clearButton.Margin = new Padding(0, 0, 16, 6);
         clearButton.Click += (_, _) => _logTextBox.Clear();
         var autoScroll = new CheckBox
         {
             Text = "自动滚动",
             Checked = true,
-            AutoSize = true,
-            ForeColor = UiTheme.Text,
-            BackColor = UiTheme.SurfaceRaised,
             Margin = new Padding(0, 8, 0, 0)
         };
+        UiTheme.StyleCheckBox(autoScroll, UiTheme.SurfaceRaised);
         autoScroll.CheckedChanged += (_, _) => _autoScrollLog = autoScroll.Checked;
         toolbar.Controls.Add(copyButton);
         toolbar.Controls.Add(clearButton);
@@ -595,12 +812,12 @@ public sealed class StatusForm : Form
         {
             Text = text,
             AutoSize = false,
-            Size = new Size(192, 30),
+            Size = new Size(192, 25),
             ForeColor = UiTheme.Muted,
             Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
-            TextAlign = ContentAlignment.BottomLeft,
-            Padding = new Padding(10, 0, 0, 4),
-            Margin = new Padding(0, nav.Controls.Count == 0 ? 0 : 10, 0, 3)
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(10, 0, 0, 0),
+            Margin = new Padding(0, nav.Controls.Count == 0 ? 0 : 6, 0, 2)
         });
     }
 
@@ -614,9 +831,9 @@ public sealed class StatusForm : Form
         {
             Text = text,
             AutoSize = false,
-            Size = new Size(192, 44),
+            Size = new Size(192, 39),
             Font = new Font(Font.FontFamily, 10F, FontStyle.Regular),
-            Margin = new Padding(0, 0, 0, 3),
+            Margin = new Padding(0, 0, 0, 1),
             Cursor = Cursors.Hand,
             TabStop = true,
             AccessibleName = text
@@ -642,6 +859,204 @@ public sealed class StatusForm : Form
         }
     }
 
+    private Control BuildBossNumbersPage()
+    {
+        var scrollHost = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = UiTheme.Surface,
+            Margin = new Padding(0)
+        };
+
+        var cards = new TableLayoutPanel
+        {
+            Dock = DockStyle.None,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = UiTheme.Surface,
+            ColumnCount = 4,
+            RowCount = 0,
+            MinimumSize = new Size(BossNumberCardWidth * 4 + UiTheme.PageGap * 3, 0),
+            Padding = new Padding(0),
+            Margin = new Padding(0)
+        };
+
+        var allDungeons = BossNumberGroups
+            .SelectMany(group => group.Dungeons)
+            .ToDictionary(dungeon => dungeon.Name, StringComparer.Ordinal);
+        var currentSeasonNames = CurrentSeasonDungeonNames.ToHashSet(StringComparer.Ordinal);
+        IReadOnlyList<BossNumberGroup> seasonGroups =
+        [
+            new("当前赛季", CurrentSeasonDungeonNames.Select(name => allDungeons[name]).ToArray()),
+            new("第一赛季", BossNumberGroups
+                .SelectMany(group => group.Dungeons)
+                .Where(dungeon => !currentSeasonNames.Contains(dungeon.Name))
+                .ToArray())
+        ];
+
+        var seasonViews = seasonGroups
+            .Select(group =>
+            {
+                var title = new Label
+                {
+                    Text = group.Title,
+                    AutoSize = true,
+                    ForeColor = UiTheme.Text,
+                    BackColor = Color.Transparent,
+                    Font = new Font(Font.FontFamily, 12F, FontStyle.Bold)
+                };
+                var groupCards = group.Dungeons.Select(CreateBossNumberCard).ToArray();
+                foreach (var card in groupCards)
+                {
+                    card.Margin = new Padding(0, 0, 0, UiTheme.PageGap);
+                }
+
+                return (Title: title, Cards: groupCards);
+            })
+            .ToArray();
+
+        void ApplyLayout()
+        {
+            const int columnCount = 4;
+            cards.SuspendLayout();
+            cards.Controls.Clear();
+            cards.ColumnStyles.Clear();
+            cards.RowStyles.Clear();
+            cards.ColumnCount = columnCount;
+            cards.RowCount = 0;
+            for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
+            {
+                var columnWidth = BossNumberCardWidth
+                    + (columnIndex < columnCount - 1 ? UiTheme.PageGap : 0);
+                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, columnWidth));
+            }
+
+            var row = 0;
+            var column = 0;
+            foreach (var (title, groupCards) in seasonViews)
+            {
+                if (column != 0)
+                {
+                    row++;
+                    column = 0;
+                }
+
+                cards.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                cards.RowCount = row + 1;
+                title.Margin = new Padding(2, row == 0 ? 0 : UiTheme.PageGap, 0, UiTheme.PageGap);
+                cards.Controls.Add(title, 0, row);
+                cards.SetColumnSpan(title, columnCount);
+                row++;
+
+                foreach (var card in groupCards)
+                {
+                    if (cards.RowStyles.Count <= row)
+                    {
+                        cards.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                        cards.RowCount = row + 1;
+                    }
+
+                    cards.Controls.Add(card, column, row);
+
+                    column++;
+                    if (column == columnCount)
+                    {
+                        column = 0;
+                        row++;
+                    }
+                }
+            }
+
+            cards.ResumeLayout(true);
+        }
+
+        scrollHost.Controls.Add(cards);
+        ApplyLayout();
+        return scrollHost;
+    }
+
+    private Control CreateBossNumberCard(BossDungeon dungeon)
+    {
+        var card = new UiCardPanel
+        {
+            AutoSize = false,
+            Size = new Size(
+                BossNumberCardWidth,
+                UiTheme.CardPadding * 2 + 34 + (dungeon.Bosses.Count + 1) * 28),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(UiTheme.CardPadding),
+            MinimumSize = new Size(0, 0)
+        };
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        card.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        card.Controls.Add(new Label
+        {
+            Text = dungeon.Name,
+            Dock = DockStyle.Fill,
+            ForeColor = UiTheme.Accent,
+            BackColor = Color.Transparent,
+            Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0)
+        }, 0, 0);
+
+        var table = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = Color.Transparent,
+            ColumnCount = 3,
+            RowCount = dungeon.Bosses.Count + 1,
+            Margin = new Padding(0)
+        };
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+        AddBossNumberCell(table, "序号", 0, 0, UiTheme.Muted, FontStyle.Bold, ContentAlignment.MiddleCenter);
+        AddBossNumberCell(table, "名称", 1, 0, UiTheme.Muted, FontStyle.Bold, ContentAlignment.MiddleLeft);
+        AddBossNumberCell(table, "编号", 2, 0, UiTheme.Muted, FontStyle.Bold, ContentAlignment.MiddleCenter);
+
+        for (var index = 0; index < dungeon.Bosses.Count; index++)
+        {
+            var boss = dungeon.Bosses[index];
+            var tableRow = index + 1;
+            AddBossNumberCell(table, boss.Sequence.ToString(), 0, tableRow, UiTheme.Muted, FontStyle.Regular, ContentAlignment.MiddleCenter);
+            AddBossNumberCell(table, boss.Name, 1, tableRow, UiTheme.Text, FontStyle.Regular, ContentAlignment.MiddleLeft);
+            AddBossNumberCell(table, boss.Number.ToString(), 2, tableRow, UiTheme.Accent, FontStyle.Regular, ContentAlignment.MiddleCenter);
+        }
+
+        card.Controls.Add(table, 0, 1);
+        return card;
+    }
+
+    private void AddBossNumberCell(
+        TableLayoutPanel table,
+        string text,
+        int column,
+        int row,
+        Color color,
+        FontStyle style,
+        ContentAlignment alignment)
+    {
+        table.Controls.Add(new Label
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            Height = 28,
+            AutoEllipsis = true,
+            ForeColor = color,
+            BackColor = Color.Transparent,
+            Font = new Font(Font.FontFamily, 9F, style),
+            TextAlign = alignment,
+            Margin = new Padding(column == 1 ? 6 : 0, 0, column == 1 ? 6 : 0, 0)
+        }, column, row);
+    }
+
     private Control BuildAboutPanel()
     {
         var scrollHost = new WatermarkPanel(
@@ -663,12 +1078,10 @@ public sealed class StatusForm : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             BackColor = Color.Transparent,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 1,
             Padding = new Padding(0),
             Margin = new Padding(0)
         };
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         var infoCard = new UiCardPanel
@@ -677,8 +1090,8 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Top,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 0, 0, 12)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0)
         };
         infoCard.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         infoCard.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -690,7 +1103,7 @@ public sealed class StatusForm : Form
             BackColor = Color.Transparent,
             ColumnCount = 1,
             RowCount = 2,
-            Margin = new Padding(0, 0, 0, 16)
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap)
         };
         heading.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         heading.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -744,23 +1157,27 @@ public sealed class StatusForm : Form
         infoCard.Controls.Add(details, 0, 1);
         panel.Controls.Add(infoCard, 0, 0);
 
-        panel.Controls.Add(new Label
+        scrollHost.Controls.Add(panel);
+        return scrollHost;
+    }
+
+    private Control BuildCommonFieldsPanel()
+    {
+        var scrollHost = new Panel
         {
-            Text = "可用状态字段",
-            AutoSize = true,
-            ForeColor = UiTheme.Text,
-            BackColor = Color.Transparent,
-            Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
-            Margin = new Padding(2, 6, 0, 12)
-        }, 0, 1);
+            Dock = DockStyle.Fill,
+            BackColor = UiTheme.Surface,
+            AutoScroll = true,
+            Margin = new Padding(0)
+        };
 
         var fields = new TableLayoutPanel
         {
             AutoSize = true,
             Dock = DockStyle.Top,
-            BackColor = Color.Transparent,
+            BackColor = UiTheme.Surface,
             ColumnCount = 2,
-            RowCount = 3,
+            RowCount = 4,
             Margin = new Padding(0)
         };
         fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
@@ -768,8 +1185,9 @@ public sealed class StatusForm : Form
         fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        fields.Controls.Add(CreateAboutFieldCard(
+        fields.Controls.Add(CreateCommonFieldCard(
             "状态",
             [
                 "有效性", "战斗时间", "移动", "生命值", "一键辅助", "插入法术",
@@ -779,7 +1197,7 @@ public sealed class StatusForm : Form
                 "酒池", "符文", "姿态", "神圣军备", "自律", "英勇打击", "收割者战刃"
             ],
             150), 0, 0);
-        fields.Controls.Add(CreateAboutFieldCard(
+        fields.Controls.Add(CreateCommonFieldCard(
             "能量",
             [
                 "法力值", "怒气值", "集中值", "能量值", "符文", "符文能量",
@@ -787,40 +1205,43 @@ public sealed class StatusForm : Form
                 "连击点", "神圣能量", "精华能量", "灵魂碎片", "真气", "增压层数"
             ],
             150), 1, 0);
-        fields.Controls.Add(CreateAboutFieldCard(
+        fields.Controls.Add(CreateCommonFieldCard(
             "配置开关",
             ["爆发开关", "AOE开关", "输出模式", "爆发药水开关", "延迟"],
             92), 0, 1);
-        fields.Controls.Add(CreateAboutFieldCard(
+        fields.Controls.Add(CreateCommonFieldCard(
             "物品",
             ["治疗药水", "魔法药水", "治疗石", "鲁莽药水", "圣光潜力"],
             92), 1, 1);
-        fields.Controls.Add(CreateAboutFieldCard(
+        fields.Controls.Add(CreateCommonFieldCard(
             "目标",
             ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
             104), 0, 2);
-        fields.Controls.Add(CreateAboutFieldCard(
+        fields.Controls.Add(CreateCommonFieldCard(
             "焦点",
             ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
             104), 1, 2);
+        fields.Controls.Add(CreateCommonFieldCard(
+            "鼠标",
+            ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
+            104), 0, 3);
 
-        panel.Controls.Add(fields, 0, 2);
-        scrollHost.Controls.Add(panel);
+        scrollHost.Controls.Add(fields);
         return scrollHost;
     }
 
     private static string GetEmbeddedResourceName(string resourcePath)
         => $"{typeof(StatusForm).Namespace}.{resourcePath}";
 
-    private Control CreateAboutFieldCard(string title, IReadOnlyList<string> items, int minimumHeight)
+    private Control CreateCommonFieldCard(string title, IReadOnlyList<string> items, int minimumHeight)
     {
         var card = new UiCardPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 0, 12, 12),
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, UiTheme.PageGap, UiTheme.PageGap),
             MinimumSize = new Size(0, minimumHeight)
         };
         card.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -832,7 +1253,7 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Fill,
             ForeColor = UiTheme.Accent,
             BackColor = Color.Transparent,
-            Font = new Font(Font.FontFamily, 10.5F, FontStyle.Bold),
+            Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft,
             Margin = new Padding(0)
         }, 0, 0);
@@ -843,7 +1264,7 @@ public sealed class StatusForm : Form
             AutoSize = false,
             ForeColor = UiTheme.Text,
             BackColor = Color.Transparent,
-            Font = new Font(Font.FontFamily, 9.5F, FontStyle.Regular),
+            Font = new Font(Font.FontFamily, 9F, FontStyle.Regular),
             TextAlign = ContentAlignment.TopLeft,
             Margin = new Padding(0, 6, 0, 0)
         }, 0, 1);
@@ -891,7 +1312,7 @@ public sealed class StatusForm : Form
             BackColor = Color.Transparent,
             AutoEllipsis = true,
             TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0, 0, 18, 14)
+            Margin = new Padding(0, 0, 18, 8)
         }, 0, row);
         var valueLabel = new Label
         {
@@ -902,7 +1323,7 @@ public sealed class StatusForm : Form
             ForeColor = UiTheme.Text,
             BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0, 0, 0, 14)
+            Margin = new Padding(0, 0, 0, 8)
         };
         _toolTip.SetToolTip(valueLabel, tooltip ?? value);
         panel.Controls.Add(valueLabel, 1, row);
@@ -1589,6 +2010,19 @@ public sealed class StatusForm : Form
                     graphics.DrawLine(pen, x + w * 0.32f, y + h * 0.52f, x + w * 0.68f, y + h * 0.52f);
                     graphics.DrawLine(pen, x + w * 0.32f, y + h * 0.70f, x + w * 0.58f, y + h * 0.70f);
                     break;
+                case SettingsNavIcon.BossNumbers:
+                    graphics.DrawRectangle(pen, x + w * 0.12f, y + h * 0.12f, w * 0.76f, h * 0.76f);
+                    graphics.DrawLine(pen, x + w * 0.38f, y + h * 0.27f, x + w * 0.31f, y + h * 0.73f);
+                    graphics.DrawLine(pen, x + w * 0.65f, y + h * 0.27f, x + w * 0.58f, y + h * 0.73f);
+                    graphics.DrawLine(pen, x + w * 0.25f, y + h * 0.43f, x + w * 0.72f, y + h * 0.43f);
+                    graphics.DrawLine(pen, x + w * 0.22f, y + h * 0.59f, x + w * 0.69f, y + h * 0.59f);
+                    break;
+                case SettingsNavIcon.CommonFields:
+                    graphics.DrawRectangle(pen, x + w * 0.12f, y + h * 0.12f, w * 0.76f, h * 0.76f);
+                    graphics.DrawLine(pen, x + w * 0.34f, y + h * 0.12f, x + w * 0.34f, y + h * 0.88f);
+                    graphics.DrawLine(pen, x + w * 0.12f, y + h * 0.38f, x + w * 0.88f, y + h * 0.38f);
+                    graphics.DrawLine(pen, x + w * 0.12f, y + h * 0.63f, x + w * 0.88f, y + h * 0.63f);
+                    break;
                 case SettingsNavIcon.About:
                     graphics.DrawEllipse(pen, x + w * 0.12f, y + h * 0.12f, w * 0.76f, h * 0.76f);
                     graphics.FillEllipse(brush, x + w * 0.46f, y + h * 0.28f, w * 0.08f, h * 0.08f);
@@ -1604,4 +2038,10 @@ public sealed class StatusForm : Form
             graphics.FillEllipse(brush, x + width * knobPosition - knobSize / 2, y - knobSize / 2, knobSize, knobSize);
         }
     }
+
+    private sealed record BossNumberGroup(string Title, IReadOnlyList<BossDungeon> Dungeons);
+
+    private sealed record BossDungeon(string Name, IReadOnlyList<BossNumberEntry> Bosses);
+
+    private sealed record BossNumberEntry(int Sequence, string Name, int Number);
 }

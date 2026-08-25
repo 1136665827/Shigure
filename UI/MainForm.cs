@@ -741,32 +741,15 @@ public sealed class MainForm : Form, IMessageFilter
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        const int settingsCardHeight = 232;
-        const int settingsCardGap = 14;
-        const int settingsActionButtonHeight = 36;
-        // 第一行包含 14px 下间距；第二行无需间距，因此卡片的实际高度均为 232px。
+        const int settingsCardHeight = 190;
+        const int settingsCardGap = UiTheme.PageGap;
+        const int settingsActionButtonHeight = UiTheme.ActionButtonHeight;
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight));
 
-        Label CreateTitle(string text) => new()
-        {
-            Text = text,
-            Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Text,
-            Font = new Font(Font.FontFamily, 11F, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0)
-        };
-        Label CreateDescription(string text) => new()
-        {
-            Text = text,
-            Dock = DockStyle.Fill,
-            ForeColor = UiTheme.Muted,
-            AutoEllipsis = true,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(0)
-        };
+        Label CreateTitle(string text) => UiTheme.CreateSectionTitle(Font, text);
+        Label CreateDescription(string text) => UiTheme.CreateDescription(text);
         Label CreateSettingLabel(string text) => new()
         {
             Text = text,
@@ -781,13 +764,13 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 4,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 7, 14)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, settingsCardGap / 2, settingsCardGap)
         };
         inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
         inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
         inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
         inputCard.Controls.Add(CreateTitle("输入与运行"), 0, 0);
@@ -822,11 +805,11 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(18),
-            Margin = new Padding(7, 0, 0, 14)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(settingsCardGap / 2, 0, 0, settingsCardGap)
         };
         configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         configCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         configCard.Controls.Add(CreateTitle("配置同步"), 0, 0);
@@ -852,13 +835,13 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 4,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 7, settingsCardGap)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, settingsCardGap / 2, settingsCardGap)
         };
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
         moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         moduleCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         moduleCard.Controls.Add(CreateTitle("模块选择"), 0, 0);
@@ -902,11 +885,11 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(18),
-            Margin = new Padding(7, 0, 0, settingsCardGap)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(settingsCardGap / 2, 0, 0, settingsCardGap)
         };
         getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         getModulesCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         getModulesCard.Controls.Add(CreateTitle("获取模块"), 0, 0);
@@ -969,11 +952,11 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 7, 0)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, settingsCardGap / 2, 0)
         };
         layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         layoutCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         layoutCard.Controls.Add(CreateTitle("界面布局"), 0, 0);
@@ -1019,11 +1002,11 @@ public sealed class MainForm : Form, IMessageFilter
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(18),
-            Margin = new Padding(7, 0, 0, 0)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(settingsCardGap / 2, 0, 0, 0)
         };
         closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
         closeBehaviorCard.Controls.Add(CreateTitle("点击 X 时（关闭窗口按钮）"), 0, 0);

@@ -101,8 +101,8 @@ public sealed class ClassConfigEditorControl : UserControl
             RowCount = 1,
             Margin = new Padding(0)
         };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 154));
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 196));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 146));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 184));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         Controls.Add(root);
 
@@ -118,8 +118,8 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 0, 12, 0)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, UiTheme.PageGap, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -161,8 +161,8 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 0, 12, 0)
+            Padding = new Padding(UiTheme.CardPadding),
+            Margin = new Padding(0, 0, UiTheme.PageGap, 0)
         };
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -199,10 +199,8 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private static void StyleActionButton(Button button)
     {
-        button.AutoSize = false;
-        button.Size = new Size(110, 36);
+        UiTheme.StyleActionButton(button);
         button.Margin = new Padding(0, 0, 0, 8);
-        button.TextAlign = ContentAlignment.MiddleCenter;
     }
 
     private Control BuildEditor()
@@ -217,15 +215,15 @@ public sealed class ClassConfigEditorControl : UserControl
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
 
         var header = new UiCardPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 2,
-            Padding = new Padding(14, 12, 14, 12),
-            Margin = new Padding(0, 0, 0, 12)
+            Padding = new Padding(UiTheme.CardPadding, 12, UiTheme.CardPadding, 12),
+            Margin = new Padding(0, 0, 0, UiTheme.PageGap)
         };
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -254,8 +252,8 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            Margin = new Padding(0, 12, 0, 0),
-            Padding = new Padding(14, 10, 14, 10)
+            Margin = new Padding(0, UiTheme.PageGap, 0, 0),
+            Padding = new Padding(UiTheme.CardPadding, 10, UiTheme.CardPadding, 10)
         };
         actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 228));
@@ -291,7 +289,7 @@ public sealed class ClassConfigEditorControl : UserControl
             RowCount = 2,
             Margin = new Padding(0)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, UiTheme.TabBarHeight));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var tabBar = new TableLayoutPanel
@@ -314,7 +312,7 @@ public sealed class ClassConfigEditorControl : UserControl
             ColumnCount = 1,
             RowCount = 1,
             Margin = new Padding(0),
-            Padding = new Padding(14)
+            Padding = new Padding(0)
         };
         contentCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         contentCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -341,6 +339,7 @@ public sealed class ClassConfigEditorControl : UserControl
             page.Dock = DockStyle.Fill;
             page.Visible = false;
             page.BackColor = UiTheme.SurfaceRaised;
+            page.Padding = new Padding(UiTheme.CardPadding);
             contentHost.Controls.Add(page);
         }
 
@@ -971,10 +970,10 @@ public sealed class ClassConfigEditorControl : UserControl
         };
         var up = UiTheme.CreateButton("▲", UiTheme.Field, UiTheme.Text);
         var down = UiTheme.CreateButton("▼", UiTheme.Field, UiTheme.Text);
-        up.AutoSize = false;
-        down.AutoSize = false;
-        up.Size = new Size(48, 32);
-        down.Size = new Size(48, 32);
+        UiTheme.StyleActionButton(up, 48);
+        UiTheme.StyleActionButton(down, 48);
+        up.Margin = new Padding(0, 4, 8, 4);
+        down.Margin = new Padding(0, 4, 0, 4);
         up.Click += (_, _) => MoveSelectedRow(grid, -1);
         down.Click += (_, _) => MoveSelectedRow(grid, 1);
         bar.Controls.Add(up);
