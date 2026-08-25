@@ -282,7 +282,7 @@ public sealed class StatusForm : Form
         Size = new Size(1280, 800);
         BackColor = UiTheme.Background;
         ForeColor = UiTheme.Text;
-        ShowInTaskbar = false;
+        ShowInTaskbar = true;
         TopMost = false;
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -364,8 +364,8 @@ public sealed class StatusForm : Form
         AddNavItem(nav, SettingsPage.Logic, SettingsNavIcon.Logic, "逻辑", CreatePageShell("逻辑", "运行时推荐目标与调试值", BuildSection("逻辑信息", _unitInfoList, "当前模块的决策输出")));
         AddNavItem(nav, SettingsPage.Logs, SettingsNavIcon.Logs, "日志", CreatePageShell("日志", "运行、模块匹配与施放记录", BuildLogPage()));
         AddNavGroup(nav, "说明");
-        AddNavItem(nav, SettingsPage.BossNumbers, SettingsNavIcon.BossNumbers, "首领编号", CreatePageShell("首领编号", "副本首领的序号、名称与扫描编号", BuildBossNumbersPage()));
-        AddNavItem(nav, SettingsPage.CommonFields, SettingsNavIcon.CommonFields, "常用字段", CreatePageShell("常用字段", "模块条件可用的状态字段参考", BuildCommonFieldsPanel()));
+        AddNavItem(nav, SettingsPage.BossNumbers, SettingsNavIcon.BossNumbers, "首领", CreatePageShell("首领编号", "副本首领的序号、名称与扫描编号", BuildBossNumbersPage()));
+        AddNavItem(nav, SettingsPage.CommonFields, SettingsNavIcon.CommonFields, "字段", CreatePageShell("常用字段", "模块条件可用的状态字段参考", BuildCommonFieldsPanel()));
         AddNavGroup(nav, "系统");
         AddNavItem(nav, SettingsPage.About, SettingsNavIcon.About, "关于", CreatePageShell("关于", "应用信息", _aboutHost));
         _aboutHost.Controls.Add(BuildAboutPanel());

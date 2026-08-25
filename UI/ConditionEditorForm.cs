@@ -609,6 +609,7 @@ public sealed class ConditionEditorForm : Form
         };
         _conditionsGrid.CellValueChanged += OnGridCellValueChanged;
         _conditionsGrid.CellEndEdit += (_, _) => UpdatePreview();
+        _conditionsGrid.CellFormatting += OnConditionsGridCellFormatting;
         _conditionsGrid.CellClick += OnConditionsGridCellClick;
         _conditionsGrid.CellPainting += OnConditionsGridCellPainting;
         _conditionsGrid.KeyDown += OnConditionsGridKeyDown;
@@ -623,6 +624,45 @@ public sealed class ConditionEditorForm : Form
         };
         _conditionsGrid.DataError += (_, e) => e.ThrowException = false;
         UiTheme.CacheDataGridViewColumnWidths(_conditionsGrid, "condition-editor");
+    }
+
+    private void OnConditionsGridCellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+    {
+        if (e.RowIndex < 0)
+        {
+            return;
+        }
+
+        var cell = _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+        if (e.ColumnIndex == _conditionsGrid.Columns[FieldColumn]!.Index)
+        {
+            cell.ToolTipText = cell.Value?.ToString() switch
+            {
+                "一键辅助" => "一键辅助, 数值参考技能列表",
+                "插入法术" => "插入法术, 数值参考技能列表",
+                _ => e.Value?.ToString() ?? string.Empty
+            };
+            return;
+        }
+
+        if (e.ColumnIndex == _conditionsGrid.Columns[ValueColumn]!.Index
+            && IsCastOrChannelTimeField(SelectedField(_conditionsGrid.Rows[e.RowIndex]))
+            && decimal.TryParse(
+                e.Value?.ToString(),
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var value))
+        {
+            cell.ToolTipText = $"约{(value / 10m).ToString("0.#", CultureInfo.InvariantCulture)}秒";
+        }
+    }
+
+    private static bool IsCastOrChannelTimeField(FieldItem? field)
+    {
+        var name = field?.Name;
+        return name?.EndsWith("施法(正计时)", StringComparison.Ordinal) == true
+            || name?.EndsWith("施法(倒计时)", StringComparison.Ordinal) == true
+            || name?.EndsWith("引导", StringComparison.Ordinal) == true;
     }
 
     private static DataGridViewComboBoxColumn CreateComboColumn(
