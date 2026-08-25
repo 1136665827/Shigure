@@ -318,6 +318,7 @@ public sealed class ConditionFieldCatalog
     private static bool IsUnitStateClassification(string classification)
         => classification is ClassStateCatalog.CategoryTarget
             or ClassStateCatalog.CategoryFocus
+            or ClassStateCatalog.CategoryMouseover
             or ClassStateCatalog.CategoryBoss1
             or ClassStateCatalog.CategoryBoss2
             or ClassStateCatalog.CategoryBoss3

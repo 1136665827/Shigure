@@ -11,6 +11,7 @@ internal sealed class ModuleDependencyService
         ClassStateCatalog.CategoryConfig,
         ClassStateCatalog.CategoryTarget,
         ClassStateCatalog.CategoryFocus,
+        ClassStateCatalog.CategoryMouseover,
         ClassStateCatalog.CategoryBoss1,
         ClassStateCatalog.CategoryBoss2,
         ClassStateCatalog.CategoryBoss3,

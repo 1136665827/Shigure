@@ -5,6 +5,7 @@ local rc = LibStub("LibRangeCheck-3.0")
 local state = Fuyutsui.state
 local target = Fuyutsui.target
 local focus = Fuyutsui.focus
+local mouseover = Fuyutsui.mouseover
 local boss = Fuyutsui.boss
 local nameplate = Fuyutsui.nameplate
 
@@ -16,6 +17,7 @@ end
 local unitZHMap = {
     ["target"] = "目标",
     ["focus"] = "焦点",
+    ["mouseover"] = "鼠标",
     ["boss1"] = "首领1",
     ["boss2"] = "首领2",
     ["boss3"] = "首领3",
@@ -26,6 +28,7 @@ local unitZHMap = {
 local function GetUnitCache(unit)
     if unit == "target" then return target end
     if unit == "focus" then return focus end
+    if unit == "mouseover" then return mouseover end
     if boss and boss[unit] then return boss[unit] end
 end
 
@@ -214,6 +217,31 @@ end
 
 function Fuyutsui:UpdateFocusFullInfo()
     self:UpdateUnitFullInfo("focus")
+end
+
+-- 鼠标指向包装
+function Fuyutsui:UpdateMouseoverType()
+    self:UpdateUnitType("mouseover")
+end
+
+function Fuyutsui:UpdateMouseoverCanAttack()
+    self:UpdateUnitCanAttack("mouseover")
+end
+
+function Fuyutsui:UpdateMouseoverRangeBlock()
+    self:UpdateUnitRangeBlock("mouseover")
+end
+
+function Fuyutsui:UpdateMouseoverDeath()
+    self:UpdateUnitDeathStatus("mouseover")
+end
+
+function Fuyutsui:UpdateMouseoverHealth()
+    self:UpdateUnitHealthBlock("mouseover")
+end
+
+function Fuyutsui:UpdateMouseoverFullInfo()
+    self:UpdateUnitFullInfo("mouseover")
 end
 
 function Fuyutsui:AddNameplate(unit)

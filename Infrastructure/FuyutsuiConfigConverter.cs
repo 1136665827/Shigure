@@ -34,6 +34,7 @@ internal static class FuyutsuiConfigConverter
         ClassStateCatalog.CategoryConfig,
         ClassStateCatalog.CategoryTarget,
         ClassStateCatalog.CategoryFocus,
+        ClassStateCatalog.CategoryMouseover,
         ClassStateCatalog.CategoryBoss1,
         ClassStateCatalog.CategoryBoss2,
         ClassStateCatalog.CategoryBoss3,
@@ -512,6 +513,7 @@ internal static class FuyutsuiConfigConverter
     private static bool IsUnitStateCategory(string category)
         => category is ClassStateCatalog.CategoryTarget
             or ClassStateCatalog.CategoryFocus
+            or ClassStateCatalog.CategoryMouseover
             or ClassStateCatalog.CategoryBoss1
             or ClassStateCatalog.CategoryBoss2
             or ClassStateCatalog.CategoryBoss3

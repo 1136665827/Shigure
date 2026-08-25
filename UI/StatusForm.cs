@@ -1177,11 +1177,12 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Top,
             BackColor = UiTheme.Surface,
             ColumnCount = 2,
-            RowCount = 3,
+            RowCount = 4,
             Margin = new Padding(0)
         };
         fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -1220,6 +1221,10 @@ public sealed class StatusForm : Form
             "焦点",
             ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
             104), 1, 2);
+        fields.Controls.Add(CreateCommonFieldCard(
+            "鼠标",
+            ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
+            104), 0, 3);
 
         scrollHost.Controls.Add(fields);
         return scrollHost;
