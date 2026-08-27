@@ -63,6 +63,12 @@ function Fuyutsui:PLAYER_MOUNT_DISPLAY_CHANGED()
     self:UpdatePlayerMounted()
 end
 
+function Fuyutsui:UNIT_PET(_, unit)
+    if unit == "player" then
+        self:UpdatePlayerPet()
+    end
+end
+
 function Fuyutsui:PLAYER_REGEN_DISABLED()
     self:UpdateTargetCanAttack()
     state.combat = true

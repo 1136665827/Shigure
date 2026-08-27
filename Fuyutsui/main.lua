@@ -7,6 +7,7 @@ function Fuyutsui:UpdatePlayerBlocks()
     self.state.drinkStatus = false
     self.state.mountCasting = false
     self:UpdatePlayerMounted()
+    self:UpdatePlayerPet()
     self:UpdatePlayerCombat()
     self:UpdatePlayerMoving(IsPlayerMoving())
     self:UpdatePlayerCastBlocks()
