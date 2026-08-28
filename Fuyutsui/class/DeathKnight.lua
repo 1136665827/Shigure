@@ -351,7 +351,7 @@ Fuyutsui.spellsList = {
     [49028]   = { index = 9, name = "符文刃舞" },
     [195182]  = { index = 10, name = "精髓分裂" },
     [50842]   = { index = 11, name = "血液沸腾" },
-    [433895]  = { index = 12, name = "天灾打击" },
+    [433895]  = { index = 12, name = "吸血鬼打击" },
     [46584]   = { index = 13, name = "亡者复生" },
     [47541]   = { index = 14, name = "凋零缠绕" },
     [55090]   = { index = 15, name = "天灾打击" },
