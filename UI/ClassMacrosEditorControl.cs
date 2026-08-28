@@ -126,41 +126,12 @@ public sealed class ClassMacrosEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
-            RowCount = 4,
+            RowCount = 3,
             Margin = new Padding(0)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
-
-        var header = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 2,
-            Padding = new Padding(UiTheme.CardPadding, 12, UiTheme.CardPadding, 12),
-            Margin = new Padding(0, 0, 0, UiTheme.PageGap)
-        };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-
-        header.Controls.Add(CreateFieldCaption("路径"), 0, 0);
-        ConfigureInfoLabel(_pathLabel, UiTheme.Text);
-        _pathLabel.Text = "未加载";
-        _pathLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
-        _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
-        header.Controls.Add(_pathLabel, 1, 0);
-
-        header.Controls.Add(CreateFieldCaption("状态"), 0, 1);
-        ConfigureInfoLabel(_statusLabel, UiTheme.Muted);
-        _statusLabel.Text = "点击刷新以加载项目 Fuyutsui\\core\\classmacros.lua";
-        _statusLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
-        _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
-        header.Controls.Add(_statusLabel, 1, 1);
-        root.Controls.Add(header, 0, 0);
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
 
         _offsetLabel.Dock = DockStyle.Fill;
         _offsetLabel.AutoSize = false;
@@ -171,9 +142,9 @@ public sealed class ClassMacrosEditorControl : UserControl
         _offsetLabel.Margin = new Padding(0);
         _offsetLabel.AutoEllipsis = true;
         _offsetLabel.Text = "创建顺序：动态宏（每项 30 槽）→ 静态宏 → 特殊宏；空字符串保留槽位";
-        root.Controls.Add(_offsetLabel, 0, 1);
+        root.Controls.Add(_offsetLabel, 0, 0);
 
-        root.Controls.Add(BuildSectionTabs(), 0, 2);
+        root.Controls.Add(BuildSectionTabs(), 0, 1);
 
         var actionRow = new UiCardPanel
         {
@@ -202,9 +173,41 @@ public sealed class ClassMacrosEditorControl : UserControl
         _saveButton.Click += async (_, _) => await SaveAndUpdateAsync();
         actions.Controls.Add(_reloadButton);
         actions.Controls.Add(_saveButton);
+        actionRow.Controls.Add(BuildFooterInfo(), 0, 0);
         actionRow.Controls.Add(actions, 1, 0);
-        root.Controls.Add(actionRow, 0, 3);
+        root.Controls.Add(actionRow, 0, 2);
         return root;
+    }
+
+    private Control BuildFooterInfo()
+    {
+        var info = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 2,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        info.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56));
+        info.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        info.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        info.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+        info.Controls.Add(CreateFieldCaption("状态"), 0, 0);
+        ConfigureInfoLabel(_statusLabel, UiTheme.Muted);
+        _statusLabel.Text = "点击刷新以加载项目 Fuyutsui\\core\\classmacros.lua";
+        _statusLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
+        _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
+        info.Controls.Add(_statusLabel, 1, 0);
+
+        info.Controls.Add(CreateFieldCaption("路径"), 0, 1);
+        ConfigureInfoLabel(_pathLabel, UiTheme.Text);
+        _pathLabel.Text = "未加载";
+        _pathLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
+        _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
+        info.Controls.Add(_pathLabel, 1, 1);
+        return info;
     }
 
     private Control BuildSectionTabs()
@@ -997,6 +1000,11 @@ public sealed class ClassMacrosEditorControl : UserControl
 
             _statusLabel.Text = "已保存并更新配置";
             UpdateOffsetHint();
+            MessageBox.Show(
+                "请在游戏内重载界面,  /reload",
+                "保存成功",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {

@@ -38,6 +38,7 @@ internal static class ClassBlocksStore
         public int TableEndExclusive { get; set; }
         public Dictionary<int, SpecBlocks> Specs { get; set; } = new();
         public List<SpellsListEntry> SpellsList { get; set; } = new();
+        public HashSet<long> DeletedSpellsListOriginalIds { get; } = new();
         public bool IsModernFormat { get; set; }
     }
 
@@ -199,7 +200,10 @@ internal static class ClassBlocksStore
             throw new InvalidOperationException("当前文件仍是旧版稀疏索引 ClassBlocks，无法用图形编辑器保存。");
         }
 
-        var updated = UpdateSpellsListEntries(document.SourceText, document.SpellsList);
+        var updated = UpdateSpellsListEntries(
+            document.SourceText,
+            document.SpellsList,
+            document.DeletedSpellsListOriginalIds);
         if (!TryExtractAssignedTable(updated, AssignmentName, out _, out var classBlocksStart, out var classBlocksEnd))
         {
             throw new InvalidOperationException("保存前无法重新定位 ClassBlocks 表。");
@@ -225,9 +229,14 @@ internal static class ClassBlocksStore
             spell.OriginalIndex = spell.Index;
             spell.OriginalName = spell.Name;
         }
+
+        document.DeletedSpellsListOriginalIds.Clear();
     }
 
-    private static string UpdateSpellsListEntries(string source, IReadOnlyList<SpellsListEntry> entries)
+    private static string UpdateSpellsListEntries(
+        string source,
+        IReadOnlyList<SpellsListEntry> entries,
+        IReadOnlySet<long> deletedOriginalIds)
     {
         var newEntries = entries.Where(entry => entry.OriginalSpellId == 0).ToArray();
         var changedEntries = entries
@@ -236,7 +245,7 @@ internal static class ClassBlocksStore
                 || entry.Index != entry.OriginalIndex
                 || !string.Equals(entry.Name, entry.OriginalName, StringComparison.Ordinal)))
             .ToDictionary(entry => entry.OriginalSpellId);
-        if (changedEntries.Count == 0 && newEntries.Length == 0)
+        if (changedEntries.Count == 0 && newEntries.Length == 0 && deletedOriginalIds.Count == 0)
         {
             return source;
         }
@@ -248,14 +257,26 @@ internal static class ClassBlocksStore
 
         var tableText = source[tableStart..tableEnd];
         var updatedOriginalIds = new HashSet<long>();
+        var deletedIdsFound = new HashSet<long>();
         var pattern = new Regex(
-            """^(?<prefix>[ \t]*\[[ \t]*)(?<spellId>\d+)(?<beforeIndex>[ \t]*\][ \t]*=[ \t]*\{[ \t]*index[ \t]*=[ \t]*)(?<index>\d+)(?<beforeName>[ \t]*,[ \t]*name[ \t]*=[ \t]*)(?<name>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')(?<suffix>[^\n]*)$""",
+            """^(?<prefix>[ \t]*\[[ \t]*)(?<spellId>\d+)(?<beforeIndex>[ \t]*\][ \t]*=[ \t]*\{[ \t]*index[ \t]*=[ \t]*)(?<index>\d+)(?<beforeName>[ \t]*,[ \t]*name[ \t]*=[ \t]*)(?<name>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')(?<suffix>[^\r\n]*)(?<lineEnd>\r?\n|$)""",
             RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
         var updatedTable = pattern.Replace(tableText, match =>
         {
-            if (!long.TryParse(match.Groups["spellId"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var originalSpellId)
-                || !changedEntries.TryGetValue(originalSpellId, out var entry))
+            if (!long.TryParse(match.Groups["spellId"].Value, NumberStyles.None,
+                    CultureInfo.InvariantCulture, out var originalSpellId))
+            {
+                return match.Value;
+            }
+
+            if (deletedOriginalIds.Contains(originalSpellId))
+            {
+                deletedIdsFound.Add(originalSpellId);
+                return string.Empty;
+            }
+
+            if (!changedEntries.TryGetValue(originalSpellId, out var entry))
             {
                 return match.Value;
             }
@@ -271,7 +292,8 @@ internal static class ClassBlocksStore
                 + quote
                 + EscapeLuaString(entry.Name, quote)
                 + quote
-                + match.Groups["suffix"].Value;
+                + match.Groups["suffix"].Value
+                + match.Groups["lineEnd"].Value;
         });
 
         var missing = changedEntries.Keys.Where(id => !updatedOriginalIds.Contains(id)).ToArray();
@@ -279,6 +301,13 @@ internal static class ClassBlocksStore
         {
             throw new InvalidOperationException(
                 $"无法在 {SpellsListAssignmentName} 中定位法术 ID {string.Join(", ", missing)} 的原始条目。");
+        }
+
+        var missingDeleted = deletedOriginalIds.Where(id => !deletedIdsFound.Contains(id)).ToArray();
+        if (missingDeleted.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"无法在 {SpellsListAssignmentName} 中定位待删除的法术 ID {string.Join(", ", missingDeleted)}。");
         }
 
         if (newEntries.Length > 0)

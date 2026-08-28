@@ -18,6 +18,7 @@ public sealed class MainForm : Form, IMessageFilter
 
     private const int ResizeGripSize = 8;
     private const int RoundedCornerResizeDebounceMs = 80;
+    private const int WowProcessMonitorIntervalMs = 10_000;
     private const string HeaderIconResourcePath = "Assets.arasaka-icon-transparent.png";
     private const string ModuleWebsiteUrl = "https://www.shigure.club";
     private static readonly Color DefaultHeaderIconColor = Color.White;
@@ -89,6 +90,7 @@ public sealed class MainForm : Form, IMessageFilter
     private readonly AppOptions _initialOptions;
     private readonly UiCacheState _uiCache;
     private readonly System.Windows.Forms.Timer _roundedCornerResizeTimer;
+    private readonly System.Windows.Forms.Timer _wowProcessMonitorTimer;
     private RenderSnapshot? _lastSnapshot;
     private string? _lastLoggedStep;
     private string? _lastLoggedStepDetails;
@@ -103,6 +105,7 @@ public sealed class MainForm : Form, IMessageFilter
     private bool _exitRequested;
     private bool _shutdownStarted;
     private bool _shutdownCompleted;
+    private bool _wasWowProcessWindowAvailable;
 
     private sealed record ProjectConfigUpdateResult(
         FuyutsuiConfigConverter.UpdateResult Config,
@@ -140,6 +143,13 @@ public sealed class MainForm : Form, IMessageFilter
                 UiTheme.ApplyFallbackRoundedCorners(this);
             }
         };
+        _wasWowProcessWindowAvailable = _processLocator.FindFrontmostWindow() != 0;
+        _wowProcessMonitorTimer = new System.Windows.Forms.Timer
+        {
+            Interval = WowProcessMonitorIntervalMs
+        };
+        _wowProcessMonitorTimer.Tick += HandleWowProcessMonitorTick;
+        _wowProcessMonitorTimer.Start();
         Application.AddMessageFilter(this);
         InitializeComponent();
         TryApplyApplicationIcon();
@@ -366,6 +376,7 @@ public sealed class MainForm : Form, IMessageFilter
                 _shutdownStarted = true;
                 SaveUiCache();
                 _roundedCornerResizeTimer.Stop();
+                _wowProcessMonitorTimer.Stop();
                 Application.RemoveMessageFilter(this);
                 _ = CompleteShutdownAsync();
             }
@@ -385,7 +396,41 @@ public sealed class MainForm : Form, IMessageFilter
         _trayDefaultIcon?.Dispose();
         _trayEnabledIcon?.Dispose();
         _roundedCornerResizeTimer.Dispose();
+        _wowProcessMonitorTimer.Dispose();
         base.OnFormClosed(e);
+    }
+
+    private async void HandleWowProcessMonitorTick(object? sender, EventArgs e)
+    {
+        var isAvailable = _processLocator.FindFrontmostWindow() != 0;
+        var justOpened = !_wasWowProcessWindowAvailable && isAvailable;
+        _wasWowProcessWindowAvailable = isAvailable;
+
+        if (!justOpened || _shutdownStarted)
+        {
+            return;
+        }
+
+        AppendLog("检测到目标游戏进程已打开，正在自动更新配置");
+        try
+        {
+            await QueueProjectConfigUpdateAsync(savedAddonFilePath: null);
+            if (!_shutdownStarted)
+            {
+                AppendLog("目标游戏进程启动后的配置更新已完成");
+            }
+        }
+        catch (OperationCanceledException) when (_shutdownStarted)
+        {
+            // 关闭流程会等待队列收尾，无需再记录失败。
+        }
+        catch (Exception ex)
+        {
+            if (!_shutdownStarted)
+            {
+                AppendLog($"目标游戏进程启动后的配置更新失败: {ex.Message}");
+            }
+        }
     }
 
     private async Task CompleteShutdownAsync()

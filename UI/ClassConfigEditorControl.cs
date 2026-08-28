@@ -29,6 +29,8 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly TextBox _spellsListSearchBox = new();
     private readonly TextBox _newSpellIdBox = new();
     private readonly TextBox _newSpellNameBox = new();
+    private ToolStripDropDown? _spellSuggestionDropDown;
+    private bool _suppressSpellSuggestions;
     private readonly NumericUpDown _groupNumBox = new();
     private readonly NumericUpDown _groupHealthBox = new();
     private readonly NumericUpDown _groupRoleBox = new();
@@ -83,6 +85,7 @@ public sealed class ClassConfigEditorControl : UserControl
         if (disposing)
         {
             CloseStateComboDropDown();
+            CloseSpellSuggestions();
             SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
         }
 
@@ -213,42 +216,13 @@ public sealed class ClassConfigEditorControl : UserControl
             Dock = DockStyle.Fill,
             BackColor = UiTheme.Surface,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 2,
             Margin = new Padding(0)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
 
-        var header = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 2,
-            Padding = new Padding(UiTheme.CardPadding, 12, UiTheme.CardPadding, 12),
-            Margin = new Padding(0, 0, 0, UiTheme.PageGap)
-        };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        header.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-
-        header.Controls.Add(CreateFieldCaption("路径"), 0, 0);
-        ConfigureInfoLabel(_pathLabel, UiTheme.Text);
-        _pathLabel.Text = "未加载";
-        _pathLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
-        _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
-        header.Controls.Add(_pathLabel, 1, 0);
-
-        header.Controls.Add(CreateFieldCaption("状态"), 0, 1);
-        ConfigureInfoLabel(_statusLabel, UiTheme.Muted);
-        _statusLabel.Text = "点击刷新以加载项目 Fuyutsui\\class";
-        _statusLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
-        _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
-        header.Controls.Add(_statusLabel, 1, 1);
-        root.Controls.Add(header, 0, 0);
-
-        root.Controls.Add(BuildSectionTabs(), 0, 1);
+        root.Controls.Add(BuildSectionTabs(), 0, 0);
 
         var actionRow = new UiCardPanel
         {
@@ -277,9 +251,41 @@ public sealed class ClassConfigEditorControl : UserControl
         _saveButton.Click += async (_, _) => await SaveAndUpdateAsync();
         actions.Controls.Add(_reloadButton);
         actions.Controls.Add(_saveButton);
+        actionRow.Controls.Add(BuildFooterInfo(), 0, 0);
         actionRow.Controls.Add(actions, 1, 0);
-        root.Controls.Add(actionRow, 0, 2);
+        root.Controls.Add(actionRow, 0, 1);
         return root;
+    }
+
+    private Control BuildFooterInfo()
+    {
+        var info = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 2,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        info.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56));
+        info.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        info.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        info.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+        info.Controls.Add(CreateFieldCaption("状态"), 0, 0);
+        ConfigureInfoLabel(_statusLabel, UiTheme.Muted);
+        _statusLabel.Text = "点击刷新以加载项目 Fuyutsui\\class";
+        _statusLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
+        _toolTip.SetToolTip(_statusLabel, _statusLabel.Text);
+        info.Controls.Add(_statusLabel, 1, 0);
+
+        info.Controls.Add(CreateFieldCaption("路径"), 0, 1);
+        ConfigureInfoLabel(_pathLabel, UiTheme.Text);
+        _pathLabel.Text = "未加载";
+        _pathLabel.TextChanged += (_, _) => _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
+        _toolTip.SetToolTip(_pathLabel, _pathLabel.Text);
+        info.Controls.Add(_pathLabel, 1, 1);
+        return info;
     }
 
     private Control BuildSectionTabs()
@@ -353,6 +359,11 @@ public sealed class ClassConfigEditorControl : UserControl
             if (selectedIndex == index)
             {
                 return;
+            }
+
+            if (index != 4)
+            {
+                CloseSpellSuggestions();
             }
 
             selectedIndex = index;
@@ -740,6 +751,15 @@ public sealed class ClassConfigEditorControl : UserControl
         _newSpellNameBox.PlaceholderText = "名称";
         addCard.Controls.Add(_newSpellNameBox, 2, 0);
 
+        _newSpellIdBox.TextChanged += (_, _) => UpdateSpellSuggestions(addCard);
+        _newSpellIdBox.VisibleChanged += (_, _) =>
+        {
+            if (!_newSpellIdBox.Visible)
+            {
+                CloseSpellSuggestions();
+            }
+        };
+
         var addControl = new UiPillTab("添加")
         {
             Selected = true,
@@ -754,6 +774,14 @@ public sealed class ClassConfigEditorControl : UserControl
 
         void HandleAddOnEnter(object? _, KeyEventArgs e)
         {
+            if (e.KeyCode == Keys.Escape && _spellSuggestionDropDown is not null)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                CloseSpellSuggestions();
+                return;
+            }
+
             if (e.KeyCode != Keys.Enter)
             {
                 return;
@@ -774,6 +802,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
         ConfigureGrid(_spellsListGrid, "class-config-spells-list");
         _spellsListGrid.AllowUserToAddRows = false;
+        _spellsListGrid.CellContentClick += HandleSpellsListDeleteClick;
         _spellsListGrid.CellValueChanged += (_, e) =>
         {
             MarkDirty();
@@ -804,6 +833,7 @@ public sealed class ClassConfigEditorControl : UserControl
             AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
             SortMode = DataGridViewColumnSortMode.NotSortable
         });
+        _spellsListGrid.Columns.Add(CreateDeleteColumn());
         panel.Controls.Add(_spellsListGrid, 0, 2);
         return panel;
     }
@@ -1513,8 +1543,13 @@ public sealed class ClassConfigEditorControl : UserControl
     {
         CloseStateComboDropDown();
         if (rowIndex < 0
-            || rowIndex >= _statesGrid.Rows.Count
-            || _statesGrid.Rows[rowIndex].Cells[columnIndex] is not DataGridViewComboBoxCell cell)
+            || rowIndex >= _statesGrid.Rows.Count)
+        {
+            return;
+        }
+
+        var row = _statesGrid.Rows[rowIndex];
+        if (row.Cells[columnIndex] is not DataGridViewComboBoxCell cell)
         {
             return;
         }
@@ -1545,8 +1580,21 @@ public sealed class ClassConfigEditorControl : UserControl
             current,
             selected =>
             {
-                cell.Value = selected.Value?.ToString() ?? string.Empty;
-                _statesGrid.InvalidateCell(cell);
+                var selectedValue = selected.Value?.ToString() ?? string.Empty;
+                if (row.IsNewRow)
+                {
+                    var addedRowIndex = _statesGrid.Rows.Add(selectedValue, "×");
+                    var addedCell = _statesGrid.Rows[addedRowIndex].Cells[columnIndex];
+                    _statesGrid.CurrentCell = addedCell;
+                    _statesGrid.InvalidateCell(addedCell);
+                }
+                else
+                {
+                    cell.Value = selectedValue;
+                    _statesGrid.InvalidateCell(cell);
+                }
+
+                MarkDirty();
             },
             closed: () =>
             {
@@ -1770,6 +1818,94 @@ public sealed class ClassConfigEditorControl : UserControl
         => new[] { "SpellId", "Index", "Name" }
             .Select(columnName => row.Cells[columnName].Value?.ToString() ?? string.Empty)
             .Any(value => value.Contains(query, StringComparison.OrdinalIgnoreCase));
+
+    private void UpdateSpellSuggestions(Control owner)
+    {
+        if (_suppressSpellSuggestions)
+        {
+            return;
+        }
+
+        CloseSpellSuggestions();
+        if (!_newSpellIdBox.Focused)
+        {
+            return;
+        }
+
+        var suggestions = SpellIconCatalog.SearchByIdPrefix(_newSpellIdBox.Text, 8);
+        if (suggestions.Count == 0)
+        {
+            return;
+        }
+
+        var selectionStart = _newSpellIdBox.SelectionStart;
+        var selectionLength = _newSpellIdBox.SelectionLength;
+        var anchorBounds = Rectangle.Union(_newSpellIdBox.Bounds, _newSpellNameBox.Bounds);
+        ToolStripDropDown? dropDown = null;
+        dropDown = SpellSuggestionPopup.Show(
+            owner,
+            anchorBounds,
+            suggestions,
+            ApplySpellSuggestion,
+            closed: () =>
+            {
+                if (ReferenceEquals(_spellSuggestionDropDown, dropDown))
+                {
+                    _spellSuggestionDropDown = null;
+                }
+            });
+        _spellSuggestionDropDown = dropDown;
+        if (dropDown is not null)
+        {
+            _newSpellIdBox.Focus();
+            _newSpellIdBox.SelectionStart = Math.Min(selectionStart, _newSpellIdBox.TextLength);
+            _newSpellIdBox.SelectionLength = Math.Min(
+                selectionLength,
+                _newSpellIdBox.TextLength - _newSpellIdBox.SelectionStart);
+            BeginInvoke((Action)(() =>
+            {
+                if (IsDisposed
+                    || Disposing
+                    || !ReferenceEquals(_spellSuggestionDropDown, dropDown)
+                    || dropDown.IsDisposed)
+                {
+                    return;
+                }
+
+                _newSpellIdBox.Focus();
+                _newSpellIdBox.SelectionStart = Math.Min(selectionStart, _newSpellIdBox.TextLength);
+                _newSpellIdBox.SelectionLength = Math.Min(
+                    selectionLength,
+                    _newSpellIdBox.TextLength - _newSpellIdBox.SelectionStart);
+            }));
+        }
+    }
+
+    private void ApplySpellSuggestion(SpellSuggestion suggestion)
+    {
+        _suppressSpellSuggestions = true;
+        try
+        {
+            _newSpellIdBox.Text = suggestion.SpellId.ToString(CultureInfo.InvariantCulture);
+            _newSpellNameBox.Text = suggestion.Name;
+        }
+        finally
+        {
+            _suppressSpellSuggestions = false;
+        }
+
+        CloseSpellSuggestions();
+        _newSpellNameBox.Focus();
+        _newSpellNameBox.SelectionStart = _newSpellNameBox.TextLength;
+        _newSpellNameBox.SelectionLength = 0;
+    }
+
+    private void CloseSpellSuggestions()
+    {
+        var dropDown = _spellSuggestionDropDown;
+        _spellSuggestionDropDown = null;
+        SpellSuggestionPopup.Dismiss(dropDown);
+    }
 
     private void FillGroupEditors()
     {
@@ -2342,6 +2478,11 @@ public sealed class ClassConfigEditorControl : UserControl
             }
 
             _statusLabel.Text = "已保存并更新配置";
+            MessageBox.Show(
+                "请在游戏内重载界面,  /reload",
+                "保存成功",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
@@ -2427,6 +2568,36 @@ public sealed class ClassConfigEditorControl : UserControl
         if (grid.Rows[e.RowIndex].IsNewRow)
         {
             return;
+        }
+
+        grid.Rows.RemoveAt(e.RowIndex);
+        MarkDirty();
+    }
+
+    private void HandleSpellsListDeleteClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (sender is not DataGridView grid
+            || e.RowIndex < 0
+            || e.ColumnIndex < 0
+            || grid.Columns[e.ColumnIndex].Name != "Delete")
+        {
+            return;
+        }
+
+        var row = grid.Rows[e.RowIndex];
+        if (row.IsNewRow || row.Tag is not ClassBlocksStore.SpellsListEntry entry)
+        {
+            return;
+        }
+
+        if (_currentDocument is not null)
+        {
+            if (entry.OriginalSpellId > 0)
+            {
+                _currentDocument.DeletedSpellsListOriginalIds.Add(entry.OriginalSpellId);
+            }
+
+            _currentDocument.SpellsList.Remove(entry);
         }
 
         grid.Rows.RemoveAt(e.RowIndex);
