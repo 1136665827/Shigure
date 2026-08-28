@@ -35,8 +35,6 @@ internal static class Program
 
         try
         {
-            StartupNotice.ShowIfNeeded();
-
             var options = AppOptions.FromArgs(args);
             var baseDirectory = AppPaths.BaseDirectory;
             var moduleStore = new ModuleStore(ModuleStore.ResolveModuleDirectory());

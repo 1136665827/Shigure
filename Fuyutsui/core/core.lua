@@ -98,6 +98,7 @@ function Fuyutsui:OnEnable()
     self:RegisterEvent("PLAYER_ALIVE")
     self:RegisterEvent("PLAYER_UNGHOST")
     self:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+    self:RegisterEvent("UNIT_PET")
     self:RegisterEvent("PLAYER_REGEN_DISABLED")
     self:RegisterEvent("PLAYER_REGEN_ENABLED")
     self:RegisterEvent("PLAYER_STARTED_MOVING")
@@ -167,6 +168,7 @@ Fuyutsui.blocks = {}
 Fuyutsui.target = {}
 Fuyutsui.focus = {}
 Fuyutsui.mouseover = {}
+Fuyutsui.pet = {}
 Fuyutsui.boss = {}
 for index = 1, 5 do
     Fuyutsui.boss["boss" .. index] = {}

@@ -78,23 +78,23 @@ public sealed class UnitEditorForm : Form
     private readonly Label _healthNameLabel = new();
     private readonly TextBox _nameBox = new();
     private readonly TextBox _healthNameBox = new();
-    private readonly ComboBox _categoryBox = new();
-    private readonly ComboBox _selectorBox = new();
-    private readonly ComboBox _lowestHealthAuraFilterBox = new();
-    private readonly ComboBox _lowestHealthRoleFilterBox = new();
+    private readonly UiDropDown _categoryBox = new();
+    private readonly UiDropDown _selectorBox = new();
+    private readonly UiDropDown _lowestHealthAuraFilterBox = new();
+    private readonly UiDropDown _lowestHealthRoleFilterBox = new();
     private readonly FlowLayoutPanel _paramPanel = new();
     private readonly Label _previewLabel = new();
     private readonly ToolTip _toolTip = new();
 
     private readonly NumericUpDown _thresholdBox = new();
-    private readonly ComboBox _thresholdModeBox = new();
-    private readonly ComboBox _thresholdFieldBox = new();
-    private readonly ComboBox _roleBox = new();
+    private readonly UiDropDown _thresholdModeBox = new();
+    private readonly UiDropDown _thresholdFieldBox = new();
+    private readonly UiDropDown _roleBox = new();
     private readonly CheckBox _reverseBox = new();
-    private readonly ComboBox _auraBox = new();
+    private readonly UiDropDown _auraBox = new();
     private readonly CheckedListBox _aurasBox = new();
     private readonly NumericUpDown _auraCountBox = new();
-    private readonly ComboBox _dispelTypeBox = new();
+    private readonly UiDropDown _dispelTypeBox = new();
 
     private Panel _thresholdModeRow = null!;
     private Panel _thresholdRow = null!;
@@ -135,11 +135,72 @@ public sealed class UnitEditorForm : Form
         UiTheme.ApplyDarkTitleBar(this);
     }
 
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        RestoreCachedWindowSize();
+    }
+
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        SaveWindowSize();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        SaveWindowSize();
+        base.OnFormClosed(e);
+    }
+
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
         _nameBox.Focus();
         _nameBox.SelectAll();
+    }
+
+    private void RestoreCachedWindowSize()
+    {
+        var cached = UiCacheStore.Load().UnitEditorWindowSize;
+        if (cached is null || cached.Width <= 0 || cached.Height <= 0)
+        {
+            return;
+        }
+
+        var workingArea = Owner is not null
+            ? Screen.FromControl(Owner).WorkingArea
+            : Screen.FromControl(this).WorkingArea;
+        var maximumWidth = Math.Max(MinimumSize.Width, workingArea.Width - 40);
+        var maximumHeight = Math.Max(MinimumSize.Height, workingArea.Height - 40);
+        Size = new Size(
+            Math.Clamp(cached.Width, MinimumSize.Width, maximumWidth),
+            Math.Clamp(cached.Height, MinimumSize.Height, maximumHeight));
+
+        if (Owner is not null)
+        {
+            CenterToParent();
+        }
+        else
+        {
+            CenterToScreen();
+        }
+    }
+
+    private void SaveWindowSize()
+    {
+        if (WindowState != FormWindowState.Normal || Width <= 0 || Height <= 0)
+        {
+            return;
+        }
+
+        var cache = UiCacheStore.Load();
+        cache.UnitEditorWindowSize = new WindowSize
+        {
+            Width = Width,
+            Height = Height
+        };
+        UiCacheStore.Save(cache);
     }
 
     private void InitializeComponent()
@@ -150,11 +211,12 @@ public sealed class UnitEditorForm : Form
         BackColor = UiTheme.Surface;
         ForeColor = UiTheme.Text;
         ClientSize = new Size(RowWidth + 36, 534);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
+        FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.CenterParent;
+        MinimumSize = new Size(RowWidth + 52, 420);
 
         var root = new TableLayoutPanel
         {
@@ -1224,7 +1286,7 @@ public sealed class UnitEditorForm : Form
         _dispelTypeBox.SelectedIndex = 0;
     }
 
-    private static void SelectAura(ComboBox box, string? aura)
+    private static void SelectAura(UiDropDown box, string? aura)
     {
         if (string.IsNullOrEmpty(aura))
         {

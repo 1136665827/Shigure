@@ -39,8 +39,8 @@ public sealed class MainForm : Form, IMessageFilter
     };
 
     private Button _toggleKeyButton = null!;
-    private ComboBox _modeComboBox = null!;
-    private ComboBox _moduleComboBox = null!;
+    private UiDropDown _modeComboBox = null!;
+    private UiDropDown _moduleComboBox = null!;
     private Label _moduleFilterLabel = null!;
     private Label _moduleCountLabel = null!;
     private Label _configSourceLabel = null!;
@@ -188,12 +188,47 @@ public sealed class MainForm : Form, IMessageFilter
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        var runtimeDataGenerated = await GenerateRuntimeDataAtStartupIfMissingAsync();
         var dependenciesUpdated = await ImportModuleDependenciesAsync(reloadStore: true, showFeedback: true);
-        if (!dependenciesUpdated)
+        if (!dependenciesUpdated && !runtimeDataGenerated)
         {
             await SynchronizeAddonAtStartupAsync();
         }
         await StartRuntimeAsync();
+    }
+
+    private async Task<bool> GenerateRuntimeDataAtStartupIfMissingAsync()
+    {
+        var configDirectory = Path.Combine(_baseDirectory, ConfigService.ConfigDirectoryName);
+        var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
+        var hasAllConfigFiles = Directory.Exists(configDirectory)
+            && File.Exists(Path.Combine(configDirectory, ConfigService.CommonConfigFileName))
+            && ClassNames.GetClasses().All(item =>
+                File.Exists(Path.Combine(configDirectory, $"{ClassNames.GetConfigFileName(item.Id)}.json")));
+        var hasAllKeymapFiles = Directory.Exists(keymapDirectory)
+            && ClassNames.GetClasses().All(item =>
+                File.Exists(Path.Combine(
+                    keymapDirectory,
+                    $"{ClassNames.GetConfigFileName(item.Id).ToLowerInvariant()}.json")));
+        if (hasAllConfigFiles && hasAllKeymapFiles)
+        {
+            return false;
+        }
+
+        AppendLog("检测到 config 或 keymap 缺失或不完整，正在从项目 Fuyutsui 自动生成");
+        try
+        {
+            var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath: null);
+            AppendLog(
+                $"已自动生成运行配置: config {result.Config.UpdatedFiles.Count} 个文件，" +
+                $"keymap {result.Keymap?.UpdatedFiles.Count ?? 0} 个文件");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"自动生成 config/keymap 失败，程序将继续启动: {ex.Message}");
+            return false;
+        }
     }
 
     private Task ReloadModulesWithDependenciesAsync()
@@ -789,7 +824,7 @@ public sealed class MainForm : Form, IMessageFilter
         inputCard.Controls.Add(CreateSettingLabel("触发键"), 0, 2);
         inputCard.Controls.Add(_toggleKeyButton, 1, 2);
 
-        _modeComboBox = new ComboBox();
+        _modeComboBox = new UiDropDown();
         UiTheme.StyleComboBox(_modeComboBox);
         _modeComboBox.Items.AddRange(new object[] { "开关", "单击", "按住" });
         _modeComboBox.SelectedIndex = 0;
@@ -848,7 +883,7 @@ public sealed class MainForm : Form, IMessageFilter
         moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 0)!, 2);
         moduleCard.Controls.Add(CreateDescription("按实时职业与专精自动匹配，或手动指定模块"), 0, 1);
         moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 1)!, 2);
-        _moduleComboBox = new ComboBox();
+        _moduleComboBox = new UiDropDown();
         UiTheme.StyleComboBox(_moduleComboBox);
         _moduleComboBox.Dock = DockStyle.Fill;
         _moduleComboBox.Margin = new Padding(0, 0, 14, 0);
@@ -1241,13 +1276,9 @@ public sealed class MainForm : Form, IMessageFilter
         _configSourceLabel.Text = File.Exists(classMacrosPath)
             ? $"项目 Fuyutsui: {classDirectory} + classmacros.lua"
             : $"项目 Fuyutsui class: {classDirectory}";
-        var configDirectory = ConfigService.ResolveConfigPath(_baseDirectory);
-        if (!Directory.Exists(configDirectory))
-        {
-            throw new DirectoryNotFoundException($"配置目录不存在: {configDirectory}");
-        }
-
+        var configDirectory = Path.Combine(_baseDirectory, ConfigService.ConfigDirectoryName);
         var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
+        Directory.CreateDirectory(keymapDirectory);
 
         try
         {
@@ -2027,6 +2058,7 @@ public sealed class MainForm : Form, IMessageFilter
         _uiCache.ModuleRulesGridColumns = latestCache.ModuleRulesGridColumns;
         _uiCache.ColumnWidths = latestCache.ColumnWidths;
         _uiCache.ConditionEditorWindowSize = latestCache.ConditionEditorWindowSize;
+        _uiCache.UnitEditorWindowSize = latestCache.UnitEditorWindowSize;
 
         var currentBounds = CaptureMainWindowBounds();
         _uiCache.MainWindowBounds = currentBounds;

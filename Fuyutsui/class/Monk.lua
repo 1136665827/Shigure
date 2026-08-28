@@ -25,6 +25,7 @@ Fuyutsui.ClassBlocks = {
                 "难度",
                 "酒池",
                 "敌人数量",
+                
             },
             ["能量"] = {
                 "能量值",
@@ -37,6 +38,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -44,6 +46,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                
             },
             ["鼠标"] = {
                 "类型",
@@ -183,10 +186,14 @@ Fuyutsui.ClassBlocks = {
                 "首领战",
                 "难度",
                 "敌人数量",
+                "施法技能",
             },
             ["能量"] = {
                 "能量值",
                 "真气",
+            },
+            ["配置开关"] = {
+                "爆发开关",
             },
             ["目标"] = {
                 "类型",
@@ -196,6 +203,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -203,6 +211,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                
             },
             ["鼠标"] = {
                 "类型",
@@ -214,6 +223,34 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+            },
+        },
+        auras = {
+            player = {
+                { name = "乾元镇踏", spellId = 1291484, maxApps = 2, },
+                { name = "乾元之巅", spellId = 1249625, maxApps = 2, },
+                { name = "虎眼酒", spellId = 1261724, maxApps = 10, },
+                { name = "风之舞蹈", spellId = 432180, maxApps = 10, },
+                { name = "连击", spellId = 196741, maxApps = 5, },
+                { name = "幻灭踢强化", spellId = 116768, maxApps = 2, },
+                { name = "赤精之舞", spellId = 325202, maxApps = 2, },
+                { name = "疾风呼啸踢可用", spellId = 1250554, },
+                { name = "青龙之心", spellIds = { 443421, 443616, 1238904 }, maxApps = 3, },
+                { name = "天神御身", spellId = 443028, },
+                { name = "组合拳-旭日东升踢", spellId = 1249753, },
+                { name = "组合拳-神鹤引项踢", spellId = 1249754, },
+                { name = "组合拳-猛虎掌", spellId = 1249756, },
+                { name = "组合拳-幻灭踢", spellId = 1249757, },
+                { name = "组合拳-怒雷破", spellId = 1249758, },
+                { name = "组合拳-切空踢", spellId = 1249759, },
+                { name = "组合拳-风火雷电", spellId = 1249762, },
+                { name = "组合拳-乾元镇踏", spellId = 1249763, },
+                { name = "组合拳-碎玉闪电", spellId = 1249764, },
+                { name = "组合拳-升龙霸", spellId = 1249765, },
+                { name = "组合拳-风领主之击", spellId = 1249766, },
+                { name = "121套装BUFF", spellId = 1297033, },
+                { name = "可以释放天神御身", spellId = 1248992, },
+                { name = "组合拳天神御身", spellId = 1249790, },
             },
         },
         spells = {
@@ -233,6 +270,11 @@ Fuyutsui.ClassBlocks = {
             { spellId = 198898, name = "赤精之歌" },
             { spellId = 116844, name = "平心之环" },
             { spellId = 115078, name = "分筋错骨" },
+            { spellId = 123904, name = "白虎下凡" },
+            { spellId = 443028, name = "天神御身" },
+            { spellId = 392983, name = "风领主之击" },
+            { spellId = 443591, name = "众神聚心" },
+            { spellId = 1272696, name = "乾元镇踏", charge = true, maxCharge = 2 },
         },
     },
 }
@@ -316,4 +358,6 @@ Fuyutsui.spellsList = {
     [443028]  = { index = 28,  name = "天神御身" },
     [124682]  = { index = 29,  name = "氤氲之雾" },
     [115294]  = { index = 30,  name = "法力茶" },
+    [1249625] = { index = 31, name = "乾元之巅" },
+    [1272696] = { index = 32, name = "乾元镇踏" },
 }

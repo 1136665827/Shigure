@@ -99,13 +99,13 @@ internal static class UiCacheStore
 
 internal sealed class UiCacheState
 {
-    public string? LastShownVersion { get; set; }
     public WindowLocation? MainWindowLocation { get; set; }
     public WindowBounds? MainWindowBounds { get; set; }
     public WindowBounds? HorizontalMainWindowBounds { get; set; }
     public WindowBounds? VerticalMainWindowBounds { get; set; }
     public WindowBounds? SettingsWindowBounds { get; set; }
     public WindowSize? ConditionEditorWindowSize { get; set; }
+    public WindowSize? UnitEditorWindowSize { get; set; }
     public string? SelectedSettingsPage { get; set; }
     public string? MainWindowLayout { get; set; }
     public string? CloseButtonBehavior { get; set; }

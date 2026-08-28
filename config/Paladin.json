@@ -34,6 +34,8 @@
     "31": "愤怒之锤",
     "32": "愤怒之锤",
     "33": "愤怒之锤",
+    "34": "清洁术",
+    "35": "黎明之光",
     "101": "奥术洪流",
     "102": "石像形态",
     "103": "影遁",
@@ -270,74 +272,89 @@
       "type": "int",
       "category": "鼠标"
     },
+    "首领1施法(正计时)": {
+      "step": 45,
+      "type": "int",
+      "category": "首领1"
+    },
+    "首领2施法(正计时)": {
+      "step": 46,
+      "type": "int",
+      "category": "首领2"
+    },
     "auras": {
       "神圣壁垒": {
-        "step": 45,
-        "type": "int",
-        "category": "玩家"
-      },
-      "圣洁武器": {
-        "step": 46,
-        "type": "int",
-        "category": "玩家"
-      },
-      "神圣意志": {
         "step": 47,
         "type": "int",
         "category": "玩家"
       },
-      "苍穹之遗": {
+      "圣洁武器": {
         "step": 48,
         "type": "int",
         "category": "玩家"
       },
-      "圣光灌注": {
+      "神圣意志": {
         "step": 49,
         "type": "int",
         "category": "玩家"
       },
-      "晨光": {
+      "苍穹之遗": {
         "step": 50,
         "type": "int",
         "category": "玩家"
       },
-      "晨光-恢复": {
+      "圣光灌注": {
         "step": 51,
         "type": "int",
         "category": "玩家"
       },
-      "神性之手": {
+      "晨光": {
         "step": 52,
         "type": "int",
         "category": "玩家"
       },
-      "复仇之怒": {
+      "晨光-恢复": {
         "step": 53,
         "type": "int",
         "category": "玩家"
       },
-      "觉醒": {
+      "神性之手": {
         "step": 54,
         "type": "int",
         "category": "玩家"
       },
-      "目标失格者": {
+      "复仇之怒": {
         "step": 55,
+        "type": "int",
+        "category": "玩家"
+      },
+      "觉醒": {
+        "step": 56,
+        "type": "int",
+        "category": "玩家"
+      },
+      "美德道标": {
+        "step": 57,
+        "type": "int",
+        "category": "玩家"
+      },
+      "目标失格者": {
+        "step": 58,
         "type": "int",
         "category": "目标减益"
       },
       "目标奉献": {
-        "step": 56,
+        "step": 59,
         "type": "int",
         "category": "目标减益"
       },
       "焦点失格者": {
-        "step": 57,
+        "step": 60,
         "type": "int",
         "category": "焦点减益"
       },
       "焦点奉献": {
-        "step": 58,
+        "step": 61,
         "type": "int",
         "category": "焦点减益"
       },
@@ -369,39 +386,39 @@
     },
     "spells": {
       "盲目之光": {
-        "step": 59,
-        "type": "int"
-      },
-      "制裁之锤": {
-        "step": 60,
-        "type": "int"
-      },
-      "圣盾术": {
-        "step": 61,
-        "type": "int"
-      },
-      "牺牲祝福": {
         "step": 62,
         "type": "int"
       },
-      "自由祝福": {
+      "制裁之锤": {
         "step": 63,
         "type": "int"
       },
-      "保护祝福": {
+      "圣盾术": {
         "step": 64,
         "type": "int"
       },
-      "圣疗术": {
+      "牺牲祝福": {
         "step": 65,
         "type": "int"
       },
-      "神圣震击": {
+      "自由祝福": {
         "step": 66,
         "type": "int"
       },
-      "神圣震击充能": {
+      "保护祝福": {
         "step": 67,
+        "type": "int"
+      },
+      "圣疗术": {
+        "step": 68,
+        "type": "int"
+      },
+      "神圣震击": {
+        "step": 69,
+        "type": "int"
+      },
+      "神圣震击充能": {
+        "step": 70,
         "type": "int"
       },
       "神圣震击层数": {
@@ -410,35 +427,35 @@
         "type": "int"
       },
       "清洁术": {
-        "step": 68,
-        "type": "int"
-      },
-      "审判": {
-        "step": 69,
-        "type": "int"
-      },
-      "圣洁鸣钟": {
-        "step": 70,
-        "type": "int"
-      },
-      "神圣棱镜": {
         "step": 71,
         "type": "int"
       },
-      "光环掌握": {
+      "审判": {
         "step": 72,
         "type": "int"
       },
-      "美德道标": {
+      "圣洁鸣钟": {
         "step": 73,
         "type": "int"
       },
-      "神圣壁垒": {
+      "神圣棱镜": {
         "step": 74,
         "type": "int"
       },
-      "神圣壁垒充能": {
+      "光环掌握": {
         "step": 75,
+        "type": "int"
+      },
+      "美德道标": {
+        "step": 76,
+        "type": "int"
+      },
+      "神圣壁垒": {
+        "step": 77,
+        "type": "int"
+      },
+      "神圣壁垒充能": {
+        "step": 78,
         "type": "int"
       },
       "神圣壁垒层数": {
@@ -447,12 +464,12 @@
         "type": "int"
       },
       "代祷": {
-        "step": 76,
+        "step": 79,
         "type": "int"
       }
     },
     "group": {
-      "start": 77,
+      "start": 80,
       "num": 6,
       "生命值": {
         "step": 1,

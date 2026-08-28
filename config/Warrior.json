@@ -217,199 +217,204 @@
       "type": "int",
       "category": "目标"
     },
-    "焦点施法(倒计时)": {
+    "目标施法": {
       "step": 33,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点施法(正计时)": {
+    "焦点施法(倒计时)": {
       "step": 34,
       "type": "int",
       "category": "焦点"
     },
-    "焦点施法可打断": {
+    "焦点施法(正计时)": {
       "step": 35,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导": {
+    "焦点施法可打断": {
       "step": 36,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导可打断": {
+    "焦点引导": {
       "step": 37,
       "type": "int",
       "category": "焦点"
     },
-    "焦点距离": {
+    "焦点引导可打断": {
       "step": 38,
       "type": "int",
       "category": "焦点"
     },
-    "鼠标类型": {
+    "焦点距离": {
       "step": 39,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标驱散类型": {
+    "焦点施法": {
       "step": 40,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标生命值": {
+    "鼠标类型": {
       "step": 41,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标距离": {
+    "鼠标驱散类型": {
       "step": 42,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(倒计时)": {
+    "鼠标生命值": {
       "step": 43,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(正计时)": {
+    "鼠标距离": {
       "step": 44,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法可打断": {
+    "鼠标施法(倒计时)": {
       "step": 45,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导": {
+    "鼠标施法(正计时)": {
       "step": 46,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导可打断": {
+    "鼠标施法可打断": {
       "step": 47,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导": {
+      "step": 48,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导可打断": {
+      "step": 49,
       "type": "int",
       "category": "鼠标"
     },
     "auras": {
       "天神下凡": {
-        "step": 48,
-        "type": "int",
-        "category": "玩家"
-      },
-      "猝死": {
-        "step": 49,
-        "type": "int",
-        "category": "玩家"
-      },
-      "破坏者": {
         "step": 50,
         "type": "int",
         "category": "玩家"
       },
-      "间接伤害": {
+      "猝死": {
         "step": 51,
         "type": "int",
         "category": "玩家"
       },
-      "巨人神力": {
+      "破坏者": {
         "step": 52,
         "type": "int",
         "category": "玩家"
       },
-      "刽子手的精准": {
+      "间接伤害": {
         "step": 53,
         "type": "int",
         "category": "玩家"
       },
-      "英勇之力": {
+      "巨人神力": {
         "step": 54,
         "type": "int",
         "category": "玩家"
       },
-      "战争大师": {
+      "刽子手的精准": {
         "step": 55,
         "type": "int",
         "category": "玩家"
       },
-      "横扫攻击": {
+      "英勇之力": {
         "step": 56,
         "type": "int",
         "category": "玩家"
       },
-      "粉碎连击": {
+      "战争大师": {
         "step": 57,
         "type": "int",
         "category": "玩家"
       },
-      "趁虚而入": {
+      "横扫攻击": {
         "step": 58,
         "type": "int",
         "category": "玩家"
       },
-      "殒命在即": {
+      "粉碎连击": {
         "step": 59,
         "type": "int",
         "category": "玩家"
       },
-      "处刑者": {
+      "趁虚而入": {
         "step": 60,
         "type": "int",
         "category": "玩家"
       },
-      "武技神威": {
+      "殒命在即": {
         "step": 61,
         "type": "int",
         "category": "玩家"
       },
-      "侩子手的精准": {
+      "处刑者": {
         "step": 62,
         "type": "int",
         "category": "玩家"
       },
-      "剑刃风暴": {
+      "武技神威": {
         "step": 63,
         "type": "int",
         "category": "玩家"
       },
-      "目标撕裂": {
+      "剑刃风暴": {
         "step": 64,
         "type": "int",
-        "category": "目标减益"
+        "category": "玩家"
       },
-      "目标巨人打击": {
+      "目标撕裂": {
         "step": 65,
         "type": "int",
         "category": "目标减益"
       },
-      "目标重伤": {
+      "目标巨人打击": {
         "step": 66,
         "type": "int",
         "category": "目标减益"
       },
-      "目标崩毁": {
+      "目标重伤": {
         "step": 67,
         "type": "int",
         "category": "目标减益"
       },
-      "焦点撕裂": {
+      "目标崩毁": {
         "step": 68,
         "type": "int",
-        "category": "焦点减益"
+        "category": "目标减益"
       },
-      "焦点巨人打击": {
+      "焦点撕裂": {
         "step": 69,
         "type": "int",
         "category": "焦点减益"
       },
-      "焦点重伤": {
+      "焦点巨人打击": {
         "step": 70,
         "type": "int",
         "category": "焦点减益"
       },
-      "焦点崩毁": {
+      "焦点重伤": {
         "step": 71,
+        "type": "int",
+        "category": "焦点减益"
+      },
+      "焦点崩毁": {
+        "step": 72,
         "type": "int",
         "category": "焦点减益"
       },
@@ -473,65 +478,60 @@
         "bar": 13,
         "type": "int"
       },
-      "侩子手的精准层数": {
+      "目标崩毁层数": {
         "step": "bar",
         "bar": 14,
         "type": "int"
       },
-      "目标崩毁层数": {
-        "step": "bar",
-        "bar": 15,
-        "type": "int"
-      },
       "焦点崩毁层数": {
         "step": "bar",
-        "bar": 16,
+        "bar": 15,
         "type": "int"
       }
     },
     "spells": {
       "胜利在望": {
-        "step": 72,
-        "type": "int"
-      },
-      "勇士之矛": {
         "step": 73,
         "type": "int"
       },
-      "英勇飞跃": {
+      "勇士之矛": {
         "step": 74,
         "type": "int"
       },
-      "集结呐喊": {
+      "英勇飞跃": {
         "step": 75,
         "type": "int"
       },
-      "震荡波": {
+      "集结呐喊": {
         "step": 76,
         "type": "int"
       },
-      "风暴之锤": {
+      "震荡波": {
         "step": 77,
         "type": "int"
       },
-      "破裂投掷": {
+      "风暴之锤": {
         "step": 78,
         "type": "int"
       },
-      "碎裂投掷": {
+      "破裂投掷": {
         "step": 79,
         "type": "int"
       },
-      "破胆怒吼": {
+      "碎裂投掷": {
         "step": 80,
         "type": "int"
       },
-      "压制": {
+      "破胆怒吼": {
         "step": 81,
         "type": "int"
       },
-      "压制充能": {
+      "压制": {
         "step": 82,
+        "type": "int"
+      },
+      "压制充能": {
+        "step": 83,
         "type": "int"
       },
       "压制层数": {
@@ -540,47 +540,47 @@
         "type": "int"
       },
       "斩杀": {
-        "step": 83,
-        "type": "int"
-      },
-      "顺劈斩": {
         "step": 84,
         "type": "int"
       },
-      "致死打击": {
+      "顺劈斩": {
         "step": 85,
         "type": "int"
       },
-      "巨人打击": {
+      "致死打击": {
         "step": 86,
         "type": "int"
       },
-      "崩摧": {
+      "巨人打击": {
         "step": 87,
         "type": "int"
       },
-      "拳击": {
+      "崩摧": {
         "step": 88,
         "type": "int"
       },
-      "剑在人在": {
+      "拳击": {
         "step": 89,
         "type": "int"
       },
-      "天神下凡": {
+      "剑在人在": {
         "step": 90,
         "type": "int"
       },
-      "剑刃风暴": {
+      "天神下凡": {
         "step": 91,
         "type": "int"
       },
-      "横扫攻击": {
+      "剑刃风暴": {
         "step": 92,
         "type": "int"
       },
-      "破坏者": {
+      "横扫攻击": {
         "step": 93,
+        "type": "int"
+      },
+      "破坏者": {
+        "step": 94,
         "type": "int"
       }
     }
@@ -701,129 +701,134 @@
       "type": "int",
       "category": "目标"
     },
-    "焦点施法(倒计时)": {
+    "目标施法": {
       "step": 27,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点施法(正计时)": {
+    "焦点施法(倒计时)": {
       "step": 28,
       "type": "int",
       "category": "焦点"
     },
-    "焦点施法可打断": {
+    "焦点施法(正计时)": {
       "step": 29,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导": {
+    "焦点施法可打断": {
       "step": 30,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导可打断": {
+    "焦点引导": {
       "step": 31,
       "type": "int",
       "category": "焦点"
     },
-    "焦点距离": {
+    "焦点引导可打断": {
       "step": 32,
       "type": "int",
       "category": "焦点"
     },
-    "鼠标类型": {
+    "焦点距离": {
       "step": 33,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标驱散类型": {
+    "焦点施法": {
       "step": 34,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标生命值": {
+    "鼠标类型": {
       "step": 35,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标距离": {
+    "鼠标驱散类型": {
       "step": 36,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(倒计时)": {
+    "鼠标生命值": {
       "step": 37,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(正计时)": {
+    "鼠标距离": {
       "step": 38,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法可打断": {
+    "鼠标施法(倒计时)": {
       "step": 39,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导": {
+    "鼠标施法(正计时)": {
       "step": 40,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导可打断": {
+    "鼠标施法可打断": {
       "step": 41,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导": {
+      "step": 42,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导可打断": {
+      "step": 43,
       "type": "int",
       "category": "鼠标"
     },
     "auras": {
       "狂暴": {
-        "step": 42,
-        "type": "int",
-        "category": "玩家"
-      },
-      "猝死": {
-        "step": 43,
-        "type": "int",
-        "category": "玩家"
-      },
-      "强化旋风斩": {
         "step": 44,
         "type": "int",
         "category": "玩家"
       },
-      "激怒": {
+      "猝死": {
         "step": 45,
         "type": "int",
         "category": "玩家"
       },
-      "鲁莽": {
+      "强化旋风斩": {
         "step": 46,
         "type": "int",
         "category": "玩家"
       },
-      "天神下凡": {
+      "鲁莽": {
         "step": 47,
         "type": "int",
         "category": "玩家"
       },
-      "劈斩": {
+      "天神下凡": {
         "step": 48,
         "type": "int",
         "category": "玩家"
       },
-      "能量爆发": {
+      "劈斩": {
         "step": 49,
         "type": "int",
         "category": "玩家"
       },
-      "雷霆轰击": {
+      "能量爆发": {
         "step": 50,
         "type": "int",
         "category": "玩家"
       },
-      "目标撕裂": {
+      "雷霆轰击": {
         "step": 51,
+        "type": "int",
+        "category": "玩家"
+      },
+      "目标撕裂": {
+        "step": 52,
         "type": "int",
         "category": "目标减益"
       },
@@ -845,59 +850,59 @@
     },
     "spells": {
       "胜利在望": {
-        "step": 52,
-        "type": "int"
-      },
-      "勇士之矛": {
         "step": 53,
         "type": "int"
       },
-      "英勇飞跃": {
+      "勇士之矛": {
         "step": 54,
         "type": "int"
       },
-      "集结呐喊": {
+      "英勇飞跃": {
         "step": 55,
         "type": "int"
       },
-      "震荡波": {
+      "集结呐喊": {
         "step": 56,
         "type": "int"
       },
-      "风暴之锤": {
+      "震荡波": {
         "step": 57,
         "type": "int"
       },
-      "破裂投掷": {
+      "风暴之锤": {
         "step": 58,
         "type": "int"
       },
-      "碎裂投掷": {
+      "破裂投掷": {
         "step": 59,
         "type": "int"
       },
-      "破胆怒吼": {
+      "碎裂投掷": {
         "step": 60,
         "type": "int"
       },
-      "鲁莽": {
+      "破胆怒吼": {
         "step": 61,
         "type": "int"
       },
-      "拳击": {
+      "鲁莽": {
         "step": 62,
         "type": "int"
       },
-      "嗜血": {
+      "拳击": {
         "step": 63,
         "type": "int"
       },
-      "怒击": {
+      "嗜血": {
         "step": 64,
         "type": "int"
       },
-      "怒击充能": {
+      "怒击": {
         "step": 65,
+        "type": "int"
+      },
+      "怒击充能": {
+        "step": 66,
         "type": "int"
       },
       "怒击层数": {
@@ -906,27 +911,27 @@
         "type": "int"
       },
       "暴怒": {
-        "step": 66,
-        "type": "int"
-      },
-      "奥丁之怒": {
         "step": 67,
         "type": "int"
       },
-      "剑刃风暴": {
+      "奥丁之怒": {
         "step": 68,
         "type": "int"
       },
-      "天神下凡": {
+      "剑刃风暴": {
         "step": 69,
         "type": "int"
       },
-      "雷霆轰击": {
+      "天神下凡": {
         "step": 70,
         "type": "int"
       },
-      "雷霆轰击充能": {
+      "雷霆轰击": {
         "step": 71,
+        "type": "int"
+      },
+      "雷霆轰击充能": {
+        "step": 72,
         "type": "int"
       },
       "雷霆轰击层数": {
@@ -935,23 +940,23 @@
         "type": "int"
       },
       "雷霆一击": {
-        "step": 72,
-        "type": "int"
-      },
-      "旋风斩": {
         "step": 73,
         "type": "int"
       },
-      "浴血奋战": {
+      "旋风斩": {
         "step": 74,
         "type": "int"
       },
-      "碎甲猛击": {
+      "浴血奋战": {
         "step": 75,
         "type": "int"
       },
-      "碎甲猛击充能": {
+      "碎甲猛击": {
         "step": 76,
+        "type": "int"
+      },
+      "碎甲猛击充能": {
+        "step": 77,
         "type": "int"
       },
       "碎甲猛击层数": {
@@ -960,7 +965,7 @@
         "type": "int"
       },
       "斩杀": {
-        "step": 77,
+        "step": 78,
         "type": "int"
       }
     }

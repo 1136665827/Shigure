@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -748,15 +747,17 @@ public sealed class ConditionEditorForm : Form
         }
 
         var items = sourceItems
-            .Select(CreateConditionComboItem)
-            .DistinctBy(item => item.Value, StringComparer.Ordinal)
+            .Select(item => item is FieldItem field
+                ? new UiDropDownOption(field.Name, field.Display)
+                : new UiDropDownOption(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty))
+            .DistinctBy(item => item.Value?.ToString(), StringComparer.Ordinal)
             .ToList();
         var currentValue = cell.Value is FieldItem field
             ? field.Name
             : cell.Value?.ToString() ?? string.Empty;
-        if (!items.Any(item => string.Equals(item.Value, currentValue, StringComparison.Ordinal)))
+        if (!items.Any(item => string.Equals(item.Value?.ToString(), currentValue, StringComparison.Ordinal)))
         {
-            items.Insert(0, new ConditionComboItem(
+            items.Insert(0, new UiDropDownOption(
                 currentValue,
                 cell.FormattedValue?.ToString() ?? currentValue));
         }
@@ -766,146 +767,26 @@ public sealed class ConditionEditorForm : Form
             return;
         }
 
-        var scale = Math.Max(1f, _conditionsGrid.DeviceDpi / 96f);
-        var itemHeight = Math.Max(
-            (int)Math.Round(32 * scale),
-            _conditionsGrid.Font.Height + (int)Math.Round(12 * scale));
-        var visibleItems = Math.Clamp(items.Count, 1, 9);
         var cellBounds = _conditionsGrid.GetCellDisplayRectangle(columnIndex, rowIndex, cutOverflow: true);
-        var measuredWidth = items.Max(item =>
-            TextRenderer.MeasureText(DisplayConditionComboValue(item.Display), _conditionsGrid.Font).Width);
-        var listWidth = Math.Clamp(
-            Math.Max(cellBounds.Width, measuredWidth + (int)Math.Round(40 * scale)),
-            (int)Math.Round(120 * scale),
-            (int)Math.Round(420 * scale));
-        var listHeight = visibleItems * itemHeight + 2;
-
-        var listBox = new ListBox
-        {
-            BackColor = UiTheme.Surface,
-            ForeColor = UiTheme.Text,
-            BorderStyle = BorderStyle.None,
-            DrawMode = DrawMode.OwnerDrawFixed,
-            IntegralHeight = false,
-            ItemHeight = itemHeight,
-            Font = _conditionsGrid.Font,
-            Size = new Size(listWidth, listHeight)
-        };
-        listBox.Items.AddRange(items.Cast<object>().ToArray());
-        listBox.DrawItem += OnConditionComboListDrawItem;
-        listBox.MouseMove += (_, e) =>
-        {
-            var index = listBox.IndexFromPoint(e.Location);
-            if (index >= 0 && index != listBox.SelectedIndex)
-            {
-                listBox.SelectedIndex = index;
-            }
-        };
-
-        var selectedIndex = items.FindIndex(item =>
-            string.Equals(item.Value, currentValue, StringComparison.Ordinal));
-        if (selectedIndex >= 0)
-        {
-            listBox.SelectedIndex = selectedIndex;
-        }
-
-        var host = new ToolStripControlHost(listBox)
-        {
-            AutoSize = false,
-            Margin = Padding.Empty,
-            Padding = Padding.Empty,
-            Size = listBox.Size
-        };
-        var dropDown = new ToolStripDropDown
-        {
-            AutoSize = false,
-            AutoClose = true,
-            BackColor = UiTheme.Border,
-            DropShadowEnabled = true,
-            Margin = Padding.Empty,
-            Padding = new Padding(1),
-            Size = new Size(listWidth + 2, listHeight + 2)
-        };
-        dropDown.Items.Add(host);
-        _conditionComboDropDown = dropDown;
-
-        void ApplySelectedValue()
-        {
-            if (listBox.SelectedItem is not ConditionComboItem selected)
-            {
-                return;
-            }
-
-            cell.Value = selected.Value;
-            _conditionsGrid.InvalidateCell(cell);
-            dropDown.Close(ToolStripDropDownCloseReason.ItemClicked);
-        }
-
-        listBox.Click += (_, _) => ApplySelectedValue();
-        listBox.KeyDown += (_, e) =>
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                e.Handled = true;
-                ApplySelectedValue();
-            }
-            else if (e.KeyCode == Keys.Escape)
-            {
-                e.Handled = true;
-                dropDown.Close(ToolStripDropDownCloseReason.Keyboard);
-            }
-        };
-        dropDown.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_conditionComboDropDown, dropDown))
-            {
-                _conditionComboDropDown = null;
-            }
-        };
-
-        dropDown.Show(
+        ToolStripDropDown? dropDown = null;
+        dropDown = UiDropDownPopup.Show(
             _conditionsGrid,
-            new Point(cellBounds.Left, cellBounds.Bottom),
-            ToolStripDropDownDirection.BelowRight);
-        listBox.Focus();
-    }
-
-    private static ConditionComboItem CreateConditionComboItem(object item)
-        => item is FieldItem field
-            ? new ConditionComboItem(field.Name, field.Display)
-            : new ConditionComboItem(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty);
-
-    private static string DisplayConditionComboValue(string value)
-        => string.IsNullOrEmpty(value) ? "（留空）" : value;
-
-    private static void OnConditionComboListDrawItem(object? sender, DrawItemEventArgs e)
-    {
-        if (sender is not ListBox listBox
-            || e.Index < 0
-            || e.Index >= listBox.Items.Count
-            || listBox.Items[e.Index] is not ConditionComboItem item)
-        {
-            return;
-        }
-
-        var selected = (e.State & DrawItemState.Selected) != 0;
-        using (var background = new SolidBrush(selected ? UiTheme.AccentSoft : UiTheme.Surface))
-        {
-            e.Graphics.FillRectangle(background, e.Bounds);
-        }
-
-        var textBounds = new Rectangle(
-            e.Bounds.Left + 10,
-            e.Bounds.Top,
-            Math.Max(0, e.Bounds.Width - 20),
-            e.Bounds.Height);
-        TextRenderer.DrawText(
-            e.Graphics,
-            DisplayConditionComboValue(item.Display),
-            listBox.Font,
-            textBounds,
-            selected ? UiTheme.Accent : UiTheme.Text,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+            cellBounds,
+            items,
+            currentValue,
+            selected =>
+            {
+                cell.Value = selected.Value?.ToString() ?? string.Empty;
+                _conditionsGrid.InvalidateCell(cell);
+            },
+            closed: () =>
+            {
+                if (ReferenceEquals(_conditionComboDropDown, dropDown))
+                {
+                    _conditionComboDropDown = null;
+                }
+            });
+        _conditionComboDropDown = dropDown;
     }
 
     private void CloseConditionComboDropDown()
@@ -930,68 +811,9 @@ public sealed class ConditionEditorForm : Form
         DataGridViewCellPaintingEventArgs e,
         DataGridViewComboBoxCell cell)
     {
-        e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
-        if (e.Graphics is null)
-        {
-            e.Handled = true;
-            return;
-        }
-
-        var selected = (cell.State & DataGridViewElementStates.Selected) != 0;
-        var cellStyle = e.CellStyle ?? _conditionsGrid.DefaultCellStyle;
-        var textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
         var showButton = !cell.ReadOnly
             && cell.DisplayStyle != DataGridViewComboBoxDisplayStyle.Nothing;
-        var buttonSize = Math.Min(24, Math.Max(18, e.CellBounds.Height - 12));
-        var buttonBounds = new Rectangle(
-            e.CellBounds.Right - buttonSize - 7,
-            e.CellBounds.Top + (e.CellBounds.Height - buttonSize) / 2,
-            buttonSize,
-            buttonSize);
-        var textBounds = new Rectangle(
-            e.CellBounds.Left + 10,
-            e.CellBounds.Top,
-            Math.Max(0, (showButton ? buttonBounds.Left : e.CellBounds.Right) - e.CellBounds.Left - 16),
-            e.CellBounds.Height);
-
-        TextRenderer.DrawText(
-            e.Graphics,
-            e.FormattedValue?.ToString() ?? string.Empty,
-            cellStyle.Font ?? _conditionsGrid.Font,
-            textBounds,
-            textColor,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
-        if (!showButton)
-        {
-            e.Handled = true;
-            return;
-        }
-
-        var oldSmoothingMode = e.Graphics.SmoothingMode;
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using (var path = UiTheme.CreateRoundedRectanglePath(buttonBounds, 4))
-        using (var background = new SolidBrush(selected ? UiTheme.Pressed : UiTheme.Hover))
-        using (var border = new Pen(selected ? UiTheme.Accent : UiTheme.Border))
-        {
-            e.Graphics.FillPath(background, path);
-            e.Graphics.DrawPath(border, path);
-        }
-
-        var centerX = buttonBounds.Left + buttonBounds.Width / 2;
-        var centerY = buttonBounds.Top + buttonBounds.Height / 2 + 1;
-        var arrow = new[]
-        {
-            new Point(centerX - 4, centerY - 2),
-            new Point(centerX + 4, centerY - 2),
-            new Point(centerX, centerY + 3)
-        };
-        using (var arrowBrush = new SolidBrush(selected ? UiTheme.Accent : UiTheme.Muted))
-        {
-            e.Graphics.FillPolygon(arrowBrush, arrow);
-        }
-
-        e.Graphics.SmoothingMode = oldSmoothingMode;
-        e.Handled = true;
+        UiTheme.PaintDataGridViewComboBoxCell(_conditionsGrid, e, showButton);
     }
 
     // 「添加条件」按钮单独成行, 放在主条件行下方、子条件区上方。
@@ -1719,11 +1541,6 @@ public sealed class ConditionEditorForm : Form
     }
 
     private sealed record CategoryItem(string Display, ConditionFieldCategory Category)
-    {
-        public override string ToString() => Display;
-    }
-
-    private sealed record ConditionComboItem(string Value, string Display)
     {
         public override string ToString() => Display;
     }

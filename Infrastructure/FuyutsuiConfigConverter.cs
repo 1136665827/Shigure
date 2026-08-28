@@ -35,6 +35,7 @@ internal static class FuyutsuiConfigConverter
         ClassStateCatalog.CategoryTarget,
         ClassStateCatalog.CategoryFocus,
         ClassStateCatalog.CategoryMouseover,
+        ClassStateCatalog.CategoryPet,
         ClassStateCatalog.CategoryBoss1,
         ClassStateCatalog.CategoryBoss2,
         ClassStateCatalog.CategoryBoss3,
@@ -55,6 +56,7 @@ internal static class FuyutsuiConfigConverter
         }
 
         Directory.CreateDirectory(configDirectory);
+        EnsureCommonConfig(configDirectory);
         var updated = new List<string>();
         var warnings = new List<string>();
 
@@ -115,6 +117,36 @@ internal static class FuyutsuiConfigConverter
         }
 
         return new UpdateResult(classDirectory, updated, warnings);
+    }
+
+    private static void EnsureCommonConfig(string configDirectory)
+    {
+        var commonPath = Path.Combine(configDirectory, ConfigService.CommonConfigFileName);
+        if (File.Exists(commonPath))
+        {
+            return;
+        }
+
+        var root = new JsonObject
+        {
+            ["锚点"] = new JsonObject
+            {
+                ["step"] = 1,
+                ["type"] = "bool"
+            },
+            ["职业"] = new JsonObject
+            {
+                ["step"] = 2,
+                ["type"] = "int"
+            },
+            ["专精"] = new JsonObject
+            {
+                ["step"] = 3,
+                ["type"] = "int"
+            }
+        };
+
+        File.WriteAllText(commonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
     }
 
     private static void PreserveMeta(JsonObject existing, JsonObject target)
@@ -514,6 +546,7 @@ internal static class FuyutsuiConfigConverter
         => category is ClassStateCatalog.CategoryTarget
             or ClassStateCatalog.CategoryFocus
             or ClassStateCatalog.CategoryMouseover
+            or ClassStateCatalog.CategoryPet
             or ClassStateCatalog.CategoryBoss1
             or ClassStateCatalog.CategoryBoss2
             or ClassStateCatalog.CategoryBoss3

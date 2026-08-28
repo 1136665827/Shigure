@@ -307,84 +307,211 @@
         "step": 47,
         "type": "int",
         "category": "玩家"
+      },
+      "风暴守护者": {
+        "step": 48,
+        "type": "int",
+        "category": "玩家"
+      },
+      "暴风": {
+        "step": 49,
+        "type": "int",
+        "category": "玩家"
+      },
+      "元素宗师": {
+        "step": 50,
+        "type": "int",
+        "category": "玩家"
+      },
+      "净化烈焰": {
+        "step": 51,
+        "type": "int",
+        "category": "玩家"
+      },
+      "风之爆发": {
+        "step": 52,
+        "type": "int",
+        "category": "玩家"
+      },
+      "先祖召唤": {
+        "step": 53,
+        "type": "int",
+        "category": "玩家"
+      },
+      "升腾": {
+        "step": 54,
+        "type": "int",
+        "category": "玩家"
+      },
+      "火元素": {
+        "step": 55,
+        "type": "int",
+        "category": "玩家"
+      },
+      "风暴元素": {
+        "step": 56,
+        "type": "int",
+        "category": "玩家"
+      },
+      "漩涡之力": {
+        "step": 57,
+        "type": "int",
+        "category": "玩家"
+      },
+      "元素冲击暴击": {
+        "step": 58,
+        "type": "int",
+        "category": "玩家"
+      },
+      "元素冲击急速": {
+        "step": 59,
+        "type": "int",
+        "category": "玩家"
+      },
+      "元素冲击精通": {
+        "step": 60,
+        "type": "int",
+        "category": "玩家"
+      },
+      "闪电之盾": {
+        "step": 61,
+        "type": "int",
+        "category": "玩家"
+      },
+      "先祖迅捷": {
+        "step": 62,
+        "type": "int",
+        "category": "玩家"
+      },
+      "元素奔涌": {
+        "step": 63,
+        "type": "int",
+        "category": "玩家"
+      },
+      "过载！": {
+        "step": 64,
+        "type": "int",
+        "category": "玩家"
+      },
+      "目标烈焰震击": {
+        "step": 65,
+        "type": "int",
+        "category": "目标减益"
+      },
+      "目标引雷针": {
+        "step": 66,
+        "type": "int",
+        "category": "目标减益"
+      },
+      "风暴守护者层数": {
+        "step": "bar",
+        "bar": 2,
+        "type": "int"
+      },
+      "暴风层数": {
+        "step": "bar",
+        "bar": 3,
+        "type": "int"
+      },
+      "风之爆发层数": {
+        "step": "bar",
+        "bar": 4,
+        "type": "int"
+      },
+      "漩涡之力层数": {
+        "step": "bar",
+        "bar": 5,
+        "type": "int"
       }
     },
     "spells": {
       "风剪": {
-        "step": 48,
+        "step": 67,
         "type": "int"
       },
       "土元素": {
-        "step": 49,
+        "step": 68,
         "type": "int"
       },
       "电能图腾": {
-        "step": 50,
+        "step": 69,
         "type": "int"
       },
       "自然迅捷": {
-        "step": 51,
+        "step": 70,
         "type": "int"
       },
       "图腾投射": {
-        "step": 52,
+        "step": 71,
         "type": "int"
       },
       "妖术": {
-        "step": 53,
+        "step": 72,
         "type": "int"
       },
       "强化净化术": {
-        "step": 54,
+        "step": 73,
         "type": "int"
       },
       "战栗图腾": {
-        "step": 55,
+        "step": 74,
         "type": "int"
       },
       "清毒图腾": {
-        "step": 56,
+        "step": 75,
         "type": "int"
       },
       "阵风": {
-        "step": 57,
+        "step": 76,
         "type": "int"
       },
       "幽魂步": {
-        "step": 58,
+        "step": 77,
         "type": "int"
       },
       "治疗之雨": {
-        "step": 59,
+        "step": 78,
         "type": "int"
       },
       "升腾": {
-        "step": 60,
+        "step": 79,
         "type": "int"
       },
       "雷霆风暴": {
-        "step": 61,
+        "step": 80,
         "type": "int"
       },
       "狂风图腾": {
-        "step": 62,
+        "step": 81,
         "type": "int"
       },
       "净化灵魂": {
-        "step": 63,
+        "step": 82,
         "type": "int"
       },
       "熔岩爆裂": {
-        "step": 64,
+        "step": 83,
         "type": "int"
       },
       "熔岩爆裂充能": {
-        "step": 65,
+        "step": 84,
         "type": "int"
       },
       "熔岩爆裂层数": {
         "step": "bar",
         "bar": 1,
+        "type": "int"
+      },
+      "流电炽焰": {
+        "step": 85,
+        "type": "int"
+      },
+      "风暴守护者": {
+        "step": 86,
+        "type": "int"
+      },
+      "先祖迅捷": {
+        "step": 87,
         "type": "int"
       }
     }
@@ -841,149 +968,169 @@
       "type": "int",
       "category": "目标"
     },
-    "焦点施法(倒计时)": {
+    "目标驱散类型": {
       "step": 33,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点施法(正计时)": {
+    "目标距离": {
       "step": 34,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点施法可打断": {
+    "焦点施法(倒计时)": {
       "step": 35,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导": {
+    "焦点施法(正计时)": {
       "step": 36,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导可打断": {
+    "焦点施法可打断": {
       "step": 37,
       "type": "int",
       "category": "焦点"
     },
-    "鼠标类型": {
+    "焦点引导": {
       "step": 38,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标驱散类型": {
+    "焦点引导可打断": {
       "step": 39,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标生命值": {
+    "鼠标类型": {
       "step": 40,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标距离": {
+    "鼠标驱散类型": {
       "step": 41,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(倒计时)": {
+    "鼠标生命值": {
       "step": 42,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(正计时)": {
+    "鼠标距离": {
       "step": 43,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法可打断": {
+    "鼠标施法(倒计时)": {
       "step": 44,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导": {
+    "鼠标施法(正计时)": {
       "step": 45,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导可打断": {
+    "鼠标施法可打断": {
       "step": 46,
       "type": "int",
       "category": "鼠标"
     },
+    "鼠标引导": {
+      "step": 47,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导可打断": {
+      "step": 48,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "首领1施法(正计时)": {
+      "step": 49,
+      "type": "int",
+      "category": "首领1"
+    },
+    "首领2施法(正计时)": {
+      "step": 50,
+      "type": "int",
+      "category": "首领2"
+    },
     "auras": {
       "大地之盾": {
-        "step": 47,
-        "type": "int",
-        "category": "玩家"
-      },
-      "水之护盾": {
-        "step": 48,
-        "type": "int",
-        "category": "玩家"
-      },
-      "治疗之雨": {
-        "step": 49,
-        "type": "int",
-        "category": "玩家"
-      },
-      "飞旋之土": {
-        "step": 50,
-        "type": "int",
-        "category": "玩家"
-      },
-      "飞旋之水": {
         "step": 51,
         "type": "int",
         "category": "玩家"
       },
-      "飞旋之风": {
+      "水之护盾": {
         "step": 52,
         "type": "int",
         "category": "玩家"
       },
-      "潮汐奔涌": {
+      "治疗之雨": {
         "step": 53,
         "type": "int",
         "category": "玩家"
       },
-      "激流": {
+      "飞旋之土": {
         "step": 54,
         "type": "int",
         "category": "玩家"
       },
-      "聚合水流": {
+      "飞旋之水": {
         "step": 55,
         "type": "int",
         "category": "玩家"
       },
-      "升腾": {
+      "飞旋之风": {
         "step": 56,
         "type": "int",
         "category": "玩家"
       },
-      "生命释放": {
+      "潮汐奔涌": {
         "step": 57,
         "type": "int",
         "category": "玩家"
       },
-      "风暴涌流图腾": {
+      "激流": {
         "step": 58,
         "type": "int",
         "category": "玩家"
       },
-      "倾盆大雨": {
+      "聚合水流": {
         "step": 59,
         "type": "int",
         "category": "玩家"
       },
-      "自然迅捷": {
+      "升腾": {
         "step": 60,
         "type": "int",
         "category": "玩家"
       },
-      "目标激流": {
+      "生命释放": {
         "step": 61,
+        "type": "int",
+        "category": "玩家"
+      },
+      "风暴涌流图腾": {
+        "step": 62,
+        "type": "int",
+        "category": "玩家"
+      },
+      "倾盆大雨": {
+        "step": 63,
+        "type": "int",
+        "category": "玩家"
+      },
+      "自然迅捷": {
+        "step": 64,
+        "type": "int",
+        "category": "玩家"
+      },
+      "目标激流": {
+        "step": 65,
         "type": "int",
         "category": "目标增益"
       },
@@ -1000,63 +1147,63 @@
     },
     "spells": {
       "风剪": {
-        "step": 62,
-        "type": "int"
-      },
-      "土元素": {
-        "step": 63,
-        "type": "int"
-      },
-      "电能图腾": {
-        "step": 64,
-        "type": "int"
-      },
-      "自然迅捷": {
-        "step": 65,
-        "type": "int"
-      },
-      "图腾投射": {
         "step": 66,
         "type": "int"
       },
-      "妖术": {
+      "土元素": {
         "step": 67,
         "type": "int"
       },
-      "强化净化术": {
+      "电能图腾": {
         "step": 68,
         "type": "int"
       },
-      "战栗图腾": {
+      "自然迅捷": {
         "step": 69,
         "type": "int"
       },
-      "清毒图腾": {
+      "图腾投射": {
         "step": 70,
         "type": "int"
       },
-      "阵风": {
+      "妖术": {
         "step": 71,
         "type": "int"
       },
-      "幽魂步": {
+      "强化净化术": {
         "step": 72,
         "type": "int"
       },
-      "熔岩爆裂": {
+      "战栗图腾": {
         "step": 73,
         "type": "int"
       },
-      "熔岩爆裂充能": {
+      "清毒图腾": {
         "step": 74,
         "type": "int"
       },
-      "激流": {
+      "阵风": {
         "step": 75,
         "type": "int"
       },
-      "激流充能": {
+      "幽魂步": {
         "step": 76,
+        "type": "int"
+      },
+      "熔岩爆裂": {
+        "step": 77,
+        "type": "int"
+      },
+      "熔岩爆裂充能": {
+        "step": 78,
+        "type": "int"
+      },
+      "激流": {
+        "step": 79,
+        "type": "int"
+      },
+      "激流充能": {
+        "step": 80,
         "type": "int"
       },
       "激流层数": {
@@ -1065,11 +1212,11 @@
         "type": "int"
       },
       "治疗之泉图腾": {
-        "step": 77,
+        "step": 81,
         "type": "int"
       },
       "治疗之泉图腾充能": {
-        "step": 78,
+        "step": 82,
         "type": "int"
       },
       "治疗之泉图腾层数": {
@@ -1078,44 +1225,52 @@
         "type": "int"
       },
       "烈焰震击": {
-        "step": 79,
-        "type": "int"
-      },
-      "净化灵魂": {
-        "step": 80,
-        "type": "int"
-      },
-      "生命释放": {
-        "step": 81,
-        "type": "int"
-      },
-      "先祖迅捷": {
-        "step": 82,
-        "type": "int"
-      },
-      "涌动图腾": {
         "step": 83,
         "type": "int"
       },
-      "灵魂链接图腾": {
+      "净化灵魂": {
         "step": 84,
         "type": "int"
       },
-      "升腾": {
+      "生命释放": {
         "step": 85,
         "type": "int"
       },
-      "治疗之潮图腾": {
+      "先祖迅捷": {
         "step": 86,
         "type": "int"
       },
-      "治疗之雨": {
+      "涌动图腾": {
         "step": 87,
+        "type": "int"
+      },
+      "灵魂链接图腾": {
+        "step": 88,
+        "type": "int"
+      },
+      "升腾": {
+        "step": 89,
+        "type": "int"
+      },
+      "治疗之潮图腾": {
+        "step": 90,
+        "type": "int"
+      },
+      "治疗之雨": {
+        "step": 91,
+        "type": "int"
+      },
+      "净化术": {
+        "step": 92,
+        "type": "int"
+      },
+      "狂风图腾": {
+        "step": 93,
         "type": "int"
       }
     },
     "group": {
-      "start": 88,
+      "start": 94,
       "num": 6,
       "生命值": {
         "step": 1,

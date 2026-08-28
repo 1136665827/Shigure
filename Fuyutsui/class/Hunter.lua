@@ -24,6 +24,7 @@ Fuyutsui.ClassBlocks = {
                 "首领战",
                 "难度",
                 "敌人数量",
+                
             },
             ["能量"] = {
                 "集中值",
@@ -40,6 +41,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -47,6 +49,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                
             },
             ["鼠标"] = {
                 "类型",
@@ -58,6 +61,22 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+            },
+        },
+        auras = {
+            player = {
+                { name = "猎群领袖之嚎", spellId = 471877, },
+                { name = "眼镜蛇利牙", spellId = 1299389, maxApps = 4, },
+                { name = "自然之友", spellId = 1276720, },
+                { name = "野兽顺劈", spellId = 268877, },
+                { name = "龙", spellId = 471878, },
+                { name = "猪", spellId = 472324, },
+                { name = "熊", spellId = 472325, },
+            },
+            target = {
+                harmful = {
+                    { name = "猎人印记", spellId = 259556, },
+                },
             },
         },
         spells = {

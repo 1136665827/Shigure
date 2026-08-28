@@ -319,6 +319,7 @@ public sealed class ConditionFieldCatalog
         => classification is ClassStateCatalog.CategoryTarget
             or ClassStateCatalog.CategoryFocus
             or ClassStateCatalog.CategoryMouseover
+            or ClassStateCatalog.CategoryPet
             or ClassStateCatalog.CategoryBoss1
             or ClassStateCatalog.CategoryBoss2
             or ClassStateCatalog.CategoryBoss3

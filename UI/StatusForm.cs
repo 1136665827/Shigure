@@ -687,7 +687,7 @@ public sealed class StatusForm : Form
             Margin = new Padding(0)
         };
         var copyButton = UiTheme.CreateButton("复制全部", UiTheme.ButtonKind.Secondary);
-        UiTheme.StyleActionButton(copyButton, 96);
+        UiTheme.StyleActionButton(copyButton, 112);
         copyButton.Margin = new Padding(0, 0, 8, 6);
         copyButton.Click += (_, _) =>
         {
@@ -697,7 +697,7 @@ public sealed class StatusForm : Form
             }
         };
         var clearButton = UiTheme.CreateButton("清空显示", UiTheme.ButtonKind.Danger);
-        UiTheme.StyleActionButton(clearButton, 96);
+        UiTheme.StyleActionButton(clearButton, 112);
         clearButton.Margin = new Padding(0, 0, 16, 6);
         clearButton.Click += (_, _) => _logTextBox.Clear();
         var autoScroll = new CheckBox
@@ -1225,6 +1225,10 @@ public sealed class StatusForm : Form
             "鼠标",
             ["类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"],
             104), 0, 3);
+        fields.Controls.Add(CreateCommonFieldCard(
+            "宠物",
+            ["存在", "生命值"],
+            104), 1, 3);
 
         scrollHost.Controls.Add(fields);
         return scrollHost;

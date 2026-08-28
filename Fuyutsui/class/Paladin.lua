@@ -28,6 +28,7 @@ Fuyutsui.ClassBlocks = {
                 "施法目标",
                 "神圣军备",
                 "自律",
+
             },
             ["能量"] = {
                 "法力值",
@@ -48,6 +49,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "驱散类型",
                 "生命值",
+
             },
             ["鼠标"] = {
                 "类型",
@@ -59,6 +61,12 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+            },
+            ["首领1"] = {
+                "施法(正计时)",
+            },
+            ["首领2"] = {
+                "施法(正计时)",
             },
         },
         auras = {
@@ -73,6 +81,7 @@ Fuyutsui.ClassBlocks = {
                 { name = "神性之手", spellId = 414273, maxApps = 2, },
                 { name = "复仇之怒", spellId = 31884, maxApps = 2, },
                 { name = "觉醒", spellId = 414193, },
+                { name = "美德道标", spellId = 200025, },
             },
             target = {
                 harmful = {
@@ -112,7 +121,7 @@ Fuyutsui.ClassBlocks = {
             dispel = 3,
             aura = {
                 [4] = { name = "救赎之魂", spellId = 27827, },
-                [5] = { name = "圣光道标", spellIds = { 53563, 156910 }, },
+                [5] = { name = "圣光道标", spellIds = { 53563, 156910, 1244893 }, },
                 [6] = { name = "永恒之火", spellId = 156322, },
             },
         },
@@ -140,6 +149,7 @@ Fuyutsui.ClassBlocks = {
                 "首领战",
                 "难度",
                 "自律",
+
             },
             ["能量"] = {
                 "法力值",
@@ -166,6 +176,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -174,6 +185,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+
             },
             ["鼠标"] = {
                 "类型",
@@ -397,4 +409,6 @@ Fuyutsui.spellsList = {
     [1241288] = { index = 31, name = "愤怒之锤" },
     [1277026] = { index = 32, name = "愤怒之锤" },
     [1279408] = { index = 33, name = "愤怒之锤" },
+    [4987]    = { index = 34, name = "清洁术" },
+    [85222]   = { index = 35, name = "黎明之光" },
 }

@@ -44,6 +44,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+                
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -52,6 +53,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+                
             },
             ["鼠标"] = {
                 "类型",
@@ -81,7 +83,6 @@ Fuyutsui.ClassBlocks = {
                 { name = "殒命在即", spellId = 445606, maxApps = 3, },
                 { name = "处刑者", spellId = 445584, maxApps = 5, },
                 { name = "武技神威", spellId = 316440, maxApps = 3, },
-                { name = "侩子手的精准", spellId = 386633, maxApps = 2, },
                 { name = "剑刃风暴", spellIds = { 446035 }, },
             },
             target = {
@@ -158,6 +159,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+                
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -166,6 +168,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+                
             },
             ["鼠标"] = {
                 "类型",
@@ -184,7 +187,6 @@ Fuyutsui.ClassBlocks = {
                 { name = "狂暴", spellId = 184362, },
                 { name = "猝死", spellId = 52437, maxApps = 2, },
                 { name = "强化旋风斩", spellId = 85739, maxApps = 4, },
-                { name = "激怒", spellId = 184362, },
                 { name = "鲁莽", spellId = 1719, },
                 { name = "天神下凡", spellId = 107574, },
                 { name = "劈斩", spellId = 383873, },
@@ -256,6 +258,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+                
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -264,6 +267,7 @@ Fuyutsui.ClassBlocks = {
                 "引导",
                 "引导可打断",
                 "距离",
+                
             },
             ["鼠标"] = {
                 "类型",

@@ -22,9 +22,11 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private readonly DataGridView _statesGrid = new();
     private readonly DataGridViewComboBoxColumn _stateNameColumn = new();
+    private ToolStripDropDown? _stateComboDropDown;
     private readonly DataGridView _aurasGrid = new();
     private readonly DataGridView _spellsGrid = new();
     private readonly DataGridView _spellsListGrid = new();
+    private readonly TextBox _spellsListSearchBox = new();
     private readonly TextBox _newSpellIdBox = new();
     private readonly TextBox _newSpellNameBox = new();
     private readonly NumericUpDown _groupNumBox = new();
@@ -80,6 +82,7 @@ public sealed class ClassConfigEditorControl : UserControl
     {
         if (disposing)
         {
+            CloseStateComboDropDown();
             SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
         }
 
@@ -397,6 +400,7 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.Controls.Add(BuildStateCategoryTabs(), 0, 0);
 
         ConfigureGrid(_statesGrid, "class-config-states");
+        _statesGrid.EditMode = DataGridViewEditMode.EditProgrammatically;
         _stateNameColumn.Name = "Name";
         _stateNameColumn.HeaderText = "状态名";
         _stateNameColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
@@ -406,11 +410,22 @@ public sealed class ClassConfigEditorControl : UserControl
         _stateNameColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
         _statesGrid.Columns.Add(_stateNameColumn);
         _statesGrid.Columns.Add(CreateDeleteColumn());
+        _statesGrid.CellPainting += (_, e) =>
+        {
+            if (e.RowIndex >= 0
+                && e.ColumnIndex >= 0
+                && _statesGrid.Columns[e.ColumnIndex].Name == "Name")
+            {
+                UiTheme.PaintDataGridViewComboBoxCell(_statesGrid, e);
+            }
+        };
+        _statesGrid.CellClick += OnStatesGridCellClick;
+        _statesGrid.KeyDown += OnStatesGridKeyDown;
         _statesGrid.CellContentClick += HandleDeleteClick;
         _statesGrid.CellValueChanged += (_, _) => MarkDirty();
         _statesGrid.UserAddedRow += (_, _) => MarkDirty();
         _statesGrid.DataError += (_, e) => e.ThrowException = false;
-        _statesGrid.EditingControlShowing += HandleStateEditingControlShowing;
+        _statesGrid.Disposed += (_, _) => CloseStateComboDropDown();
         panel.Controls.Add(_statesGrid, 0, 1);
         panel.Controls.Add(BuildMoveButtons(_statesGrid), 0, 2);
         return panel;
@@ -634,15 +649,63 @@ public sealed class ClassConfigEditorControl : UserControl
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
+        var actionBar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        actionBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        actionBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        actionBar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var searchCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0, 0, 10, 10),
+            Padding = new Padding(12, 8, 12, 8)
+        };
+        searchCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+        searchCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        searchCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        searchCard.Controls.Add(new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = "搜索",
+            ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
+            Font = new Font(Font.FontFamily, 9F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0),
+            Padding = new Padding(8, 0, 0, 0)
+        }, 0, 0);
+
+        UiTheme.StyleTextBox(_spellsListSearchBox);
+        _spellsListSearchBox.Dock = DockStyle.None;
+        _spellsListSearchBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _spellsListSearchBox.Margin = new Padding(0);
+        _spellsListSearchBox.Height = 30;
+        _spellsListSearchBox.PlaceholderText = "法术 ID、索引或名称";
+        _spellsListSearchBox.TextChanged += (_, _) => ApplySpellsListFilter();
+        searchCard.Controls.Add(_spellsListSearchBox, 1, 0);
+        actionBar.Controls.Add(searchCard, 0, 0);
+
         var addCard = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 4,
+            ColumnCount = 5,
             RowCount = 1,
             Margin = new Padding(0, 0, 0, 10),
             Padding = new Padding(12, 8, 12, 8)
         };
         addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
+        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
         addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
         addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
@@ -687,7 +750,7 @@ public sealed class ClassConfigEditorControl : UserControl
             MinimumSize = new Size(88, 30)
         };
         addControl.Click += (_, _) => AddSpellsListEntry();
-        addCard.Controls.Add(addControl, 3, 0);
+        addCard.Controls.Add(addControl, 4, 0);
 
         void HandleAddOnEnter(object? _, KeyEventArgs e)
         {
@@ -702,7 +765,8 @@ public sealed class ClassConfigEditorControl : UserControl
 
         _newSpellIdBox.KeyDown += HandleAddOnEnter;
         _newSpellNameBox.KeyDown += HandleAddOnEnter;
-        panel.Controls.Add(addCard, 0, 0);
+        actionBar.Controls.Add(addCard, 1, 0);
+        panel.Controls.Add(actionBar, 0, 0);
 
         var hint = CreateFieldCaption("来自当前职业 Lua 的 Fuyutsui.spellsList，仅编辑索引 1–100；保存后同步修改 Lua 对应条目。");
         hint.Padding = new Padding(8, 0, 0, 0);
@@ -1345,6 +1409,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private void FillStatesGrid()
     {
+        CloseStateComboDropDown();
         _statesGrid.Rows.Clear();
         if (_currentSpec is null)
         {
@@ -1370,6 +1435,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private void ReloadStatesGrid()
     {
+        CloseStateComboDropDown();
         _suppressUi = true;
         try
         {
@@ -1412,22 +1478,51 @@ public sealed class ClassConfigEditorControl : UserControl
         BindStateNameColumn(options);
     }
 
-    private void HandleStateEditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
+    private void OnStatesGridCellClick(object? sender, DataGridViewCellEventArgs e)
     {
-        if (_statesGrid.CurrentCell?.OwningColumn?.Name != "Name")
+        if (e.RowIndex < 0
+            || e.ColumnIndex < 0
+            || _statesGrid.Columns[e.ColumnIndex].Name != "Name")
         {
             return;
         }
 
-        if (e.Control is not ComboBox combo)
+        ShowStateNameDropDown(e.RowIndex, e.ColumnIndex);
+    }
+
+    private void OnStatesGridKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_statesGrid.CurrentCell is not DataGridViewComboBoxCell cell
+            || cell.OwningColumn?.Name != "Name"
+            || e.KeyCode is not (Keys.Enter or Keys.Space or Keys.F4 or Keys.Down))
         {
             return;
         }
 
+        if (e.KeyCode == Keys.Down && !e.Alt)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        e.SuppressKeyPress = true;
+        ShowStateNameDropDown(cell.RowIndex, cell.ColumnIndex);
+    }
+
+    private void ShowStateNameDropDown(int rowIndex, int columnIndex)
+    {
+        CloseStateComboDropDown();
+        if (rowIndex < 0
+            || rowIndex >= _statesGrid.Rows.Count
+            || _statesGrid.Rows[rowIndex].Cells[columnIndex] is not DataGridViewComboBoxCell cell)
+        {
+            return;
+        }
+
+        _statesGrid.CurrentCell = cell;
         var category = _selectedStateCategory;
-        var current = _statesGrid.CurrentCell.Value?.ToString()?.Trim();
-        var currentRowIndex = _statesGrid.CurrentCell.RowIndex;
-        var usedNames = GetUsedStateNames(category, currentRowIndex);
+        var current = cell.Value?.ToString()?.Trim();
+        var usedNames = GetUsedStateNames(category, rowIndex);
         var options = ClassStateCatalog.GetOptions(category)
             .Where(option => !usedNames.Contains(option.Name) && !IsHiddenStateName(option.Name))
             .ToList();
@@ -1438,18 +1533,36 @@ public sealed class ClassConfigEditorControl : UserControl
             options.Insert(0, new ClassStateCatalog.StateOption(optionCategory, current));
         }
 
-        combo.DropDownStyle = ComboBoxStyle.DropDownList;
-        combo.FlatStyle = FlatStyle.Flat;
-        combo.BackColor = UiTheme.Field;
-        combo.ForeColor = UiTheme.Text;
-        combo.DataSource = null;
-        combo.DisplayMember = nameof(ClassStateCatalog.StateOption.Display);
-        combo.ValueMember = nameof(ClassStateCatalog.StateOption.Name);
-        combo.DataSource = options;
-        if (!string.IsNullOrWhiteSpace(current))
-        {
-            combo.SelectedValue = current;
-        }
+        var popupOptions = options
+            .Select(option => new UiDropDownOption(option.Name, option.Display))
+            .ToList();
+        var cellBounds = _statesGrid.GetCellDisplayRectangle(columnIndex, rowIndex, cutOverflow: true);
+        ToolStripDropDown? dropDown = null;
+        dropDown = UiDropDownPopup.Show(
+            _statesGrid,
+            cellBounds,
+            popupOptions,
+            current,
+            selected =>
+            {
+                cell.Value = selected.Value?.ToString() ?? string.Empty;
+                _statesGrid.InvalidateCell(cell);
+            },
+            closed: () =>
+            {
+                if (ReferenceEquals(_stateComboDropDown, dropDown))
+                {
+                    _stateComboDropDown = null;
+                }
+            });
+        _stateComboDropDown = dropDown;
+    }
+
+    private void CloseStateComboDropDown()
+    {
+        var dropDown = _stateComboDropDown;
+        _stateComboDropDown = null;
+        dropDown?.Close(ToolStripDropDownCloseReason.AppClicked);
     }
 
     private HashSet<string> GetUsedStateNames(string category, int excludedRowIndex)
@@ -1620,6 +1733,7 @@ public sealed class ClassConfigEditorControl : UserControl
     private void FillSpellsListGrid()
     {
         _spellsListGrid.Rows.Clear();
+        _spellsListSearchBox.Clear();
         _newSpellIdBox.Clear();
         _newSpellNameBox.Clear();
         if (_currentDocument is null)
@@ -1638,6 +1752,24 @@ public sealed class ClassConfigEditorControl : UserControl
             _spellsListGrid.Rows[rowIndex].Tag = spell;
         }
     }
+
+    private void ApplySpellsListFilter()
+    {
+        var query = _spellsListSearchBox.Text.Trim();
+        _spellsListGrid.ClearSelection();
+        _spellsListGrid.CurrentCell = null;
+
+        foreach (DataGridViewRow row in _spellsListGrid.Rows)
+        {
+            row.Visible = string.IsNullOrEmpty(query)
+                          || SpellsListRowMatches(row, query);
+        }
+    }
+
+    private static bool SpellsListRowMatches(DataGridViewRow row, string query)
+        => new[] { "SpellId", "Index", "Name" }
+            .Select(columnName => row.Cells[columnName].Value?.ToString() ?? string.Empty)
+            .Any(value => value.Contains(query, StringComparison.OrdinalIgnoreCase));
 
     private void FillGroupEditors()
     {
@@ -1831,10 +1963,13 @@ public sealed class ClassConfigEditorControl : UserControl
             name);
         var row = _spellsListGrid.Rows[rowIndex];
         row.Tag = entry;
-        _spellsListGrid.ClearSelection();
-        row.Selected = true;
-        _spellsListGrid.CurrentCell = row.Cells["SpellId"];
-        _spellsListGrid.FirstDisplayedScrollingRowIndex = rowIndex;
+        ApplySpellsListFilter();
+        if (row.Visible)
+        {
+            row.Selected = true;
+            _spellsListGrid.CurrentCell = row.Cells["SpellId"];
+            _spellsListGrid.FirstDisplayedScrollingRowIndex = rowIndex;
+        }
 
         _newSpellIdBox.Clear();
         _newSpellNameBox.Clear();
@@ -2273,6 +2408,7 @@ public sealed class ClassConfigEditorControl : UserControl
         _aurasGrid.Rows.Clear();
         _spellsGrid.Rows.Clear();
         _spellsListGrid.Rows.Clear();
+        _spellsListSearchBox.Clear();
         _groupAurasGrid.Rows.Clear();
     }
 

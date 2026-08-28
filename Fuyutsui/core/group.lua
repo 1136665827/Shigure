@@ -6,6 +6,7 @@ local state = Fuyutsui.state
 local roleMap = Fuyutsui.roleMap
 local ColorValue0 = CreateColor(0, 0, 0, 1)
 local updateIndex = 1
+local GROUP_MAX_MEMBERS = 40
 
 -- 施法治疗预估偏移（近似秒数/权重，写入生命曲线）
 local helpfulSpells = {
@@ -60,30 +61,39 @@ function Fuyutsui:UpdateGroupInRangeAndHealth()
     local groupList = self.groupList
     if not blocks or not blocks.groups then return end
     local numUnits = #groupList
-    if numUnits >= 1 then
-        local unit = groupList[updateIndex]
-        local obj = group[unit]
-        if not obj then return end
-        self:UpdateUnitHealthInfo(unit)
-        local index = blocks.groups.start + (obj.index - 1) * blocks.groups.num + blocks.groups.role
-        obj.isDead = UnitIsDeadOrGhost(unit)
-        obj.canAssist = UnitCanAssist("player", unit)
-        obj.valid = not obj.isDead and obj.canAssist and obj.inSight
-        if obj.valid then
-            local inRange = UnitIsUnit(unit, "player") and true or UnitInRange(unit)
-            local roleValue = roleMap[obj.role] and roleMap[obj.role] / 255 or 5 / 255
-            local trueValue = CreateColor(0, 0, roleValue, 1)
-            local booleanValue = EvaluateColorFromBoolean(inRange, trueValue, ColorValue0)
-            local _, _, b = booleanValue:GetRGB()
-            self:CreateTexture(index, b)
-        else
-            self:CreateTexture(index, 0)
-        end
-        updateIndex = updateIndex + 1
-        if updateIndex > numUnits then
-            updateIndex = 1
-        end
+    if numUnits < 1 then
+        updateIndex = 1
+        return
     end
+
+    if updateIndex < 1 or updateIndex > numUnits then
+        updateIndex = 1
+    end
+
+    local unit = groupList[updateIndex]
+    local obj = unit and group[unit] or nil
+    if not obj then
+        updateIndex = 1
+        return
+    end
+
+    self:UpdateUnitHealthInfo(unit)
+    local index = blocks.groups.start + (obj.index - 1) * blocks.groups.num + blocks.groups.role
+    obj.isDead = UnitIsDeadOrGhost(unit)
+    obj.canAssist = UnitCanAssist("player", unit)
+    obj.valid = not obj.isDead and obj.canAssist and obj.inSight
+    if obj.valid then
+        local inRange = UnitIsUnit(unit, "player") and true or UnitInRange(unit)
+        local roleValue = roleMap[obj.role] and roleMap[obj.role] / 255 or 5 / 255
+        local trueValue = CreateColor(0, 0, roleValue, 1)
+        local booleanValue = EvaluateColorFromBoolean(inRange, trueValue, ColorValue0)
+        local _, _, b = booleanValue:GetRGB()
+        self:CreateTexture(index, b)
+    else
+        self:CreateTexture(index, 0)
+    end
+
+    updateIndex = updateIndex % numUnits + 1
 end
 
 --- source: "guid" | "health" | nil
@@ -140,15 +150,20 @@ end
 
 function Fuyutsui:ClearGroupBlocks()
     local blocks = self.blocks
-    if blocks.groups and blocks.groups.start then
-        local startIndex = blocks.groups.start
-        for index = startIndex, 255 do
-            self:CreateTexture(index, 0)
-        end
+    local groups = blocks and blocks.groups or nil
+    if not groups or not groups.start or not groups.num then
+        return
+    end
+
+    local endIndex = groups.start + GROUP_MAX_MEMBERS * groups.num
+    for index = groups.start, endIndex do
+        self:CreateTexture(index, 0)
     end
 end
 
 function Fuyutsui:UpdateGroup()
+    self:ClearGroupBlocks()
+    updateIndex = 1
     self.group = {}
     self.groupList = {}
     local group = self.group
