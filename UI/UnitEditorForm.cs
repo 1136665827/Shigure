@@ -78,23 +78,23 @@ public sealed class UnitEditorForm : Form
     private readonly Label _healthNameLabel = new();
     private readonly TextBox _nameBox = new();
     private readonly TextBox _healthNameBox = new();
-    private readonly ComboBox _categoryBox = new();
-    private readonly ComboBox _selectorBox = new();
-    private readonly ComboBox _lowestHealthAuraFilterBox = new();
-    private readonly ComboBox _lowestHealthRoleFilterBox = new();
+    private readonly UiDropDown _categoryBox = new();
+    private readonly UiDropDown _selectorBox = new();
+    private readonly UiDropDown _lowestHealthAuraFilterBox = new();
+    private readonly UiDropDown _lowestHealthRoleFilterBox = new();
     private readonly FlowLayoutPanel _paramPanel = new();
     private readonly Label _previewLabel = new();
     private readonly ToolTip _toolTip = new();
 
     private readonly NumericUpDown _thresholdBox = new();
-    private readonly ComboBox _thresholdModeBox = new();
-    private readonly ComboBox _thresholdFieldBox = new();
-    private readonly ComboBox _roleBox = new();
+    private readonly UiDropDown _thresholdModeBox = new();
+    private readonly UiDropDown _thresholdFieldBox = new();
+    private readonly UiDropDown _roleBox = new();
     private readonly CheckBox _reverseBox = new();
-    private readonly ComboBox _auraBox = new();
+    private readonly UiDropDown _auraBox = new();
     private readonly CheckedListBox _aurasBox = new();
     private readonly NumericUpDown _auraCountBox = new();
-    private readonly ComboBox _dispelTypeBox = new();
+    private readonly UiDropDown _dispelTypeBox = new();
 
     private Panel _thresholdModeRow = null!;
     private Panel _thresholdRow = null!;
@@ -1286,7 +1286,7 @@ public sealed class UnitEditorForm : Form
         _dispelTypeBox.SelectedIndex = 0;
     }
 
-    private static void SelectAura(ComboBox box, string? aura)
+    private static void SelectAura(UiDropDown box, string? aura)
     {
         if (string.IsNullOrEmpty(aura))
         {

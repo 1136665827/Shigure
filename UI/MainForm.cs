@@ -39,8 +39,8 @@ public sealed class MainForm : Form, IMessageFilter
     };
 
     private Button _toggleKeyButton = null!;
-    private ComboBox _modeComboBox = null!;
-    private ComboBox _moduleComboBox = null!;
+    private UiDropDown _modeComboBox = null!;
+    private UiDropDown _moduleComboBox = null!;
     private Label _moduleFilterLabel = null!;
     private Label _moduleCountLabel = null!;
     private Label _configSourceLabel = null!;
@@ -824,7 +824,7 @@ public sealed class MainForm : Form, IMessageFilter
         inputCard.Controls.Add(CreateSettingLabel("触发键"), 0, 2);
         inputCard.Controls.Add(_toggleKeyButton, 1, 2);
 
-        _modeComboBox = new ComboBox();
+        _modeComboBox = new UiDropDown();
         UiTheme.StyleComboBox(_modeComboBox);
         _modeComboBox.Items.AddRange(new object[] { "开关", "单击", "按住" });
         _modeComboBox.SelectedIndex = 0;
@@ -883,7 +883,7 @@ public sealed class MainForm : Form, IMessageFilter
         moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 0)!, 2);
         moduleCard.Controls.Add(CreateDescription("按实时职业与专精自动匹配，或手动指定模块"), 0, 1);
         moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 1)!, 2);
-        _moduleComboBox = new ComboBox();
+        _moduleComboBox = new UiDropDown();
         UiTheme.StyleComboBox(_moduleComboBox);
         _moduleComboBox.Dock = DockStyle.Fill;
         _moduleComboBox.Margin = new Padding(0, 0, 14, 0);

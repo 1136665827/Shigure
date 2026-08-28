@@ -99,7 +99,6 @@ internal static class UiCacheStore
 
 internal sealed class UiCacheState
 {
-    public string? LastShownVersion { get; set; }
     public WindowLocation? MainWindowLocation { get; set; }
     public WindowBounds? MainWindowBounds { get; set; }
     public WindowBounds? HorizontalMainWindowBounds { get; set; }

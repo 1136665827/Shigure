@@ -500,54 +500,12 @@ internal static class UiTheme
             Margin = new Padding(0)
         };
 
-    public static void StyleComboBox(ComboBox comboBox)
+    public static void StyleComboBox(UiDropDown comboBox)
     {
-        comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-        comboBox.FlatStyle = FlatStyle.Flat;
         comboBox.BackColor = Field;
         comboBox.ForeColor = Text;
-        comboBox.DrawMode = DrawMode.OwnerDrawFixed;
-        comboBox.ItemHeight = Math.Max(28, comboBox.Font.Height + 12);
-        comboBox.DropDownHeight = 320;
         comboBox.Margin = new Padding(0);
         comboBox.EnabledChanged += (_, _) => comboBox.Invalidate();
-
-        comboBox.DrawItem += (_, e) =>
-        {
-            if (e.Index < 0)
-            {
-                return;
-            }
-
-            var isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-            var isEditBox = (e.State & DrawItemState.ComboBoxEdit) == DrawItemState.ComboBoxEdit;
-
-            var backgroundColor = !comboBox.Enabled
-                ? SurfaceRaised
-                : isEditBox
-                    ? Field
-                    : isSelected
-                        ? Hover
-                        : Surface;
-            using (var background = new SolidBrush(backgroundColor))
-            {
-                e.Graphics.FillRectangle(background, e.Bounds);
-            }
-
-            var textColor = !comboBox.Enabled
-                ? Muted
-                : !isEditBox && isSelected
-                    ? Accent
-                    : Text;
-            var textBounds = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 8, e.Bounds.Height);
-            TextRenderer.DrawText(
-                e.Graphics,
-                comboBox.Items[e.Index]?.ToString(),
-                comboBox.Font,
-                textBounds,
-                textColor,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
-        };
     }
 
     public static void StyleListBox(
@@ -1079,6 +1037,103 @@ internal static class UiTheme
 
             grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText = e.Value.ToString();
         };
+    }
+
+    // 避免 WinForms 按系统主题绘制高亮白色方块，统一成深色圆角按钮和青色箭头。
+    public static void PaintDataGridViewComboBoxCell(
+        DataGridView grid,
+        DataGridViewCellPaintingEventArgs e,
+        bool showButton = true)
+    {
+        e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+        if (e.Graphics is null)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var selected = (grid.Rows[e.RowIndex].Cells[e.ColumnIndex].State & DataGridViewElementStates.Selected) != 0;
+        var cellStyle = e.CellStyle ?? grid.DefaultCellStyle;
+        var textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
+        var buttonBounds = GetDropDownButtonBounds(grid, e.CellBounds);
+        var textBounds = new Rectangle(
+            e.CellBounds.Left + Scale(grid, 10),
+            e.CellBounds.Top,
+            Math.Max(
+                0,
+                (showButton ? buttonBounds.Left : e.CellBounds.Right)
+                - e.CellBounds.Left
+                - Scale(grid, 16)),
+            e.CellBounds.Height);
+
+        TextRenderer.DrawText(
+            e.Graphics,
+            e.FormattedValue?.ToString() ?? string.Empty,
+            cellStyle.Font ?? grid.Font,
+            textBounds,
+            textColor,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+
+        if (showButton)
+        {
+            PaintDropDownButton(e.Graphics, grid, buttonBounds, selected, enabled: true, hovered: false);
+        }
+
+        e.Handled = true;
+    }
+
+    public static Rectangle GetDropDownButtonBounds(Control control, Rectangle bounds)
+    {
+        var buttonSize = Math.Min(
+            Scale(control, 24),
+            Math.Max(Scale(control, 18), bounds.Height - Scale(control, 12)));
+        return new Rectangle(
+            bounds.Right - buttonSize - Scale(control, 7),
+            bounds.Top + (bounds.Height - buttonSize) / 2,
+            buttonSize,
+            buttonSize);
+    }
+
+    public static void PaintDropDownButton(
+        Graphics graphics,
+        Control control,
+        Rectangle buttonBounds,
+        bool selected,
+        bool enabled,
+        bool hovered)
+    {
+        var oldSmoothingMode = graphics.SmoothingMode;
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        var backgroundColor = !enabled
+            ? SurfaceRaised
+            : selected
+                ? Pressed
+                : Hover;
+        using (var path = CreateRoundedRectanglePath(buttonBounds, Scale(control, 4)))
+        using (var background = new SolidBrush(backgroundColor))
+        using (var border = new Pen(enabled && (selected || hovered) ? Accent : Border))
+        {
+            graphics.FillPath(background, path);
+            graphics.DrawPath(border, path);
+        }
+
+        var centerX = buttonBounds.Left + buttonBounds.Width / 2;
+        var centerY = buttonBounds.Top + buttonBounds.Height / 2 + 1;
+        var arrowHalfWidth = Scale(control, 4);
+        var arrowTop = Scale(control, 2);
+        var arrowBottom = Scale(control, 3);
+        var arrow = new[]
+        {
+            new Point(centerX - arrowHalfWidth, centerY - arrowTop),
+            new Point(centerX + arrowHalfWidth, centerY - arrowTop),
+            new Point(centerX, centerY + arrowBottom)
+        };
+        using (var arrowBrush = new SolidBrush(enabled && (selected || hovered) ? Accent : Muted))
+        {
+            graphics.FillPolygon(arrowBrush, arrow);
+        }
+
+        graphics.SmoothingMode = oldSmoothingMode;
     }
 
     public static ListView CreateListView(Font font, params (string Text, int Width)[] columns)
