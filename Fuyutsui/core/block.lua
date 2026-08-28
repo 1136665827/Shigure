@@ -608,6 +608,16 @@ local function SetupPermanentAuraPixel(button, index)
     bg:SetColorTexture(r, g, 1, 1)
 end
 
+--- 职责覆盖槽：光环存在时保留职责像素的索引通道，并把数值通道覆盖为 0。
+local function SetupZeroAuraPixel(button, index)
+    AnchorAuraPixelButton(button, index)
+    button:SetFrameLevel((button:GetFrameLevel() or 0) + 1)
+    local bg = button:CreateTexture(nil, "ARTWORK")
+    bg:SetAllPoints(button)
+    local r, g = EncodeBlockChannels(index)
+    bg:SetColorTexture(r, g, 0, 1)
+end
+
 --- 限时光环槽：底层 b=0，█ 用剩余时间曲线；叠在永久槽之上
 local function SetupTimedAuraDuration(button, index)
     AnchorAuraPixelButton(button, index)
@@ -643,6 +653,12 @@ end
 local function MakeTimedSlotInitializer(index)
     return function(button)
         SetupTimedAuraDuration(button, index)
+    end
+end
+
+local function MakeZeroSlotInitializer(index)
+    return function(button)
+        SetupZeroAuraPixel(button, index)
     end
 end
 
@@ -1120,7 +1136,9 @@ end
     驱散蓝通道：Magic=1 Curse=2 Disease=3 Poison=4 Bleed=11（/255）
 ============================================================================]]
 
-local groupAuraContainers = {} -- [memberIndex] = AuraContainer
+local GROUP_ROLE_ZERO_AURA_ID = 27827
+local groupAuraContainers = {}        -- [memberIndex] = AuraContainer
+local groupRoleOverlayContainers = {} -- [memberIndex] = AuraContainer
 
 local function CollectGroupAuraDefs(auraTable)
     local defs = {}
@@ -1173,6 +1191,39 @@ function Fuyutsui:ReleaseGroupAuraContainers()
         ReleaseFrame(container)
         groupAuraContainers[memberIndex] = nil
     end
+    for memberIndex, container in pairs(groupRoleOverlayContainers) do
+        ReleaseFrame(container)
+        groupRoleOverlayContainers[memberIndex] = nil
+    end
+end
+
+local function CreateGroupMemberRoleOverlayContainer(memberIndex, groups)
+    EnsureAuraContainerLoaded()
+
+    local container = CreateFrame("AuraContainer", "FuyutsuiGroupRoleOverlaySlots_" .. memberIndex, UIParent,
+                                  "CustomAuraContainerTemplate")
+    container:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+    container:SetEnabled(true)
+    container:SetFrameStrata(AURA_DURATION_STRATA)
+    container:SetFrameLevel(AURA_DURATION_LEVEL + 1)
+
+    local pixelIndex = GroupAuraPixelIndex(groups, memberIndex, groups.role)
+    local slotKey = "group_" .. memberIndex .. "_role_zero"
+    local includeSpellIDs = { [GROUP_ROLE_ZERO_AURA_ID] = true }
+    container:AddAuraSlot(slotKey, "HELPFUL", {
+        candidateFilters = AuraSlotFilters(includeSpellIDs),
+        sortMethod = AuraContainerSortMethod.Expiration,
+        sortDirection = AuraContainerSortDirection.Normal,
+        initializeFrame = MakeZeroSlotInitializer(pixelIndex),
+    })
+    container.fuyutsuiSpellIdSlots = {
+        {
+            key = slotKey,
+            includeSpellIDs = includeSpellIDs,
+        },
+    }
+
+    return container
 end
 
 local function CreateGroupMemberAuraContainer(memberIndex, groups, auraDefs, includeDispelTypes)
@@ -1237,34 +1288,57 @@ function Fuyutsui:RefreshGroupAuraContainers()
 
     local auraDefs = CollectGroupAuraDefs(groups.aura)
     local includeDispelTypes = groups.dispel and CopyIncludeDispelTypes() or nil
-    if #auraDefs == 0 and not includeDispelTypes then
+    local needsAuraContainer = #auraDefs > 0 or includeDispelTypes ~= nil
+    local needsRoleOverlay = groups.role ~= nil
+    if not needsAuraContainer and not needsRoleOverlay then
         self:ReleaseGroupAuraContainers()
         return
     end
 
     local groupList = Fuyutsui.groupList or {}
     local group = Fuyutsui.group or {}
-    local used = {}
+    local usedAuraContainers = {}
+    local usedRoleOverlayContainers = {}
 
     for _, unit in ipairs(groupList) do
         local obj = group[unit]
         if obj and obj.index then
             local memberIndex = obj.index
-            used[memberIndex] = true
-            local container = groupAuraContainers[memberIndex]
-            if not container then
-                container = CreateGroupMemberAuraContainer(memberIndex, groups, auraDefs, includeDispelTypes)
-                groupAuraContainers[memberIndex] = container
+            if needsAuraContainer then
+                usedAuraContainers[memberIndex] = true
+                local container = groupAuraContainers[memberIndex]
+                if not container then
+                    container = CreateGroupMemberAuraContainer(memberIndex, groups, auraDefs, includeDispelTypes)
+                    groupAuraContainers[memberIndex] = container
+                end
+                container.fuyutsuiUnit = unit
+                container:SetUnit(unit)
+                container:SetEnabled(true)
+                container:Show()
             end
-            container.fuyutsuiUnit = unit
-            container:SetUnit(unit)
-            container:SetEnabled(true)
-            container:Show()
+            if needsRoleOverlay then
+                usedRoleOverlayContainers[memberIndex] = true
+                local roleContainer = groupRoleOverlayContainers[memberIndex]
+                if not roleContainer then
+                    roleContainer = CreateGroupMemberRoleOverlayContainer(memberIndex, groups)
+                    groupRoleOverlayContainers[memberIndex] = roleContainer
+                end
+                roleContainer.fuyutsuiUnit = unit
+                RebindContainerSpellFilters(roleContainer, unit)
+                roleContainer:SetEnabled(true)
+                roleContainer:Show()
+            end
         end
     end
 
     for memberIndex, container in pairs(groupAuraContainers) do
-        if not used[memberIndex] then
+        if not usedAuraContainers[memberIndex] then
+            container:SetEnabled(false)
+            container:Hide()
+        end
+    end
+    for memberIndex, container in pairs(groupRoleOverlayContainers) do
+        if not usedRoleOverlayContainers[memberIndex] then
             container:SetEnabled(false)
             container:Hide()
         end
@@ -1314,6 +1388,16 @@ function Fuyutsui:RebindAuraSpellFilters()
     table.sort(groupIndices)
     for _, memberIndex in ipairs(groupIndices) do
         local container = groupAuraContainers[memberIndex]
+        RebindContainerSpellFilters(container, container.fuyutsuiUnit)
+    end
+
+    local roleOverlayIndices = {}
+    for memberIndex in pairs(groupRoleOverlayContainers) do
+        tinsert(roleOverlayIndices, memberIndex)
+    end
+    table.sort(roleOverlayIndices)
+    for _, memberIndex in ipairs(roleOverlayIndices) do
+        local container = groupRoleOverlayContainers[memberIndex]
         RebindContainerSpellFilters(container, container.fuyutsuiUnit)
     end
 

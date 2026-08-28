@@ -4,8 +4,8 @@ namespace Shigure;
 /// 把 <see cref="ModuleUnit"/> / <see cref="ModuleCountField"/> 定义在当前 group 状态下解析为
 /// 单位槽位或数量。逻辑忠实移植自旧 Python 项目 utils.py:
 /// - 只考虑职责 != 0 的单位;
-/// - 生命值 0 视为死亡跳过;
-/// - 阈值表示只考虑 0 &lt; 生命值 &lt; 阈值;
+/// - 最低生命值选择器保留并比较 0 和负生命值;
+/// - 生命值数量字段仍只统计 0 &lt; 生命值 &lt; 阈值;
 /// - 按 "1".."30" 升序遍历, 保证首/末语义稳定。
 /// </summary>
 public static class UnitSelector
@@ -134,7 +134,7 @@ public static class UnitSelector
         };
     }
 
-    /// <summary>在职责 != 0 的单位里, 取 0 &lt; 生命值 &lt; 阈值 且满足 predicate 的最低血量单位。</summary>
+    /// <summary>在职责 != 0 的单位里, 取生命值 &lt; 阈值且满足 predicate 的最低血量单位（含 0 和负数）。</summary>
     private static string? LowestHealth(
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> group,
         int threshold,
@@ -155,7 +155,7 @@ public static class UnitSelector
                 continue;
             }
 
-            if (pct > 0 && pct < threshold && pct < lowestPct)
+            if (pct < threshold && pct < lowestPct)
             {
                 lowestUnit = key;
                 lowestPct = pct;

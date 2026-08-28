@@ -30,7 +30,7 @@ source_symbols:
   - Fuyutsui:UpdateUnitHealthInfo
   - Fuyutsui:RefreshGroupHealAbsorbBars
   - Fuyutsui:UpdateGroupHealAbsorbBar
-verified_at: 2026-08-09
+verified_at: 2026-08-28
 ---
 
 # Fuyutsui 队伍与治疗吸收
@@ -100,12 +100,15 @@ GROUP_ROSTER_UPDATE / 专精重建
 - 健康使用 `curve100`，并可叠加 `inComingHeals` 的近似偏移；这是预测值，不是纯 `UnitHealthPercent`。
 - `valid` 由“未死亡、可协助、在视线内”组成。
 - 职责来自 `UnitGroupRolesAssigned()`；玩家用当前专精职责覆盖 API 结果。
+- 每名成员另有一个独立职责覆盖 AuraContainer：存在 `27827`（救赎之魂）时，在职责像素上覆盖 `B=0`；光环消失后覆盖槽隐藏，重新显示底层原职责。
 - `inSight` 在收到中文 `UI_ERROR_MESSAGE`“目标不在视野中”时对最近施法目标置为 false，1.5 秒后恢复 true；它是错误消息驱动的启发式，不等价于射线检测。
 - 死亡既可按 unit token 更新，也可由战斗日志 GUID 标记。
 
 ## 队伍光环字段
 
 如果 `group.aura` 存在，每个 offset 建一个 `HELPFUL|PLAYER` 槽；如果 `group.dispel` 存在，则按玩家当前实际会驱散的类型建立一个减益槽。两者都落在成员块地址公式内。
+
+职责覆盖使用独立容器和 `HELPFUL` 过滤，因此 `27827` 可以来自队伍中的其他牧师，也不会与配置中已有的“救赎之魂”普通光环槽争用同一个 aura 实例。
 
 光环持续时间使用顶部像素 `B`，驱散槽使用固定类型色。定义与刷新细节见 [[20-Fuyutsui/08-Fuyutsui-光环容器本地集成]]。
 
@@ -130,20 +133,21 @@ GROUP_ROSTER_UPDATE / 专精重建
 - 对 30 名外部消费者，最后一个成员地址必须不超过顶部索引 510。
 - 顶部队伍块和吸收网格是两套坐标系，不可用同一个 index 解释。
 - Shigure 当前只构建 30 名成员，而 WoW 团队可达到 40 人；30 是当前跨项目契约上限，不是游戏上限。
-- roster 变化后应重置轮转游标并清除旧成员像素，避免上一阵容泄漏。
+- roster 变化后会先清除完整 40 人成员区并重置轮转游标，避免上一阵容泄漏。
+- roster 重建后的职责像素先保持为 0，再由每帧轮转逐个恢复；未重新确认有效性的成员不会提前进入 Shigure 的目标选择。
 
 ## 失败模式与当前风险
 
-1. **缩编后分帧轮转可永久卡住。** `updateIndex` 是文件级局部变量，`UpdateGroup()` 不重置它。若旧索引大于新 `#groupList`，`groupList[updateIndex]` 为 `nil`，函数在递增前返回，此后每帧都停在同一无效索引（`group.lua:8,57-85,151-190`）。
-2. **旧成员顶部像素残留。** 重建 roster 没有清除超出新人数的旧槽；`ClearGroupBlocks()` 未见调用，而且只清到 255，无法覆盖两段协议的 256..510。
-3. **40 人被截断或未消费。** Lua 成员表可能包含 40 人，但吸收网格和 Shigure 固定 30；需要明确选择截断策略。
-4. **角色偏移缺失。** 职业 group 表若没有 `role` 或 `healthPercent`，更新器做索引算术时可能报错。
-5. **异步 roster 竞态。** roster 更新使用延迟回调；光环容器和吸收槽在短窗口内可能仍绑定旧 unit。
-6. **视线语义是启发式。** 将 `valid` 当作权威 LoS 会导致错误治疗决策。
+1. **40 人被截断或未消费。** Lua 成员表可能包含 40 人，但吸收网格和 Shigure 固定 30；需要明确选择截断策略。
+2. **角色偏移缺失。** 职业 group 表若没有 `role` 或 `healthPercent`，更新器做索引算术时可能报错。
+3. **异步 roster 竞态。** roster 更新使用延迟回调；光环容器和吸收槽在短窗口内可能仍绑定旧 unit。
+4. **视线语义是启发式。** 将 `valid` 当作权威 LoS 会导致错误治疗决策。
+
+已修复：`UpdateGroup()` 现在会在重建前清空完整 40 人顶部成员区并把 `updateIndex` 重置为 1；每帧更新也会主动归一越界或异常游标，不再因缩编停在无效槽位。
 
 ## 修改影响
 
-- 修复缩编时应在 `UpdateGroup()` 把 `updateIndex` 归一为 1，并清除旧成员实际占用的完整 1..510 范围。
+- 队伍重建必须继续保持“先清成员块、再重置游标、最后重建 roster”的顺序；不要在新 roster 写入后再清理。
 - 改成员顺序、最大人数或字段偏移，必须同步 [[30-Shigure/03-Shigure-配置合并与GameState构建]]。
 - 改吸收网格的列数、槽宽、锚点 RGB 或终点色，必须同步 [[30-Shigure/02-Shigure-像素扫描与协议解码]]。
 - 新增 group aura/dispel 字段时检查 `group.num` 和第 30 人末索引。
@@ -151,11 +155,11 @@ GROUP_ROSTER_UPDATE / 专精重建
 ## 源码索引
 
 - `Fuyutsui/main.lua:171-180`：成员块起点与字段定义。
-- `Fuyutsui/core/group.lua:21-87`：成员遍历、健康与每帧轮转。
-- `Fuyutsui/core/group.lua:90-139`：死亡、视线与治疗预估。
-- `Fuyutsui/core/group.lua:141-190`：清理和 roster 重建。
+- `Fuyutsui/core/group.lua:22-97`：成员遍历、健康与每帧轮转。
+- `Fuyutsui/core/group.lua:100-149`：死亡、视线与治疗预估。
+- `Fuyutsui/core/group.lua:151-202`：清理和 roster 重建。
 - `Fuyutsui/core/block.lua:299-457`：治疗吸收网格、绑定和事件。
-- `Fuyutsui/core/block.lua:946-1090`：队伍光环/驱散成员槽。
+- `Fuyutsui/core/block.lua:1136-1404`：队伍光环、职责覆盖与驱散成员槽。
 
 ## 知识图谱
 

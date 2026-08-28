@@ -32,7 +32,7 @@ source_symbols:
   - "Fuyutsui:RefreshGroupHealAbsorbBars"
   - "PixelScanner.ScanScreenData"
   - "StateBuilder.Build"
-verified_at: "2026-08-09"
+verified_at: "2026-08-28"
 ---
 
 # Shigure 像素生产消费契约
@@ -117,7 +117,7 @@ Shigure 从客户区左边缘向下寻找红色标记字节 `(1,0,0)`，以该 y
 - `G - 1` 是治疗吸收值。
 - `B` 是单位编号 `1..30`。
 
-`StateBuilder` 将该值写入每个 `group` 成员的 `治疗吸收`，并在值非零时从扫描到的 `生命值` 中扣除吸收，最低为零。因此这里的协议变化不仅影响显示字段，也会改变模块实际使用的队伍生命值。
+`StateBuilder` 将该值写入每个 `group` 成员的 `治疗吸收`，并在值非零时从扫描到的 `生命值` 中扣除吸收。扣除结果不设下限，可以为 0 或负数，并会参与最低生命值动态单位的比较。因此这里的协议变化不仅影响显示字段，也会改变模块实际使用的队伍生命值。
 
 ## 关键不变量
 
