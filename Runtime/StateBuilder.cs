@@ -110,11 +110,12 @@ public sealed class StateBuilder : IRuntimeStateBuilder
 
             // 治疗吸收来自网格扫描：白块右侧像素的 B=单位编号，G-1=吸收值。
             // 插件像素里的生命值含吸收盾，这里折算为真实生命：生命值 -= 治疗吸收。
+            // 保留 0 和负数，供最低生命值选择器比较治疗吸收后的有效生命值。
             var absorb = healAbsorbData.TryGetValue(i, out var absorbValue) ? absorbValue : 0;
             sub["治疗吸收"] = absorb;
             if (absorb != 0 && sub.TryGetValue("生命值", out var healthObj) && healthObj is int health)
             {
-                sub["生命值"] = Math.Max(0, health - absorb);
+                sub["生命值"] = health - absorb;
             }
 
             group[i.ToString()] = sub;

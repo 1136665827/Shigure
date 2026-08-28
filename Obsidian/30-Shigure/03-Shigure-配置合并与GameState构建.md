@@ -28,7 +28,7 @@ source_symbols:
   - StateBuilder.Build
   - StateBuilder.BuildGroup
   - GameState.GetValue
-verified_at: 2026-08-09
+verified_at: 2026-08-28
 ---
 
 # Shigure 配置合并与 GameState 构建
@@ -92,7 +92,7 @@ RowData[2,3]
 - 组员配置默认 `start=26`、`num=5`，但以生成的配置为准。
 - 固定生成 30 个单位；第 `i` 个单位某字段的绝对步骤为 `start + (i-1)*num + relativeStep`。
 - 组员字段若 `step: "bar"`，读取的是全局动作条索引，不是组员步长。
-- `HealAbsorbData[i]` 注入组员；因插件生命值包含吸收，构建器从 `生命值` 中减去吸收，并把结果下限钳为 0。
+- `HealAbsorbData[i]` 注入组员；因插件生命值包含吸收，构建器从 `生命值` 中减去吸收。结果不设下限，可以为 0 或负数，供最低生命值选择器比较。
 
 ### GameState 查询
 
