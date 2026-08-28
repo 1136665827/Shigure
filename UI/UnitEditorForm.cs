@@ -135,11 +135,72 @@ public sealed class UnitEditorForm : Form
         UiTheme.ApplyDarkTitleBar(this);
     }
 
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        RestoreCachedWindowSize();
+    }
+
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        SaveWindowSize();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        SaveWindowSize();
+        base.OnFormClosed(e);
+    }
+
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
         _nameBox.Focus();
         _nameBox.SelectAll();
+    }
+
+    private void RestoreCachedWindowSize()
+    {
+        var cached = UiCacheStore.Load().UnitEditorWindowSize;
+        if (cached is null || cached.Width <= 0 || cached.Height <= 0)
+        {
+            return;
+        }
+
+        var workingArea = Owner is not null
+            ? Screen.FromControl(Owner).WorkingArea
+            : Screen.FromControl(this).WorkingArea;
+        var maximumWidth = Math.Max(MinimumSize.Width, workingArea.Width - 40);
+        var maximumHeight = Math.Max(MinimumSize.Height, workingArea.Height - 40);
+        Size = new Size(
+            Math.Clamp(cached.Width, MinimumSize.Width, maximumWidth),
+            Math.Clamp(cached.Height, MinimumSize.Height, maximumHeight));
+
+        if (Owner is not null)
+        {
+            CenterToParent();
+        }
+        else
+        {
+            CenterToScreen();
+        }
+    }
+
+    private void SaveWindowSize()
+    {
+        if (WindowState != FormWindowState.Normal || Width <= 0 || Height <= 0)
+        {
+            return;
+        }
+
+        var cache = UiCacheStore.Load();
+        cache.UnitEditorWindowSize = new WindowSize
+        {
+            Width = Width,
+            Height = Height
+        };
+        UiCacheStore.Save(cache);
     }
 
     private void InitializeComponent()
@@ -150,11 +211,12 @@ public sealed class UnitEditorForm : Form
         BackColor = UiTheme.Surface;
         ForeColor = UiTheme.Text;
         ClientSize = new Size(RowWidth + 36, 534);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
+        FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.CenterParent;
+        MinimumSize = new Size(RowWidth + 52, 420);
 
         var root = new TableLayoutPanel
         {

@@ -559,8 +559,8 @@ Fuyutsui.ClassMacros = {
     DRUID = {
         dynamicSpells = { "回春术", "愈合", "生命绽放", "迅捷治愈", "自然之愈" },
         staticSpells = {
-            "[nostance:2]猎豹形态(变形)",
-            "[nostance:1]熊形态(变形)",
+            "[nostance:2]猎豹形态",
+            "[nostance:1]熊形态",
             "[nostance:4]枭兽形态",
             "月火术",
             "树皮术",

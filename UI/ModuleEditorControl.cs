@@ -641,6 +641,7 @@ public sealed class ModuleEditorControl : UserControl
         _adjustmentFieldColumn.MinimumWidth = 200;
         _adjustmentFieldColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _adjustmentFieldColumn.FlatStyle = FlatStyle.Flat;
+        _adjustmentFieldColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
         _adjustmentsGrid.Columns.Add(_adjustmentFieldColumn);
 
         _adjustmentsGrid.Columns.Add(new DataGridViewTextBoxColumn
@@ -666,6 +667,7 @@ public sealed class ModuleEditorControl : UserControl
         _adjustmentTypeColumn.MinimumWidth = 100;
         _adjustmentTypeColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
         _adjustmentTypeColumn.FlatStyle = FlatStyle.Flat;
+        _adjustmentTypeColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton;
         foreach (var option in AdjustmentTypeOptions)
         {
             _adjustmentTypeColumn.Items.Add(option.Text);
@@ -2194,7 +2196,7 @@ public sealed class ModuleEditorControl : UserControl
         var columnName = _rulesGrid.Columns[e.ColumnIndex].Name;
         if (columnName is "Spell" or "Unit" or "MacroCondition")
         {
-            PaintRuleComboBoxCell(e);
+            PaintGridComboBoxCell(_rulesGrid, e);
             return;
         }
 
@@ -2393,7 +2395,14 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        if (_adjustmentsGrid.Columns[e.ColumnIndex].Name != "Delete")
+        var columnName = _adjustmentsGrid.Columns[e.ColumnIndex].Name;
+        if (columnName is "Type" or "Field")
+        {
+            PaintGridComboBoxCell(_adjustmentsGrid, e);
+            return;
+        }
+
+        if (columnName != "Delete")
         {
             return;
         }
@@ -2436,7 +2445,7 @@ public sealed class ModuleEditorControl : UserControl
     }
 
     // 避免 WinForms 按系统主题绘制高亮白色方块，统一成深色圆角按钮和青色箭头。
-    private void PaintRuleComboBoxCell(DataGridViewCellPaintingEventArgs e)
+    private static void PaintGridComboBoxCell(DataGridView grid, DataGridViewCellPaintingEventArgs e)
     {
         e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
         if (e.Graphics is null)
@@ -2445,8 +2454,8 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        var selected = (_rulesGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].State & DataGridViewElementStates.Selected) != 0;
-        var cellStyle = e.CellStyle ?? _rulesGrid.DefaultCellStyle;
+        var selected = (grid.Rows[e.RowIndex].Cells[e.ColumnIndex].State & DataGridViewElementStates.Selected) != 0;
+        var cellStyle = e.CellStyle ?? grid.DefaultCellStyle;
         var textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
         var buttonSize = Math.Min(24, Math.Max(18, e.CellBounds.Height - 12));
         var buttonBounds = new Rectangle(
@@ -2463,7 +2472,7 @@ public sealed class ModuleEditorControl : UserControl
         TextRenderer.DrawText(
             e.Graphics,
             e.FormattedValue?.ToString() ?? string.Empty,
-            cellStyle.Font ?? _rulesGrid.Font,
+            cellStyle.Font ?? grid.Font,
             textBounds,
             textColor,
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
