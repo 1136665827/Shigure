@@ -24,6 +24,7 @@ Fuyutsui.ClassBlocks = {
                 "首领战",
                 "难度",
                 "敌人数量",
+                "施法",
             },
             ["能量"] = {
                 "漩涡值",
@@ -43,6 +44,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                "施法",
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -50,6 +52,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                "施法",
             },
             ["鼠标"] = {
                 "类型",
@@ -67,6 +70,29 @@ Fuyutsui.ClassBlocks = {
             player = {
                 { name = "天怒", spellId = 462854, },
                 { name = "熔岩奔腾", spellId = 77762, },
+                { name = "风暴守护者", spellId = 191634, maxApps = 2, },
+                { name = "暴风", spellId = 454015, maxApps = 2, },
+                { name = "元素宗师", spellId = 267344, },
+                { name = "净化烈焰", spellId = 1259491, },
+                { name = "风之爆发", spellId = 263806, maxApps = 2, },
+                { name = "先祖召唤", spellId = 447244, },
+                { name = "升腾", spellId = 1219480, },
+                { name = "火元素", spellId = 188592, },
+                { name = "风暴元素", spellId = 157299, },
+                { name = "漩涡之力", spellId = 191877, maxApps = 2, },
+                { name = "元素冲击暴击", spellId = 118522, },
+                { name = "元素冲击急速", spellId = 173183, },
+                { name = "元素冲击精通", spellId = 173184, },
+                { name = "闪电之盾", spellId = 192106, },
+                { name = "先祖迅捷", spellId = 443454, },
+                { name = "元素奔涌", spellId = 1300219, },
+                { name = "过载！", spellId = 1300222, },
+            },
+            target = {
+                harmful = {
+                    { name = "烈焰震击", spellId = 188389, },
+                    { name = "引雷针", spellId = 197209, },
+                },
             },
         },
         spells = {
@@ -87,6 +113,9 @@ Fuyutsui.ClassBlocks = {
             { spellId = 192077, name = "狂风图腾" },
             { spellId = 77130, name = "净化灵魂" },
             { spellId = 51505, name = "熔岩爆裂", charge = true, maxCharge = 3 },
+            { spellId = 470057, name = "流电炽焰" },
+            { spellId = 191634, name = "风暴守护者" },
+            { spellId = 443454, name = "先祖迅捷" },
         },
     },
     [2] = {
@@ -200,6 +229,7 @@ Fuyutsui.ClassBlocks = {
                 "敌人数量",
                 "敌人数-无仇恨",
                 "敌人数-有仇恨",
+                "施法",
             },
             ["能量"] = {
                 "法力值",
@@ -214,6 +244,9 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                "驱散类型",
+                "距离",
+                "施法",
             },
             ["焦点"] = {
                 "施法(倒计时)",
@@ -221,6 +254,7 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+                "施法",
             },
             ["鼠标"] = {
                 "类型",
@@ -232,6 +266,12 @@ Fuyutsui.ClassBlocks = {
                 "施法可打断",
                 "引导",
                 "引导可打断",
+            },
+            ["首领1"] = {
+                "施法(正计时)",
+            },
+            ["首领2"] = {
+                "施法(正计时)",
             },
         },
         auras = {
@@ -281,6 +321,8 @@ Fuyutsui.ClassBlocks = {
             { spellId = 114052, name = "升腾" },
             { spellId = 108280, name = "治疗之潮图腾" },
             { spellId = 73920, name = "治疗之雨" },
+            { spellId = 370, name = "净化术" },
+            { spellId = 192077, name = "狂风图腾" },
         },
         group = {
             num = 6,
