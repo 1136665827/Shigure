@@ -345,15 +345,13 @@ def build_spell_icon_package(build_root: Path) -> Path:
             raise ValueError(f"无效或缺失的法术图标: {target}")
         icon_paths.append(icon_path)
 
-    seen_names: set[str] = set()
     name_records: list[tuple[int, bytes]] = []
     for spell_id, _, name in spells:
-        if not name or name in seen_names:
+        if not name:
             continue
         encoded = name.encode("utf-8")
         if len(encoded) > 4096:
             raise ValueError(f"法术名称异常过长: {spell_id}")
-        seen_names.add(name)
         name_records.append((spell_id, encoded))
 
     spell_map_offset = SPELL_ICON_PACKAGE_HEADER.size
