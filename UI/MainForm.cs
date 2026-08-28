@@ -188,12 +188,47 @@ public sealed class MainForm : Form, IMessageFilter
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        var runtimeDataGenerated = await GenerateRuntimeDataAtStartupIfMissingAsync();
         var dependenciesUpdated = await ImportModuleDependenciesAsync(reloadStore: true, showFeedback: true);
-        if (!dependenciesUpdated)
+        if (!dependenciesUpdated && !runtimeDataGenerated)
         {
             await SynchronizeAddonAtStartupAsync();
         }
         await StartRuntimeAsync();
+    }
+
+    private async Task<bool> GenerateRuntimeDataAtStartupIfMissingAsync()
+    {
+        var configDirectory = Path.Combine(_baseDirectory, ConfigService.ConfigDirectoryName);
+        var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
+        var hasAllConfigFiles = Directory.Exists(configDirectory)
+            && File.Exists(Path.Combine(configDirectory, ConfigService.CommonConfigFileName))
+            && ClassNames.GetClasses().All(item =>
+                File.Exists(Path.Combine(configDirectory, $"{ClassNames.GetConfigFileName(item.Id)}.json")));
+        var hasAllKeymapFiles = Directory.Exists(keymapDirectory)
+            && ClassNames.GetClasses().All(item =>
+                File.Exists(Path.Combine(
+                    keymapDirectory,
+                    $"{ClassNames.GetConfigFileName(item.Id).ToLowerInvariant()}.json")));
+        if (hasAllConfigFiles && hasAllKeymapFiles)
+        {
+            return false;
+        }
+
+        AppendLog("检测到 config 或 keymap 缺失或不完整，正在从项目 Fuyutsui 自动生成");
+        try
+        {
+            var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath: null);
+            AppendLog(
+                $"已自动生成运行配置: config {result.Config.UpdatedFiles.Count} 个文件，" +
+                $"keymap {result.Keymap?.UpdatedFiles.Count ?? 0} 个文件");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"自动生成 config/keymap 失败，程序将继续启动: {ex.Message}");
+            return false;
+        }
     }
 
     private Task ReloadModulesWithDependenciesAsync()
@@ -1241,13 +1276,9 @@ public sealed class MainForm : Form, IMessageFilter
         _configSourceLabel.Text = File.Exists(classMacrosPath)
             ? $"项目 Fuyutsui: {classDirectory} + classmacros.lua"
             : $"项目 Fuyutsui class: {classDirectory}";
-        var configDirectory = ConfigService.ResolveConfigPath(_baseDirectory);
-        if (!Directory.Exists(configDirectory))
-        {
-            throw new DirectoryNotFoundException($"配置目录不存在: {configDirectory}");
-        }
-
+        var configDirectory = Path.Combine(_baseDirectory, ConfigService.ConfigDirectoryName);
         var keymapDirectory = Path.Combine(_baseDirectory, "keymap");
+        Directory.CreateDirectory(keymapDirectory);
 
         try
         {

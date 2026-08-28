@@ -124,7 +124,7 @@ Tools\                  辅助脚本
 - `Fuyutsui\class\*.lua` → `config/*.json`
 - `Fuyutsui\core\classmacros.lua` → `keymap/*.json`
 
-转换完成后会刷新模块编辑器的字段/keymap 目录并重启运行循环，同时递归同步整个插件到当前游戏的 `Interface\AddOns\Fuyutsui`。启动 Shigure 时也会执行同一全量同步：缺失文件会创建，SHA-256 不同的文件会覆盖，相同文件会跳过，游戏目录中的额外文件会保留。
+如果 EXE 所在目录的 `config/` 或 `keymap/` 缺失或文件不完整，启动 Shigure 时会先从上述 Fuyutsui 源文件自动补齐；新建 `config/` 时也会生成运行时必需的 `common.json`。转换完成后会刷新模块编辑器的字段/keymap 目录并重启运行循环，同时递归同步整个插件到当前游戏的 `Interface\AddOns\Fuyutsui`。启动 Shigure 时也会执行同一全量同步：缺失文件会创建，SHA-256 不同的文件会覆盖，相同文件会跳过，游戏目录中的额外文件会保留。
 
 `配置` 页和 `宏` 页保存时先写入项目内 Lua、重新生成 config/keymap，再只把当前修改的 Lua 文件部署到游戏目录。找不到游戏或目标文件不可写时，本地保存不会回滚；界面和日志会提示游戏同步未完成，可在游戏启动后再次点击“更新配置”。
 

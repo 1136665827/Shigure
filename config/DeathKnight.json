@@ -743,7 +743,7 @@
         "category": "玩家"
       },
       "冰龙吐息": {
-        "step": 52,
+        "step": 58,
         "type": "int",
         "category": "玩家"
       },
@@ -775,39 +775,39 @@
     },
     "spells": {
       "死亡之握": {
-        "step": 58,
-        "type": "int"
-      },
-      "反魔法领域": {
         "step": 59,
         "type": "int"
       },
-      "窒息": {
+      "反魔法领域": {
         "step": 60,
         "type": "int"
       },
-      "致盲冰雨": {
+      "窒息": {
         "step": 61,
         "type": "int"
       },
-      "冰霜之柱": {
+      "致盲冰雨": {
         "step": 62,
         "type": "int"
       },
-      "冰霜巨龙之怒": {
+      "冰霜之柱": {
         "step": 63,
         "type": "int"
       },
-      "死神印记": {
+      "冰霜巨龙之怒": {
         "step": 64,
         "type": "int"
       },
-      "符文武器增效": {
+      "死神印记": {
         "step": 65,
         "type": "int"
       },
-      "符文武器增效充能": {
+      "符文武器增效": {
         "step": 66,
+        "type": "int"
+      },
+      "符文武器增效充能": {
+        "step": 67,
         "type": "int"
       },
       "符文武器增效层数": {
@@ -816,11 +816,11 @@
         "type": "int"
       },
       "冰龙吐息": {
-        "step": 67,
+        "step": 68,
         "type": "int"
       },
       "心灵冰冻": {
-        "step": 68,
+        "step": 69,
         "type": "int"
       }
     }
@@ -916,207 +916,222 @@
       "type": "int",
       "category": "状态"
     },
-    "符文": {
+    "施法": {
       "step": 22,
       "type": "int",
-      "category": "能量"
+      "category": "状态"
     },
-    "符文能量": {
+    "符文": {
       "step": 23,
       "type": "int",
       "category": "能量"
     },
-    "治疗药水": {
+    "符文能量": {
       "step": 24,
       "type": "int",
-      "category": "物品"
+      "category": "能量"
     },
-    "鲁莽药水": {
+    "治疗药水": {
       "step": 25,
       "type": "int",
       "category": "物品"
     },
-    "延迟": {
+    "鲁莽药水": {
       "step": 26,
       "type": "int",
-      "category": "配置开关"
+      "category": "物品"
     },
-    "爆发开关": {
+    "延迟": {
       "step": 27,
       "type": "int",
       "category": "配置开关"
     },
-    "输出模式": {
+    "爆发开关": {
       "step": 28,
       "type": "int",
       "category": "配置开关"
     },
-    "AOE开关": {
+    "输出模式": {
       "step": 29,
       "type": "int",
       "category": "配置开关"
     },
-    "爆发药水开关": {
+    "AOE开关": {
       "step": 30,
       "type": "int",
       "category": "配置开关"
     },
-    "目标类型": {
+    "爆发药水开关": {
       "step": 31,
       "type": "int",
-      "category": "目标"
+      "category": "配置开关"
     },
-    "目标生命值": {
+    "目标类型": {
       "step": 32,
       "type": "int",
       "category": "目标"
     },
-    "目标距离": {
+    "目标生命值": {
       "step": 33,
       "type": "int",
       "category": "目标"
     },
-    "目标施法(倒计时)": {
+    "目标距离": {
       "step": 34,
       "type": "int",
       "category": "目标"
     },
-    "目标施法(正计时)": {
+    "目标施法(倒计时)": {
       "step": 35,
       "type": "int",
       "category": "目标"
     },
-    "目标施法可打断": {
+    "目标施法(正计时)": {
       "step": 36,
       "type": "int",
       "category": "目标"
     },
-    "目标引导": {
+    "目标施法可打断": {
       "step": 37,
       "type": "int",
       "category": "目标"
     },
-    "目标引导可打断": {
+    "目标引导": {
       "step": 38,
       "type": "int",
       "category": "目标"
     },
-    "焦点类型": {
+    "目标引导可打断": {
       "step": 39,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点生命值": {
+    "目标施法": {
       "step": 40,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点距离": {
+    "焦点类型": {
       "step": 41,
       "type": "int",
       "category": "焦点"
     },
-    "焦点施法(倒计时)": {
+    "焦点生命值": {
       "step": 42,
       "type": "int",
       "category": "焦点"
     },
-    "焦点施法(正计时)": {
+    "焦点距离": {
       "step": 43,
       "type": "int",
       "category": "焦点"
     },
-    "焦点施法可打断": {
+    "焦点施法(倒计时)": {
       "step": 44,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导": {
+    "焦点施法(正计时)": {
       "step": 45,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导可打断": {
+    "焦点施法可打断": {
       "step": 46,
       "type": "int",
       "category": "焦点"
     },
-    "鼠标类型": {
+    "焦点引导": {
       "step": 47,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标驱散类型": {
+    "焦点引导可打断": {
       "step": 48,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标生命值": {
+    "焦点施法": {
       "step": 49,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标距离": {
+    "鼠标类型": {
       "step": 50,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(倒计时)": {
+    "鼠标驱散类型": {
       "step": 51,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(正计时)": {
+    "鼠标生命值": {
       "step": 52,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法可打断": {
+    "鼠标距离": {
       "step": 53,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导": {
+    "鼠标施法(倒计时)": {
       "step": 54,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导可打断": {
+    "鼠标施法(正计时)": {
       "step": 55,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标施法可打断": {
+      "step": 56,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导": {
+      "step": 57,
+      "type": "int",
+      "category": "鼠标"
+    },
+    "鼠标引导可打断": {
+      "step": 58,
       "type": "int",
       "category": "鼠标"
     },
     "spells": {
       "死亡之握": {
-        "step": 56,
-        "type": "int"
-      },
-      "反魔法领域": {
-        "step": 57,
-        "type": "int"
-      },
-      "窒息": {
-        "step": 58,
-        "type": "int"
-      },
-      "致盲冰雨": {
         "step": 59,
         "type": "int"
       },
-      "亡者复生": {
+      "反魔法领域": {
         "step": 60,
         "type": "int"
       },
-      "亡者大军": {
+      "窒息": {
         "step": 61,
         "type": "int"
       },
-      "腐化": {
+      "致盲冰雨": {
         "step": 62,
         "type": "int"
       },
-      "腐化充能": {
+      "亡者复生": {
         "step": 63,
+        "type": "int"
+      },
+      "亡者大军": {
+        "step": 64,
+        "type": "int"
+      },
+      "腐化": {
+        "step": 65,
+        "type": "int"
+      },
+      "腐化充能": {
+        "step": 66,
         "type": "int"
       },
       "腐化层数": {
@@ -1125,19 +1140,19 @@
         "type": "int"
       },
       "黑暗突变": {
-        "step": 64,
+        "step": 67,
         "type": "int"
       },
       "灵魂收割": {
-        "step": 65,
+        "step": 68,
         "type": "int"
       },
       "枯萎凋零": {
-        "step": 66,
+        "step": 69,
         "type": "int"
       },
       "枯萎凋零充能": {
-        "step": 67,
+        "step": 70,
         "type": "int"
       },
       "枯萎凋零层数": {
@@ -1146,7 +1161,7 @@
         "type": "int"
       },
       "天灾打击": {
-        "step": 68,
+        "step": 71,
         "type": "int"
       },
       "天灾打击层数": {

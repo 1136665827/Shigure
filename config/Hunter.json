@@ -283,69 +283,116 @@
       "type": "int",
       "category": "鼠标"
     },
+    "auras": {
+      "猎群领袖之嚎": {
+        "step": 45,
+        "type": "int",
+        "category": "玩家"
+      },
+      "眼镜蛇利牙": {
+        "step": 46,
+        "type": "int",
+        "category": "玩家"
+      },
+      "自然之友": {
+        "step": 47,
+        "type": "int",
+        "category": "玩家"
+      },
+      "野兽顺劈": {
+        "step": 48,
+        "type": "int",
+        "category": "玩家"
+      },
+      "龙": {
+        "step": 49,
+        "type": "int",
+        "category": "玩家"
+      },
+      "猪": {
+        "step": 50,
+        "type": "int",
+        "category": "玩家"
+      },
+      "熊": {
+        "step": 51,
+        "type": "int",
+        "category": "玩家"
+      },
+      "目标猎人印记": {
+        "step": 52,
+        "type": "int",
+        "category": "目标减益"
+      },
+      "眼镜蛇利牙层数": {
+        "step": "bar",
+        "bar": 1,
+        "type": "int"
+      }
+    },
     "spells": {
       "牺牲咆哮": {
-        "step": 45,
-        "type": "int"
-      },
-      "意气风发": {
-        "step": 46,
-        "type": "int"
-      },
-      "胁迫": {
-        "step": 47,
-        "type": "int"
-      },
-      "震荡射击": {
-        "step": 48,
-        "type": "int"
-      },
-      "宁神射击": {
-        "step": 49,
-        "type": "int"
-      },
-      "焦油陷进": {
-        "step": 50,
-        "type": "int"
-      },
-      "恐吓野兽": {
-        "step": 51,
-        "type": "int"
-      },
-      "束缚射击": {
-        "step": 52,
-        "type": "int"
-      },
-      "摔绊": {
         "step": 53,
         "type": "int"
       },
-      "杀戮命令": {
+      "意气风发": {
         "step": 54,
         "type": "int"
       },
-      "杀戮命令充能": {
+      "胁迫": {
         "step": 55,
         "type": "int"
       },
-      "倒刺射击": {
+      "震荡射击": {
         "step": 56,
         "type": "int"
       },
-      "倒刺射击充能": {
+      "宁神射击": {
         "step": 57,
         "type": "int"
       },
-      "反制射击": {
+      "焦油陷进": {
         "step": 58,
         "type": "int"
       },
-      "狂野怒火": {
+      "恐吓野兽": {
         "step": 59,
         "type": "int"
       },
-      "狂野鞭笞": {
+      "束缚射击": {
         "step": 60,
+        "type": "int"
+      },
+      "摔绊": {
+        "step": 61,
+        "type": "int"
+      },
+      "杀戮命令": {
+        "step": 62,
+        "type": "int"
+      },
+      "杀戮命令充能": {
+        "step": 63,
+        "type": "int"
+      },
+      "倒刺射击": {
+        "step": 64,
+        "type": "int"
+      },
+      "倒刺射击充能": {
+        "step": 65,
+        "type": "int"
+      },
+      "反制射击": {
+        "step": 66,
+        "type": "int"
+      },
+      "狂野怒火": {
+        "step": 67,
+        "type": "int"
+      },
+      "狂野鞭笞": {
+        "step": 68,
         "type": "int"
       }
     }
