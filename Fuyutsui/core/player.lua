@@ -31,6 +31,7 @@ function Fuyutsui:GetCharacterSpecInfo()
     self:LoadPlayerBlocks(self.state.specIndex)
     self:UpdateSpellKnown()
     self:UpdatePlayerMounted()
+    self:UpdatePlayerPet()
     self:UpdateGroup()
     -- 登录阶段其他插件可能稍后写入覆盖绑定；首次加载延后 5 秒，确保本插件最后绑定。
     C_Timer.After(5, function()
@@ -255,6 +256,11 @@ function Fuyutsui:UpdatePlayerBarInfo()
     if self.LayoutAuraApplicationBars then
         self:LayoutAuraApplicationBars()
     end
+end
+
+function Fuyutsui:UpdatePlayerPet()
+    state.hasPet = UnitExists("pet") and 1 / 255 or 0
+    self:UpdateStateBlock("状态", "宠物")
 end
 
 function Fuyutsui:UpdatePlayerMounted()

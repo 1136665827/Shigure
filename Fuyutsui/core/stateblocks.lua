@@ -116,6 +116,7 @@ local stateBlockGetters = {
         ["有效性"] = function() return state.valid or 0 end,
         ["战斗时间"] = function() return state.combatTime or 0 end,
         ["移动"] = function() return state.moving or 0 end,
+        ["宠物"] = function() return state.hasPet or 0 end,
         ["生命值"] = function() return state.healthPercent or 0 end,
         ["一键辅助"] = function() return state.assistantSpell or 0 end,
         ["插入法术"] = function() return state.insertSpell or 0 end,
