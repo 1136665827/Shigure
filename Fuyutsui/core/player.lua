@@ -259,8 +259,8 @@ function Fuyutsui:UpdatePlayerBarInfo()
 end
 
 function Fuyutsui:UpdatePlayerPet()
-    state.hasPet = UnitExists("pet") and 1 / 255 or 0
-    self:UpdateStateBlock("状态", "宠物")
+    self:UpdateUnitType("pet")
+    self:UpdateUnitHealthBlock("pet")
 end
 
 function Fuyutsui:UpdatePlayerMounted()

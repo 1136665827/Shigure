@@ -6,6 +6,7 @@ local state = Fuyutsui.state
 local target = Fuyutsui.target
 local focus = Fuyutsui.focus
 local mouseover = Fuyutsui.mouseover
+local pet = Fuyutsui.pet
 local boss = Fuyutsui.boss
 
 local ColorValue0 = CreateColor(0, 0, 0, 1)
@@ -116,7 +117,6 @@ local stateBlockGetters = {
         ["有效性"] = function() return state.valid or 0 end,
         ["战斗时间"] = function() return state.combatTime or 0 end,
         ["移动"] = function() return state.moving or 0 end,
-        ["宠物"] = function() return state.hasPet or 0 end,
         ["生命值"] = function() return state.healthPercent or 0 end,
         ["一键辅助"] = function() return state.assistantSpell or 0 end,
         ["插入法术"] = function() return state.insertSpell or 0 end,
@@ -267,6 +267,10 @@ local stateBlockGetters = {
         ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel("mouseover", "cast") end,
         ["引导"] = function(self) return self:GetUnitCastPixel("mouseover", "channel") end,
         ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel("mouseover", "channel") end,
+    },
+    ["宠物"] = {
+        ["存在"] = function() return pet.exists or 0 end,
+        ["生命值"] = function() return pet.healthPercent or 0 end,
     },
 }
 

@@ -249,6 +249,9 @@ function Fuyutsui:UNIT_HEALTH(_, unit)
     if unit == "mouseover" then
         self:UpdateMouseoverHealth()
     end
+    if unit == "pet" then
+        self:UpdateUnitHealthBlock(unit)
+    end
     if unit and unit:match("^boss[1-5]$") then
         self:UpdateUnitHealthBlock(unit)
     end
@@ -263,6 +266,9 @@ function Fuyutsui:UNIT_MAXHEALTH(_, unit)
     end
     if unit == "mouseover" then
         self:UpdateMouseoverHealth()
+    end
+    if unit == "pet" then
+        self:UpdateUnitHealthBlock(unit)
     end
     if unit and unit:match("^boss[1-5]$") then
         self:UpdateUnitHealthBlock(unit)

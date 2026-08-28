@@ -14,6 +14,7 @@ internal static class ClassStateCatalog
     public const string CategoryTarget = "目标";
     public const string CategoryFocus = "焦点";
     public const string CategoryMouseover = "鼠标";
+    public const string CategoryPet = "宠物";
     public const string CategoryBoss1 = "首领1";
     public const string CategoryBoss2 = "首领2";
     public const string CategoryBoss3 = "首领3";
@@ -29,6 +30,7 @@ internal static class ClassStateCatalog
         CategoryTarget,
         CategoryFocus,
         CategoryMouseover,
+        CategoryPet,
         CategoryBoss1,
         CategoryBoss2,
         CategoryBoss3,
@@ -40,7 +42,7 @@ internal static class ClassStateCatalog
     [
         (CategoryState,
         [
-            "职业", "专精", "有效性", "战斗时间", "移动", "宠物",
+            "职业", "专精", "有效性", "战斗时间", "移动",
             "生命值", "一键辅助", "插入法术", "队伍类型", "队伍人数",
             "首领战", "难度", "英雄天赋", "施法目标", "施法技能",
             "敌人数量", "敌人数-无仇恨", "敌人数-有仇恨",
@@ -72,6 +74,10 @@ internal static class ClassStateCatalog
         (CategoryMouseover,
         [
             "类型", "驱散类型", "生命值", "距离", "施法(倒计时)", "施法(正计时)", "施法可打断", "引导", "引导可打断"
+        ]),
+        (CategoryPet,
+        [
+            "存在", "生命值"
         ]),
         (CategoryBoss1,
         [

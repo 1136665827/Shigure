@@ -168,6 +168,7 @@ Fuyutsui.blocks = {}
 Fuyutsui.target = {}
 Fuyutsui.focus = {}
 Fuyutsui.mouseover = {}
+Fuyutsui.pet = {}
 Fuyutsui.boss = {}
 for index = 1, 5 do
     Fuyutsui.boss["boss" .. index] = {}

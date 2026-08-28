@@ -6,6 +6,7 @@ local state = Fuyutsui.state
 local target = Fuyutsui.target
 local focus = Fuyutsui.focus
 local mouseover = Fuyutsui.mouseover
+local pet = Fuyutsui.pet
 local boss = Fuyutsui.boss
 local nameplate = Fuyutsui.nameplate
 
@@ -18,6 +19,7 @@ local unitZHMap = {
     ["target"] = "目标",
     ["focus"] = "焦点",
     ["mouseover"] = "鼠标",
+    ["pet"] = "宠物",
     ["boss1"] = "首领1",
     ["boss2"] = "首领2",
     ["boss3"] = "首领3",
@@ -29,6 +31,7 @@ local function GetUnitCache(unit)
     if unit == "target" then return target end
     if unit == "focus" then return focus end
     if unit == "mouseover" then return mouseover end
+    if unit == "pet" then return pet end
     if boss and boss[unit] then return boss[unit] end
 end
 
@@ -86,6 +89,12 @@ function Fuyutsui:UpdateUnitType(unit)
     local cache = GetUnitCache(unit)
     local category = unitZHMap[unit]
     if not cache or not category then return end
+
+    if unit == "pet" then
+        cache.exists = UnitExists(unit) and 1 / 255 or 0
+        self:UpdateStateBlock(category, "存在")
+        return
+    end
 
     if boss and boss[unit] then
         cache.type = (cache.canAttack and 1 or 2) / 255
@@ -156,6 +165,11 @@ function Fuyutsui:UpdateUnitHealthBlock(unit)
     local cache = GetUnitCache(unit)
     local category = unitZHMap[unit]
     if not cache or not category then return end
+    if not UnitExists(unit) then
+        cache.healthPercent = 0
+        self:UpdateStateBlock(category, "生命值")
+        return
+    end
     local healthPercent = UnitHealthPercent(unit, false, self.curve100)
     ---@diagnostic disable-next-line: param-type-mismatch
     local _, _, b = healthPercent:GetRGB()

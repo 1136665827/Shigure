@@ -35,6 +35,7 @@ internal static class FuyutsuiConfigConverter
         ClassStateCatalog.CategoryTarget,
         ClassStateCatalog.CategoryFocus,
         ClassStateCatalog.CategoryMouseover,
+        ClassStateCatalog.CategoryPet,
         ClassStateCatalog.CategoryBoss1,
         ClassStateCatalog.CategoryBoss2,
         ClassStateCatalog.CategoryBoss3,
@@ -545,6 +546,7 @@ internal static class FuyutsuiConfigConverter
         => category is ClassStateCatalog.CategoryTarget
             or ClassStateCatalog.CategoryFocus
             or ClassStateCatalog.CategoryMouseover
+            or ClassStateCatalog.CategoryPet
             or ClassStateCatalog.CategoryBoss1
             or ClassStateCatalog.CategoryBoss2
             or ClassStateCatalog.CategoryBoss3
