@@ -1,8 +1,8 @@
 ## Interface: 120100
 
 ## Title: Fuyutsui
-## Version: 1.2.1.14
-## Author: Wayne Bian
+## Version: 1.2.1.15
+## Author: Wayne
 ## IconTexture: Interface\AddOns\Fuyutsui\core\Spell_Misc_EmotionHappy.blp
 ## OptionalDeps: LibRangeCheck-3.0
 ## SavedVariables: FuyutsuiADB

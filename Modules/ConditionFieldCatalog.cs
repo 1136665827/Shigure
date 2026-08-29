@@ -36,6 +36,36 @@ public sealed record ConditionField(
     public override string ToString() => DisplayName;
 }
 
+public sealed record ConditionSpell(long SpellId, int Index, string Name)
+{
+    public string DisplayName => $"{Name} / {SpellId}";
+}
+
+public static class SpellIdConditionFields
+{
+    public const string OneKeyAssist = "一键辅助";
+    public const string InsertSpell = "插入法术";
+    public const string CastingSpell = "施法技能";
+
+    private static readonly HashSet<string> Names = new(StringComparer.Ordinal)
+    {
+        OneKeyAssist,
+        InsertSpell,
+        CastingSpell
+    };
+
+    public static bool Contains(string? fieldName)
+    {
+        var normalized = fieldName?.Trim() ?? string.Empty;
+        if (normalized.StartsWith("state.", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized["state.".Length..];
+        }
+
+        return Names.Contains(normalized);
+    }
+}
+
 /// <summary>
 /// 从 config 目录构建可在条件编辑器中选择的字段目录。
 /// 字段按模块当前选中的职业/专精过滤；group 队伍字段暂不收录。

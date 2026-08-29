@@ -56,19 +56,10 @@ public sealed class ModuleDefinition
         {
             Id = ModuleStore.CreateModuleId(name),
             Name = name,
+            Version = AppInfo.Version,
             UnitMappingVersion = CurrentUnitMappingVersion,
             Enabled = true,
-            Rules =
-            [
-                new ModuleRule
-                {
-                    Enabled = true,
-                    Condition = "一键辅助 == 10",
-                    Unit = 0,
-                    Spell = "一键辅助",
-                    Step = "施放 一键辅助"
-                }
-            ]
+            Rules = []
         };
     }
 }
@@ -281,6 +272,7 @@ public sealed class ModuleStore
 
     private readonly object _gate = new();
     private List<ModuleDefinition> _modules = new();
+    private readonly HashSet<string> _incompatibleVersionModuleIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _rejectedModuleIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _importIssueModuleIds = new(StringComparer.OrdinalIgnoreCase);
 
@@ -303,7 +295,8 @@ public sealed class ModuleStore
         lock (_gate)
         {
             return _modules
-                .Where(module => !_rejectedModuleIds.Contains(module.Id))
+                .Where(module => !_incompatibleVersionModuleIds.Contains(module.Id)
+                                 && !_rejectedModuleIds.Contains(module.Id))
                 .Select(module => module.Clone())
                 .ToList();
         }
@@ -336,9 +329,13 @@ public sealed class ModuleStore
     {
         lock (_gate)
         {
-            return _importIssueModuleIds.Contains(moduleId);
+            return _incompatibleVersionModuleIds.Contains(moduleId)
+                || _importIssueModuleIds.Contains(moduleId);
         }
     }
+
+    public static bool HasCompatibleVersion(ModuleDefinition module)
+        => string.Equals(module.Version?.Trim(), AppInfo.Version.Trim(), StringComparison.Ordinal);
 
     public void Reload()
     {
@@ -346,6 +343,7 @@ public sealed class ModuleStore
         {
             Directory.CreateDirectory(ModuleDirectory);
             var loaded = new List<ModuleDefinition>();
+            _incompatibleVersionModuleIds.Clear();
             foreach (var file in Directory.EnumerateFiles(ModuleDirectory, "*.json", SearchOption.AllDirectories))
             {
                 try
@@ -359,6 +357,10 @@ public sealed class ModuleStore
                     Normalize(module);
                     module.FilePath = file;
                     loaded.Add(module);
+                    if (!HasCompatibleVersion(module))
+                    {
+                        _incompatibleVersionModuleIds.Add(module.Id);
+                    }
                 }
                 catch
                 {
@@ -377,7 +379,8 @@ public sealed class ModuleStore
         lock (_gate)
         {
             var matches = SortMatches(
-                    _modules.Where(module => !_rejectedModuleIds.Contains(module.Id)),
+                    _modules.Where(module => !_incompatibleVersionModuleIds.Contains(module.Id)
+                                             && !_rejectedModuleIds.Contains(module.Id)),
                     classId,
                     specId,
                     partyType,
@@ -402,7 +405,8 @@ public sealed class ModuleStore
         lock (_gate)
         {
             return SortMatches(
-                    _modules.Where(module => !_rejectedModuleIds.Contains(module.Id)),
+                    _modules.Where(module => !_incompatibleVersionModuleIds.Contains(module.Id)
+                                             && !_rejectedModuleIds.Contains(module.Id)),
                     classId,
                     specId,
                     partyType,
@@ -468,9 +472,43 @@ public sealed class ModuleStore
                 || string.Equals(existing.FilePath, path, StringComparison.OrdinalIgnoreCase));
             _modules.Add(module.Clone());
             _modules = SortModules(_modules).ToList();
+            UpdateVersionCompatibility(module);
             _rejectedModuleIds.Remove(module.Id);
             _importIssueModuleIds.Remove(module.Id);
 
+            return module.Clone();
+        }
+    }
+
+    /// <summary>
+    /// 回写已更新的模块依赖快照，并保留模块原有文件位置。
+    /// </summary>
+    public ModuleDefinition SaveDependenciesInPlace(ModuleDefinition module)
+    {
+        Normalize(module);
+        lock (_gate)
+        {
+            var existing = _modules.FirstOrDefault(item =>
+                string.Equals(item.Id, module.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing is null || string.IsNullOrWhiteSpace(existing.FilePath))
+            {
+                throw new InvalidOperationException($"找不到要清理的模块“{module.Name}”。");
+            }
+
+            var path = existing.FilePath;
+            if (!IsInsideModuleDirectory(path) || !File.Exists(path))
+            {
+                throw new InvalidOperationException($"模块文件不在模块目录中或已不存在: {path}");
+            }
+
+            module.FilePath = path;
+            WriteFileAtomically(path, JsonSerializer.Serialize(module, JsonOptions));
+            _modules.Remove(existing);
+            _modules.Add(module.Clone());
+            _modules = SortModules(_modules).ToList();
+            UpdateVersionCompatibility(module);
+            _rejectedModuleIds.Remove(module.Id);
+            _importIssueModuleIds.Remove(module.Id);
             return module.Clone();
         }
     }
@@ -489,8 +527,21 @@ public sealed class ModuleStore
             _modules.RemoveAll(existing =>
                 string.Equals(existing.Id, module.Id, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(existing.FilePath, module.FilePath, StringComparison.OrdinalIgnoreCase));
+            _incompatibleVersionModuleIds.Remove(module.Id);
             _rejectedModuleIds.Remove(module.Id);
             _importIssueModuleIds.Remove(module.Id);
+        }
+    }
+
+    private void UpdateVersionCompatibility(ModuleDefinition module)
+    {
+        if (HasCompatibleVersion(module))
+        {
+            _incompatibleVersionModuleIds.Remove(module.Id);
+        }
+        else
+        {
+            _incompatibleVersionModuleIds.Add(module.Id);
         }
     }
 
@@ -749,7 +800,8 @@ public static class ModuleLogic
     public static LogicDecision Run(ModuleDefinition module, GameState state, IKeymapResolver keymap)
     {
         var info = CreateInfo(module, state);
-        var unitSlots = ResolveDynamicFields(module, state);
+        var spellIndices = keymap.GetCurrentSpellIndices();
+        var unitSlots = ResolveDynamicFields(module, state, spellIndices);
         var failedSpells = keymap.GetCurrentFailedSpells();
         var oneKeySpells = keymap.GetCurrentOneKeySpells();
 
@@ -762,7 +814,13 @@ public static class ModuleLogic
                 continue;
             }
 
-            if (!ModuleConditionEvaluator.TryEvaluateRule(rule, state, out var conditionMatched, out var error, failedSpells))
+            if (!ModuleConditionEvaluator.TryEvaluateRule(
+                    rule,
+                    state,
+                    out var conditionMatched,
+                    out var error,
+                    failedSpells,
+                    spellIndices))
             {
                 info["条件错误"] = error;
                 info["规则条件"] = rule.DescribeCondition();
@@ -877,7 +935,10 @@ public static class ModuleLogic
     }
 
     // 把模块定义的动态单位/数量各解析一次, 写入当前帧 state.Values 供条件求值与目标解析使用。
-    public static Dictionary<string, string?> ResolveDynamicFields(ModuleDefinition module, GameState state)
+    public static Dictionary<string, string?> ResolveDynamicFields(
+        ModuleDefinition module,
+        GameState state,
+        IReadOnlyDictionary<long, int>? spellIndices = null)
     {
         if (IsDynamicFieldsResolved(module, state)
             && state.Values.TryGetValue("$units", out var existingUnitsObj)
@@ -889,10 +950,15 @@ public static class ModuleLogic
         var earlyAppliedAdjustments = ApplyValueAdjustments(
             module,
             state,
+            spellIndices,
             adjustment => IsEarlyThresholdAdjustment(module, state, adjustment));
         var unitSlots = ResolveUnits(module, state);
         ResolveCounts(module, state);
-        ApplyValueAdjustments(module, state, adjustment => !earlyAppliedAdjustments.Contains(adjustment));
+        ApplyValueAdjustments(
+            module,
+            state,
+            spellIndices,
+            adjustment => !earlyAppliedAdjustments.Contains(adjustment));
         state.Values["$dynamicModuleId"] = module.Id;
         return unitSlots;
     }
@@ -950,6 +1016,7 @@ public static class ModuleLogic
     private static HashSet<ModuleValueAdjustment> ApplyValueAdjustments(
         ModuleDefinition module,
         GameState state,
+        IReadOnlyDictionary<long, int>? spellIndices,
         Func<ModuleValueAdjustment, bool>? include = null)
     {
         var applied = new HashSet<ModuleValueAdjustment>();
@@ -966,7 +1033,12 @@ public static class ModuleLogic
                 continue;
             }
 
-            if (!ModuleConditionEvaluator.TryEvaluate(adjustment.Condition, state, out var matched, out _)
+            if (!ModuleConditionEvaluator.TryEvaluate(
+                    adjustment.Condition,
+                    state,
+                    out var matched,
+                    out _,
+                    spellIndices: spellIndices)
                 || !matched)
             {
                 continue;
@@ -1229,7 +1301,8 @@ public static class ModuleConditionEvaluator
         GameState state,
         out bool matched,
         out string? error,
-        IReadOnlyDictionary<int, string>? failedSpells = null)
+        IReadOnlyDictionary<int, string>? failedSpells = null,
+        IReadOnlyDictionary<long, int>? spellIndices = null)
     {
         matched = false;
         error = null;
@@ -1245,7 +1318,13 @@ public static class ModuleConditionEvaluator
             var allAndMatched = true;
             foreach (var andPart in Regex.Split(orPart, @"\s*&&\s*"))
             {
-                if (!TryEvaluateTerm(andPart, state, out var termMatched, out error, failedSpells))
+                if (!TryEvaluateTerm(
+                        andPart,
+                        state,
+                        out var termMatched,
+                        out error,
+                        failedSpells,
+                        spellIndices))
                 {
                     return false;
                 }
@@ -1275,9 +1354,10 @@ public static class ModuleConditionEvaluator
         GameState state,
         out bool matched,
         out string? error,
-        IReadOnlyDictionary<int, string>? failedSpells = null)
+        IReadOnlyDictionary<int, string>? failedSpells = null,
+        IReadOnlyDictionary<long, int>? spellIndices = null)
     {
-        if (!TryEvaluate(rule.Condition, state, out matched, out error, failedSpells))
+        if (!TryEvaluate(rule.Condition, state, out matched, out error, failedSpells, spellIndices))
         {
             return false;
         }
@@ -1294,7 +1374,7 @@ public static class ModuleConditionEvaluator
                 continue;
             }
 
-            if (!TryEvaluate(sub, state, out var subMatched, out error, failedSpells))
+            if (!TryEvaluate(sub, state, out var subMatched, out error, failedSpells, spellIndices))
             {
                 matched = false;
                 return false;
@@ -1331,7 +1411,8 @@ public static class ModuleConditionEvaluator
         GameState state,
         out bool matched,
         out string? error,
-        IReadOnlyDictionary<int, string>? failedSpells)
+        IReadOnlyDictionary<int, string>? failedSpells,
+        IReadOnlyDictionary<long, int>? spellIndices)
     {
         matched = false;
         error = null;
@@ -1345,7 +1426,14 @@ public static class ModuleConditionEvaluator
         var inMatch = InRegex.Match(trimmed);
         if (inMatch.Success)
         {
-            var inLeft = ResolveValue(state, inMatch.Groups["field"].Value.Trim(), failedSpells);
+            var inField = inMatch.Groups["field"].Value.Trim();
+            if (SpellIdConditionFields.Contains(inField))
+            {
+                error = $"{inField} 仅支持 == 或 != 判断。";
+                return false;
+            }
+
+            var inLeft = ResolveValue(state, inField, failedSpells);
             var inOp = NormalizeOperator(inMatch.Groups["op"].Value);
             var values = ParseListLiterals(inMatch.Groups["value"].Value);
             return TryCompareIn(inLeft, inOp, values, out matched, out error);
@@ -1361,10 +1449,54 @@ public static class ModuleConditionEvaluator
             return true;
         }
 
-        var left = ResolveValue(state, comparison.Groups["field"].Value.Trim(), failedSpells);
+        var comparisonField = comparison.Groups["field"].Value.Trim();
+        var left = ResolveValue(state, comparisonField, failedSpells);
         var op = comparison.Groups["op"].Value;
         var right = ParseLiteral(comparison.Groups["value"].Value.Trim());
+        if (SpellIdConditionFields.Contains(comparisonField))
+        {
+            if (op is not ("==" or "!="))
+            {
+                error = $"{comparisonField} 仅支持 == 或 != 判断。";
+                return false;
+            }
+
+            if (!TryToInt64(right, out var spellId)
+                || spellIndices is null
+                || !spellIndices.TryGetValue(spellId, out var localIndex))
+            {
+                matched = false;
+                return true;
+            }
+
+            right = localIndex;
+        }
+
         return TryCompare(left, op, right, out matched, out error);
+    }
+
+    private static bool TryToInt64(object? value, out long number)
+    {
+        switch (value)
+        {
+            case long longValue:
+                number = longValue;
+                return true;
+            case int intValue:
+                number = intValue;
+                return true;
+            case double doubleValue when doubleValue >= long.MinValue
+                                         && doubleValue <= long.MaxValue
+                                         && Math.Abs(doubleValue % 1) < double.Epsilon:
+                number = (long)doubleValue;
+                return true;
+            case string text when long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed):
+                number = parsed;
+                return true;
+            default:
+                number = 0;
+                return false;
+        }
     }
 
     private static object? ResolveValue(

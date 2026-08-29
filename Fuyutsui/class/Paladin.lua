@@ -228,7 +228,7 @@ Fuyutsui.ClassBlocks = {
             { spellId = 1044, name = "自由祝福" },
             { spellId = 1022, name = "保护祝福" },
             { spellId = 633, name = "圣疗术" },
-            { spellId = 24275, name = "正义之锤" },
+            { spellId = 24275, name = "愤怒之锤" },
         },
         group = {
             num = 3,

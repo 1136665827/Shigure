@@ -20,6 +20,12 @@ internal sealed class ModuleDependencyService
         ClassStateCatalog.CategoryBoss5
     ];
 
+    // “锚点”是配置协议使用但不在可编辑字段目录中展示的固定字段。
+    private static readonly HashSet<string> HiddenFixedStateFields = new(StringComparer.Ordinal)
+    {
+        "锚点"
+    };
+
     private readonly string _classDirectory;
     private readonly string _classMacrosPath;
     private readonly object _gate = new();
@@ -119,6 +125,15 @@ internal sealed class ModuleDependencyService
 
             try
             {
+                ValidateSnapshot(module, module.Dependencies);
+                var removedFields = RemoveUnknownStateFields(module.Dependencies.Config.Spec);
+                if (removedFields.Count > 0)
+                {
+                    result.SanitizedModules.Add(module.Clone());
+                    result.RemovedStateFields.AddRange(removedFields.Select(field =>
+                        new RemovedModuleStateField(module.Name, field.Category, field.Name)));
+                }
+
                 ImportOne(module, result);
             }
             catch (Exception ex)
@@ -133,7 +148,6 @@ internal sealed class ModuleDependencyService
     private void ImportOne(ModuleDefinition module, ModuleDependencyImportResult result)
     {
         var snapshot = module.Dependencies!;
-        ValidateSnapshot(module, snapshot);
 
         var classPath = ResolveClassPath(snapshot.ClassId);
         var configDocument = ClassBlocksStore.Load(classPath);
@@ -202,6 +216,62 @@ internal sealed class ModuleDependencyService
             throw new InvalidDataException($"依赖快照包含未知状态分类“{unknownCategory}”。");
         }
     }
+
+    private static List<RemovedStateField> RemoveUnknownStateFields(ModuleSpecSnapshot spec)
+    {
+        var removed = new List<RemovedStateField>();
+        if (spec.NestedStates)
+        {
+            foreach (var (category, fields) in spec.CategorizedStates)
+            {
+                if (fields is null)
+                {
+                    continue;
+                }
+
+                for (var index = fields.Count - 1; index >= 0; index--)
+                {
+                    var field = fields[index]?.Trim() ?? string.Empty;
+                    if (IsRecognizedStateField(category, field))
+                    {
+                        continue;
+                    }
+
+                    fields.RemoveAt(index);
+                    if (field.Length > 0)
+                    {
+                        removed.Add(new RemovedStateField(category, field));
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (var index = spec.FlatStates.Count - 1; index >= 0; index--)
+            {
+                var field = spec.FlatStates[index]?.Trim() ?? string.Empty;
+                if (HiddenFixedStateFields.Contains(field) || ClassStateCatalog.FindCategory(field) is not null)
+                {
+                    continue;
+                }
+
+                spec.FlatStates.RemoveAt(index);
+                if (field.Length > 0)
+                {
+                    removed.Add(new RemovedStateField(ClassStateCatalog.CategoryState, field));
+                }
+            }
+        }
+
+        removed.Reverse();
+        return removed;
+    }
+
+    private static bool IsRecognizedStateField(string category, string field)
+        => field.Length > 0
+           && (ClassStateCatalog.IsKnown(category, field)
+               || string.Equals(category, ClassStateCatalog.CategoryState, StringComparison.Ordinal)
+               && HiddenFixedStateFields.Contains(field));
 
     private string ResolveClassPath(int classId)
     {
@@ -617,16 +687,10 @@ internal sealed class ModuleDependencyService
         foreach (var entry in incoming)
         {
             var byId = local.FirstOrDefault(item => item.SpellId == entry.SpellId);
-            var byIndex = local.FirstOrDefault(item => item.Index == entry.Index);
-            if (byId is not null || byIndex is not null)
+            if (byId is not null)
             {
-                var existing = byId ?? byIndex!;
-                if (existing.SpellId != entry.SpellId
-                    || existing.Index != entry.Index
-                    || !string.Equals(existing.Name, entry.Name, StringComparison.Ordinal))
-                {
-                    counters.Conflicts.Add($"一键法术 {entry.Index}/{entry.SpellId} 与本地索引或 SpellId 冲突，已保留本地。");
-                }
+                // spellId 是跨模块稳定标识；索引是当前职业文件的本地编码。
+                // 同一 spellId 已存在时保留本地索引/名称，不因来源索引不同产生冲突。
                 continue;
             }
 
@@ -1059,7 +1123,11 @@ internal sealed class ModuleDependencyImportResult
     public List<string> Conflicts { get; } = new();
     public HashSet<string> ConflictedModuleIds { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<RejectedModuleDependency> Rejected { get; } = new();
+    public List<ModuleDefinition> SanitizedModules { get; } = new();
+    public List<RemovedModuleStateField> RemovedStateFields { get; } = new();
     public bool HasChanges => ConfigAdded > 0 || ConfigUpdated > 0 || MacrosAdded > 0;
 }
 
 internal sealed record RejectedModuleDependency(string ModuleId, string ModuleName, string Reason);
+internal sealed record RemovedModuleStateField(string ModuleName, string Category, string Name);
+internal sealed record RemovedStateField(string Category, string Name);

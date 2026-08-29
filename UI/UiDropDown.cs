@@ -3,7 +3,7 @@ using System.Drawing.Drawing2D;
 
 namespace Shigure;
 
-internal sealed record UiDropDownOption(object? Value, string Display)
+internal sealed record UiDropDownOption(object? Value, string Display, Image? Icon = null)
 {
     public override string ToString() => Display;
 }
@@ -32,6 +32,10 @@ internal static class UiDropDownPopup
         var itemHeight = Math.Max(
             (int)Math.Round(32 * scale),
             owner.Font.Height + (int)Math.Round(12 * scale));
+        if (items.Any(item => item.Icon is not null))
+        {
+            itemHeight = Math.Max(itemHeight, (int)Math.Round(38 * scale));
+        }
         var visibleItems = Math.Clamp(items.Count, 1, maximumVisibleItems);
         var measuredWidth = items.Max(item =>
             TextRenderer.MeasureText(DisplayText(item.Display), owner.Font).Width);
@@ -181,10 +185,25 @@ internal static class UiDropDownPopup
             e.Graphics.FillRectangle(background, e.Bounds);
         }
 
+        var textLeft = e.Bounds.Left + 10;
+        if (item.Icon is not null)
+        {
+            var iconSize = Math.Min(
+                e.Bounds.Height - UiTheme.Scale(listBox, 8),
+                UiTheme.Scale(listBox, 28));
+            var iconBounds = new Rectangle(
+                textLeft,
+                e.Bounds.Top + (e.Bounds.Height - iconSize) / 2,
+                iconSize,
+                iconSize);
+            e.Graphics.DrawImage(item.Icon, iconBounds);
+            textLeft = iconBounds.Right + 8;
+        }
+
         var textBounds = new Rectangle(
-            e.Bounds.Left + 10,
+            textLeft,
             e.Bounds.Top,
-            Math.Max(0, e.Bounds.Width - 20),
+            Math.Max(0, e.Bounds.Right - textLeft - 10),
             e.Bounds.Height);
         TextRenderer.DrawText(
             e.Graphics,

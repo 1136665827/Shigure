@@ -111,6 +111,7 @@ internal sealed class UiCacheState
     public string? CloseButtonBehavior { get; set; }
     public string? ToggleKey { get; set; }
     public string? SelectedModuleId { get; set; }
+    public List<DefaultModuleSelection>? DefaultModules { get; set; }
     public Dictionary<string, int>? ModuleRulesGridColumns { get; set; }
     public Dictionary<string, Dictionary<string, int>>? ColumnWidths { get; set; }
 }
@@ -127,6 +128,43 @@ internal sealed class WindowBounds
     public int Y { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
+}
+
+public sealed class DefaultModuleSelection
+{
+    public int? ClassId { get; set; }
+    public int? SpecId { get; set; }
+    public int? HeroTalent { get; set; }
+    public string? PartyType { get; set; }
+    public string ModuleId { get; set; } = string.Empty;
+
+    public int Specificity =>
+        Count(ClassId) + Count(SpecId) + Count(HeroTalent) + Count(PartyType);
+
+    public bool Matches(int? classId, int? specId, int? partyType, int? heroTalent)
+    {
+        return MatchesOne(ClassId, classId)
+            && MatchesOne(SpecId, specId)
+            && MatchesOne(HeroTalent, heroTalent)
+            && new ModuleMatch { PartyType = PartyType }.Matches(null, null, partyType, null);
+    }
+
+    public bool HasSameFilter(int? classId, int? specId, string? partyType, int? heroTalent)
+    {
+        return ClassId == classId
+            && SpecId == specId
+            && HeroTalent == heroTalent
+            && string.Equals(
+                ModuleMatch.NormalizePartyTypeValue(PartyType),
+                ModuleMatch.NormalizePartyTypeValue(partyType),
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesOne(int? expected, int? actual)
+        => expected is null || expected == actual;
+
+    private static int Count<T>(T? value)
+        => value is null ? 0 : 1;
 }
 
 internal sealed class WindowSize

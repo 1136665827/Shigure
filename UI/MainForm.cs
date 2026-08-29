@@ -44,6 +44,12 @@ public sealed class MainForm : Form, IMessageFilter
     private UiDropDown _moduleComboBox = null!;
     private Label _moduleFilterLabel = null!;
     private Label _moduleCountLabel = null!;
+    private UiDropDown _defaultClassComboBox = null!;
+    private UiDropDown _defaultSpecComboBox = null!;
+    private UiDropDown _defaultHeroTalentComboBox = null!;
+    private UiDropDown _defaultPartyTypeComboBox = null!;
+    private UiDropDown _defaultModuleComboBox = null!;
+    private Button _setDefaultModuleButton = null!;
     private Label _configSourceLabel = null!;
     private Button _updateConfigButton = null!;
     private Label _spellIconPackageStatusLabel = null!;
@@ -117,6 +123,11 @@ public sealed class MainForm : Form, IMessageFilter
         FuyutsuiKeymapConverter.UpdateResult? Keymap,
         FuyutsuiAddonSyncResult AddonSync);
 
+    private sealed record ClassModuleSaveResult(
+        int SavedCount,
+        IReadOnlyList<string> Warnings,
+        IReadOnlyList<string> Errors);
+
     internal MainForm(
         AppOptions initialOptions,
         string baseDirectory,
@@ -169,7 +180,7 @@ public sealed class MainForm : Form, IMessageFilter
         _statusForm.AttachModuleEditor(_moduleEditor);
         _classConfigEditor = new ClassConfigEditorControl(
             () => Path.Combine(_addonSyncService.SourceRoot, "class"),
-            UpdateConfigAfterSaveAsync);
+            UpdateClassConfigAfterSaveAsync);
         _statusForm.AttachConfigEditor(_classConfigEditor);
         _classConfigEditor.DirtyStateChanged += dirty => _statusForm.SetPageDirty(SettingsPage.Config, dirty);
         _classMacrosEditor = new ClassMacrosEditorControl(
@@ -298,6 +309,21 @@ public sealed class MainForm : Form, IMessageFilter
             return false;
         }
 
+        var cleanedModuleCount = 0;
+        var cleanupErrors = new List<string>();
+        foreach (var module in result.SanitizedModules)
+        {
+            try
+            {
+                _moduleStore.SaveDependenciesInPlace(module);
+                cleanedModuleCount++;
+            }
+            catch (Exception ex)
+            {
+                cleanupErrors.Add($"{module.Name}: {ex.Message}");
+            }
+        }
+
         _moduleStore.SetImportIssues(
             result.Rejected.Select(item => item.ModuleId),
             result.ConflictedModuleIds);
@@ -311,6 +337,18 @@ public sealed class MainForm : Form, IMessageFilter
         foreach (var conflict in result.Conflicts.Take(50))
         {
             AppendLog($"模块依赖冲突: {conflict}");
+        }
+        foreach (var field in result.RemovedStateFields.Take(50))
+        {
+            AppendLog($"模块“{field.ModuleName}”已忽略未识别配置字段: {field.Category}.{field.Name}");
+        }
+        if (result.RemovedStateFields.Count > 0)
+        {
+            AppendLog($"已从 {cleanedModuleCount} 个模块删除 {result.RemovedStateFields.Count} 个未识别配置字段，未导入本地配置。");
+        }
+        foreach (var error in cleanupErrors)
+        {
+            AppendLog($"模块依赖字段清理回写失败: {error}");
         }
 
         string? postUpdateError = null;
@@ -331,7 +369,10 @@ public sealed class MainForm : Form, IMessageFilter
             }
         }
 
-        if (showFeedback && (result.HasChanges || result.Rejected.Count > 0 || result.Conflicts.Count > 0))
+        if (showFeedback && (result.HasChanges
+                             || result.Rejected.Count > 0
+                             || result.Conflicts.Count > 0
+                             || result.RemovedStateFields.Count > 0))
         {
             var lines = new List<string>();
             if (result.HasChanges)
@@ -347,11 +388,19 @@ public sealed class MainForm : Form, IMessageFilter
             {
                 lines.Add($"发现 {result.Conflicts.Count} 项冲突，均已保留本地内容；详情见日志。");
             }
+            if (result.RemovedStateFields.Count > 0)
+            {
+                lines.Add($"已忽略 {result.RemovedStateFields.Count} 个未识别配置字段，并从 {cleanedModuleCount} 个模块中删除；这些字段未写入本地配置。");
+            }
+            if (cleanupErrors.Count > 0)
+            {
+                lines.Add($"有 {cleanupErrors.Count} 个模块无法回写清理结果；本次仍未导入这些未识别字段，详情见日志。");
+            }
             if (!string.IsNullOrWhiteSpace(postUpdateError))
             {
                 lines.Add($"本地依赖已写入，但 config/keymap 或游戏同步更新失败：{postUpdateError}");
             }
-            var hasWarning = result.Rejected.Count > 0 || postUpdateError is not null;
+            var hasWarning = result.Rejected.Count > 0 || cleanupErrors.Count > 0 || postUpdateError is not null;
             MessageBox.Show(
                 string.Join(Environment.NewLine, lines),
                 hasWarning ? "模块导入完成（有警告）" : "模块导入完成",
@@ -837,10 +886,38 @@ public sealed class MainForm : Form, IMessageFilter
         const int settingsCardHeight = 190;
         const int settingsCardGap = UiTheme.PageGap;
         const int settingsActionButtonHeight = UiTheme.ActionButtonHeight;
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight + settingsCardGap));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsCardHeight));
+        for (var row = 0; row < panel.RowCount; row++)
+        {
+            var rowHeight = settingsCardHeight + (row == panel.RowCount - 1 ? 0 : settingsCardGap);
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, rowHeight));
+        }
+
+        UiCardPanel CreateSettingsCard(int column, int row, int columnCount = 1)
+        {
+            return new UiCardPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = columnCount,
+                RowCount = 4,
+                Padding = new Padding(UiTheme.CardPadding),
+                Margin = new Padding(
+                    column == 0 ? 0 : settingsCardGap / 2,
+                    0,
+                    column == 0 ? settingsCardGap / 2 : 0,
+                    row == panel.RowCount - 1 ? 0 : settingsCardGap)
+            };
+        }
+
+        static void ConfigureSettingsCardRows(UiCardPanel card, params int?[] heights)
+        {
+            card.RowStyles.Clear();
+            foreach (var height in heights)
+            {
+                card.RowStyles.Add(height is null
+                    ? new RowStyle(SizeType.Percent, 100)
+                    : new RowStyle(SizeType.Absolute, height.Value));
+            }
+        }
 
         Label CreateTitle(string text) => UiTheme.CreateSectionTitle(Font, text);
         Label CreateDescription(string text) => UiTheme.CreateDescription(text);
@@ -853,20 +930,10 @@ public sealed class MainForm : Form, IMessageFilter
             Margin = new Padding(0)
         };
 
-        var inputCard = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(0, 0, settingsCardGap / 2, settingsCardGap)
-        };
+        var inputCard = CreateSettingsCard(column: 0, row: 0, columnCount: 2);
         inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
         inputCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
-        inputCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight + 8));
+        ConfigureSettingsCardRows(inputCard, 32, 30, settingsActionButtonHeight + 8, settingsActionButtonHeight + 8);
         inputCard.Controls.Add(CreateTitle("输入与运行"), 0, 0);
         inputCard.SetColumnSpan(inputCard.GetControlFromPosition(0, 0)!, 2);
         inputCard.Controls.Add(CreateDescription("设置触发方式；修改后运行循环会自动重启"), 0, 1);
@@ -894,18 +961,8 @@ public sealed class MainForm : Form, IMessageFilter
         inputCard.Controls.Add(CreateSettingLabel("发送模式"), 0, 3);
         inputCard.Controls.Add(_modeComboBox, 1, 3);
 
-        var configCard = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(settingsCardGap / 2, 0, 0, settingsCardGap)
-        };
-        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        configCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        configCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        var configCard = CreateSettingsCard(column: 1, row: 0);
+        ConfigureSettingsCardRows(configCard, 32, 30, null, settingsActionButtonHeight);
         configCard.Controls.Add(CreateTitle("配置同步"), 0, 0);
         configCard.Controls.Add(CreateDescription("从项目 Fuyutsui 生成 config/keymap，并同步到游戏"), 0, 1);
         _configSourceLabel = CreateInfoLabel("项目目录是唯一配置源；尚未执行手动更新");
@@ -924,20 +981,10 @@ public sealed class MainForm : Form, IMessageFilter
         _updateConfigButton.Click += async (_, _) => await UpdateConfigFromProjectWithFeedbackAsync();
         configCard.Controls.Add(_updateConfigButton, 0, 3);
 
-        var moduleCard = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(0, 0, settingsCardGap / 2, settingsCardGap)
-        };
+        var moduleCard = CreateSettingsCard(column: 0, row: 1, columnCount: 2);
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         moduleCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
-        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        moduleCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
-        moduleCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        ConfigureSettingsCardRows(moduleCard, 32, 30, settingsActionButtonHeight, null);
         moduleCard.Controls.Add(CreateTitle("模块选择"), 0, 0);
         moduleCard.SetColumnSpan(moduleCard.GetControlFromPosition(0, 0)!, 2);
         moduleCard.Controls.Add(CreateDescription("按实时职业与专精自动匹配，或手动指定模块"), 0, 1);
@@ -956,6 +1003,7 @@ public sealed class MainForm : Form, IMessageFilter
         {
             await ReloadModulesWithDependenciesAsync();
             RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
+            RefreshDefaultModuleSelector();
         };
         moduleCard.Controls.Add(refreshModulesButton, 1, 2);
         var moduleInfoText = new FlowLayoutPanel
@@ -974,18 +1022,8 @@ public sealed class MainForm : Form, IMessageFilter
         moduleCard.Controls.Add(moduleInfoText, 0, 3);
         moduleCard.SetColumnSpan(moduleInfoText, 2);
 
-        var getModulesCard = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(settingsCardGap / 2, 0, 0, settingsCardGap)
-        };
-        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        getModulesCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        var getModulesCard = CreateSettingsCard(column: 1, row: 2);
+        ConfigureSettingsCardRows(getModulesCard, 32, 30, null, settingsActionButtonHeight);
         getModulesCard.Controls.Add(CreateTitle("获取模块"), 0, 0);
         getModulesCard.Controls.Add(CreateDescription("访问 Shigure 官网，浏览并获取可用模块"), 0, 1);
 
@@ -1041,18 +1079,90 @@ public sealed class MainForm : Form, IMessageFilter
         moduleActions.Controls.Add(openModuleDirectoryButton);
         getModulesCard.Controls.Add(moduleActions, 0, 3);
 
-        var layoutCard = new UiCardPanel
+        var defaultModuleCard = CreateSettingsCard(column: 1, row: 1);
+        ConfigureSettingsCardRows(defaultModuleCard, 32, 30, 48, settingsActionButtonHeight);
+        defaultModuleCard.Controls.Add(CreateTitle("默认模块"), 0, 0);
+        defaultModuleCard.Controls.Add(
+            CreateDescription("为指定环境设置自动选择时优先使用的模块"),
+            0,
+            1);
+
+        var defaultFilterRow = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(0, 0, settingsCardGap / 2, settingsCardGap)
+            ColumnCount = 4,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
         };
-        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        layoutCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        for (var i = 0; i < 4; i++)
+        {
+            defaultFilterRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+        }
+
+        _defaultClassComboBox = CreateDefaultFilterComboBox();
+        _defaultSpecComboBox = CreateDefaultFilterComboBox();
+        _defaultHeroTalentComboBox = CreateDefaultFilterComboBox();
+        _defaultPartyTypeComboBox = CreateDefaultFilterComboBox();
+        defaultFilterRow.Controls.Add(_defaultClassComboBox, 0, 0);
+        defaultFilterRow.Controls.Add(_defaultSpecComboBox, 1, 0);
+        defaultFilterRow.Controls.Add(_defaultHeroTalentComboBox, 2, 0);
+        defaultFilterRow.Controls.Add(_defaultPartyTypeComboBox, 3, 0);
+        _settingsToolTip.SetToolTip(_defaultClassComboBox, "职业");
+        _settingsToolTip.SetToolTip(_defaultSpecComboBox, "专精");
+        _settingsToolTip.SetToolTip(_defaultHeroTalentComboBox, "英雄天赋");
+        _settingsToolTip.SetToolTip(_defaultPartyTypeComboBox, "队伍类型");
+        defaultModuleCard.Controls.Add(defaultFilterRow, 0, 2);
+
+        var defaultModuleRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        defaultModuleRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        defaultModuleRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
+        _defaultModuleComboBox = new UiDropDown();
+        UiTheme.StyleComboBox(_defaultModuleComboBox);
+        _defaultModuleComboBox.Dock = DockStyle.Fill;
+        _defaultModuleComboBox.Margin = new Padding(0, 0, 14, 0);
+        _settingsToolTip.SetToolTip(_defaultModuleComboBox, "列表按上方条件筛选；已保存的模块会标记为“当前默认”");
+        defaultModuleRow.Controls.Add(_defaultModuleComboBox, 0, 0);
+        _setDefaultModuleButton = UiTheme.CreateButton("设为默认", UiTheme.ButtonKind.Secondary);
+        _setDefaultModuleButton.AutoSize = false;
+        _setDefaultModuleButton.Dock = DockStyle.Fill;
+        _setDefaultModuleButton.Margin = new Padding(0);
+        _setDefaultModuleButton.Click += HandleSetDefaultModuleClick;
+        defaultModuleRow.Controls.Add(_setDefaultModuleButton, 1, 0);
+        defaultModuleCard.Controls.Add(defaultModuleRow, 0, 3);
+
+        ResetDefaultClassOptions();
+        ResetDefaultSpecOptions(null);
+        ResetDefaultHeroTalentOptions(null, null);
+        ResetDefaultPartyTypeOptions();
+        _defaultClassComboBox.SelectedIndexChanged += (_, _) =>
+        {
+            var classId = ReadDefaultFilterValue(_defaultClassComboBox);
+            ResetDefaultSpecOptions(classId);
+            ResetDefaultHeroTalentOptions(classId, ReadDefaultFilterValue(_defaultSpecComboBox));
+            RefreshDefaultModuleSelector();
+        };
+        _defaultSpecComboBox.SelectedIndexChanged += (_, _) =>
+        {
+            ResetDefaultHeroTalentOptions(
+                ReadDefaultFilterValue(_defaultClassComboBox),
+                ReadDefaultFilterValue(_defaultSpecComboBox));
+            RefreshDefaultModuleSelector();
+        };
+        _defaultHeroTalentComboBox.SelectedIndexChanged += (_, _) => RefreshDefaultModuleSelector();
+        _defaultPartyTypeComboBox.SelectedIndexChanged += (_, _) => RefreshDefaultModuleSelector();
+
+        var layoutCard = CreateSettingsCard(column: 0, row: 2);
+        ConfigureSettingsCardRows(layoutCard, 32, 30, null, settingsActionButtonHeight);
         layoutCard.Controls.Add(CreateTitle("界面布局"), 0, 0);
         layoutCard.Controls.Add(CreateDescription("选择主界面浮动条的排列方向"), 0, 1);
         var layoutInfoLabel = CreateInfoLabel("切换时会交换主界面的宽高，控件与功能保持不变");
@@ -1088,21 +1198,12 @@ public sealed class MainForm : Form, IMessageFilter
         panel.Controls.Add(inputCard, 0, 0);
         panel.Controls.Add(configCard, 1, 0);
         panel.Controls.Add(moduleCard, 0, 1);
-        panel.Controls.Add(getModulesCard, 1, 1);
+        panel.Controls.Add(defaultModuleCard, 1, 1);
         panel.Controls.Add(layoutCard, 0, 2);
+        panel.Controls.Add(getModulesCard, 1, 2);
 
-        var closeBehaviorCard = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(settingsCardGap / 2, 0, 0, settingsCardGap)
-        };
-        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        var closeBehaviorCard = CreateSettingsCard(column: 1, row: 3);
+        ConfigureSettingsCardRows(closeBehaviorCard, 32, 30, null, settingsActionButtonHeight);
         closeBehaviorCard.Controls.Add(CreateTitle("点击 X 时（关闭窗口按钮）"), 0, 0);
         closeBehaviorCard.Controls.Add(CreateDescription("选择点击主界面关闭按钮后的行为"), 0, 1);
 
@@ -1135,20 +1236,10 @@ public sealed class MainForm : Form, IMessageFilter
         closeBehaviorActions.Controls.Add(_minimizeToTrayButton);
         closeBehaviorActions.Controls.Add(_exitOnCloseButton);
         closeBehaviorCard.Controls.Add(closeBehaviorActions, 0, 3);
-        panel.Controls.Add(closeBehaviorCard, 1, 2);
+        panel.Controls.Add(closeBehaviorCard, 1, 3);
 
-        var spellIconPackageCard = new UiCardPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4,
-            Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(0, 0, settingsCardGap / 2, 0)
-        };
-        spellIconPackageCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
-        spellIconPackageCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        spellIconPackageCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        spellIconPackageCard.RowStyles.Add(new RowStyle(SizeType.Absolute, settingsActionButtonHeight));
+        var spellIconPackageCard = CreateSettingsCard(column: 0, row: 3);
+        ConfigureSettingsCardRows(spellIconPackageCard, 32, 30, null, settingsActionButtonHeight);
         spellIconPackageCard.Controls.Add(CreateTitle("下载数据包"), 0, 0);
         spellIconPackageCard.Controls.Add(
             CreateDescription("从 GitHub 下载或更新技能图标数据包；不会随发布包自动附带"),
@@ -1177,6 +1268,7 @@ public sealed class MainForm : Form, IMessageFilter
         UpdateLayoutButtons();
         UpdateCloseBehaviorButtons();
         UpdateSpellIconPackageCard();
+        RefreshDefaultModuleSelector();
         scrollHost.Controls.Add(panel);
         scrollHost.Resize += (_, _) => panel.Width = Math.Max(0, scrollHost.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
         return scrollHost;
@@ -1405,6 +1497,70 @@ public sealed class MainForm : Form, IMessageFilter
     {
         var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath);
         return DescribeAddonSyncIssue(result.AddonSync);
+    }
+
+    private async Task<ClassConfigPostSaveResult> UpdateClassConfigAfterSaveAsync(
+        string savedAddonFilePath,
+        int classId)
+    {
+        var moduleResult = SaveModulesForClass(classId);
+        var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath);
+        if (moduleResult.Errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"配置已更新，但该职业有 {moduleResult.Errors.Count} 个模块保存失败；"
+                + $"已成功保存 {moduleResult.SavedCount} 个模块。详情见日志。");
+        }
+
+        return new ClassConfigPostSaveResult(
+            DescribeAddonSyncIssue(result.AddonSync),
+            moduleResult.SavedCount,
+            moduleResult.Warnings);
+    }
+
+    private ClassModuleSaveResult SaveModulesForClass(int classId)
+    {
+        var modules = _moduleStore.GetModulesForDisplay()
+            .Where(module => module.Match.ClassId == classId
+                             && ModuleStore.HasCompatibleVersion(module))
+            .ToList();
+        var warnings = new List<string>();
+        var errors = new List<string>();
+        var savedCount = 0;
+
+        foreach (var module in modules)
+        {
+            try
+            {
+                module.Version = AppInfo.Version;
+                var warning = _moduleDependencyService.Capture(module);
+                _moduleStore.SaveDependenciesInPlace(module);
+                savedCount++;
+                if (!string.IsNullOrWhiteSpace(warning))
+                {
+                    warnings.Add($"{module.Name}: {warning}");
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"{module.Name}: {ex.Message}");
+            }
+        }
+
+        var className = ClassNames.GetClassAndSpecName(classId, null).ClassName ?? $"职业{classId}";
+        AppendLog($"保存{className}配置时已同步保存 {savedCount}/{modules.Count} 个该职业模块。");
+        foreach (var warning in warnings)
+        {
+            AppendLog($"模块依赖保存提示: {warning}");
+        }
+        foreach (var error in errors)
+        {
+            AppendLog($"模块依赖保存失败: {error}");
+        }
+
+        RefreshModuleSelector(_lastSnapshot, forceRefresh: true);
+        RefreshDefaultModuleSelector();
+        return new ClassModuleSaveResult(savedCount, warnings, errors);
     }
 
     private Task<ProjectConfigUpdateResult> QueueProjectConfigUpdateAsync(string? savedAddonFilePath)
@@ -1767,6 +1923,7 @@ public sealed class MainForm : Form, IMessageFilter
     private async Task RestartRuntimeFromEditorAsync()
     {
         RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
+        RefreshDefaultModuleSelector();
         if (!_runtimeSession.HasSession)
         {
             return;
@@ -1982,6 +2139,201 @@ public sealed class MainForm : Form, IMessageFilter
         AppendLog($"模块选择: {(_selectedModuleId is null ? "自动选择" : _moduleComboBox.Text)}");
         await RestartRuntimeAfterSettingChangeAsync();
     }
+
+    private UiDropDown CreateDefaultFilterComboBox()
+    {
+        var comboBox = new UiDropDown();
+        UiTheme.StyleComboBox(comboBox);
+        comboBox.Dock = DockStyle.Fill;
+        comboBox.Margin = new Padding(0, 4, 8, 4);
+        return comboBox;
+    }
+
+    private void ResetDefaultClassOptions()
+    {
+        _defaultClassComboBox.Items.Clear();
+        _defaultClassComboBox.Items.Add(new DefaultFilterOption("职业：任意", null));
+        foreach (var item in ClassNames.GetClasses())
+        {
+            _defaultClassComboBox.Items.Add(new DefaultFilterOption($"职业：{item.Name}", item.Id));
+        }
+
+        _defaultClassComboBox.SelectedIndex = 0;
+    }
+
+    private void ResetDefaultSpecOptions(int? classId)
+    {
+        _defaultSpecComboBox.Items.Clear();
+        _defaultSpecComboBox.Items.Add(new DefaultFilterOption("专精：任意", null));
+        if (classId is not null)
+        {
+            foreach (var item in ClassNames.GetSpecs(classId.Value))
+            {
+                _defaultSpecComboBox.Items.Add(new DefaultFilterOption($"专精：{item.Name}", item.Id));
+            }
+        }
+
+        _defaultSpecComboBox.SelectedIndex = 0;
+    }
+
+    private void ResetDefaultHeroTalentOptions(int? classId, int? specId)
+    {
+        _defaultHeroTalentComboBox.Items.Clear();
+        _defaultHeroTalentComboBox.Items.Add(new DefaultFilterOption("英雄天赋：任意", null));
+        if (classId is not null && specId is not null)
+        {
+            foreach (var item in ClassNames.GetHeroTalents(classId.Value, specId.Value))
+            {
+                _defaultHeroTalentComboBox.Items.Add(new DefaultFilterOption($"英雄天赋：{item.Name}", item.Id));
+            }
+        }
+
+        _defaultHeroTalentComboBox.SelectedIndex = 0;
+    }
+
+    private void ResetDefaultPartyTypeOptions()
+    {
+        _defaultPartyTypeComboBox.Items.Clear();
+        _defaultPartyTypeComboBox.Items.AddRange(
+        [
+            new DefaultPartyTypeOption("队伍类型：任意", null),
+            new DefaultPartyTypeOption("队伍类型：单人", "0"),
+            new DefaultPartyTypeOption("队伍类型：团队", "1-40"),
+            new DefaultPartyTypeOption("队伍类型：队伍", "46")
+        ]);
+        _defaultPartyTypeComboBox.SelectedIndex = 0;
+    }
+
+    private void RefreshDefaultModuleSelector()
+    {
+        if (_defaultModuleComboBox is null)
+        {
+            return;
+        }
+
+        var classId = ReadDefaultFilterValue(_defaultClassComboBox);
+        var specId = ReadDefaultFilterValue(_defaultSpecComboBox);
+        var heroTalent = ReadDefaultFilterValue(_defaultHeroTalentComboBox);
+        var partyType = ReadDefaultPartyTypeValue();
+        var currentDefault = (_uiCache.DefaultModules ?? [])
+            .LastOrDefault(selection => selection.HasSameFilter(classId, specId, partyType, heroTalent));
+        var modules = _moduleStore.GetModules()
+            .Where(module => ModuleMatchesDefaultFilter(module.Match, classId, specId, partyType, heroTalent))
+            .ToList();
+
+        _defaultModuleComboBox.BeginUpdate();
+        try
+        {
+            _defaultModuleComboBox.Items.Clear();
+            foreach (var module in modules)
+            {
+                var isCurrentDefault = string.Equals(
+                    module.Id,
+                    currentDefault?.ModuleId,
+                    StringComparison.OrdinalIgnoreCase);
+                var text = ModuleDisplay.FormatListItem(module)
+                    + (isCurrentDefault ? "（当前默认）" : string.Empty);
+                _defaultModuleComboBox.Items.Add(new DefaultModuleOption(module.Id, text));
+            }
+
+            if (_defaultModuleComboBox.Items.Count == 0)
+            {
+                _defaultModuleComboBox.Items.Add(DefaultModuleOption.Empty);
+                _defaultModuleComboBox.SelectedIndex = 0;
+                _setDefaultModuleButton.Enabled = false;
+                return;
+            }
+
+            var selectedIndex = 0;
+            if (currentDefault is not null)
+            {
+                for (var i = 0; i < _defaultModuleComboBox.Items.Count; i++)
+                {
+                    if (_defaultModuleComboBox.Items[i] is DefaultModuleOption option
+                        && string.Equals(option.ModuleId, currentDefault.ModuleId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            _defaultModuleComboBox.SelectedIndex = selectedIndex;
+            _setDefaultModuleButton.Enabled = true;
+        }
+        finally
+        {
+            _defaultModuleComboBox.EndUpdate();
+        }
+    }
+
+    private static bool ModuleMatchesDefaultFilter(
+        ModuleMatch match,
+        int? classId,
+        int? specId,
+        string? partyType,
+        int? heroTalent)
+    {
+        if (classId is not null && match.ClassId is not null && match.ClassId != classId)
+        {
+            return false;
+        }
+
+        if (specId is not null && match.SpecId is not null && match.SpecId != specId)
+        {
+            return false;
+        }
+
+        if (heroTalent is not null && match.HeroTalent is not null && match.HeroTalent != heroTalent)
+        {
+            return false;
+        }
+
+        var normalizedFilter = ModuleMatch.NormalizePartyTypeValue(partyType);
+        var normalizedMatch = ModuleMatch.NormalizePartyTypeValue(match.PartyType);
+        return normalizedFilter is null
+            || normalizedMatch is null
+            || string.Equals(normalizedFilter, normalizedMatch, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async void HandleSetDefaultModuleClick(object? sender, EventArgs e)
+    {
+        if (_defaultModuleComboBox.SelectedItem is not DefaultModuleOption { ModuleId: not null } option)
+        {
+            return;
+        }
+
+        var classId = ReadDefaultFilterValue(_defaultClassComboBox);
+        var specId = ReadDefaultFilterValue(_defaultSpecComboBox);
+        var heroTalent = ReadDefaultFilterValue(_defaultHeroTalentComboBox);
+        var partyType = ReadDefaultPartyTypeValue();
+        _uiCache.DefaultModules ??= [];
+        _uiCache.DefaultModules.RemoveAll(
+            selection => selection.HasSameFilter(classId, specId, partyType, heroTalent));
+        _uiCache.DefaultModules.Add(new DefaultModuleSelection
+        {
+            ClassId = classId,
+            SpecId = specId,
+            HeroTalent = heroTalent,
+            PartyType = partyType,
+            ModuleId = option.ModuleId
+        });
+        SaveUiCache();
+        RefreshDefaultModuleSelector();
+        AppendLog($"默认模块: {option.Text}");
+
+        if (_runtimeSession.HasSession)
+        {
+            AppendLog("默认模块已变更, 重新启动运行");
+            await StartOrRestartRuntimeAsync(restart: true);
+        }
+    }
+
+    private static int? ReadDefaultFilterValue(UiDropDown comboBox)
+        => comboBox.SelectedItem is DefaultFilterOption option ? option.Value : null;
+
+    private string? ReadDefaultPartyTypeValue()
+        => _defaultPartyTypeComboBox.SelectedItem is DefaultPartyTypeOption option ? option.Value : null;
 
     private async Task RestartRuntimeAfterSettingChangeAsync()
     {
@@ -2296,6 +2648,7 @@ public sealed class MainForm : Form, IMessageFilter
     private void ShowSettingsView()
     {
         RefreshModuleSelector(_lastSnapshot, forceRefresh: false);
+        RefreshDefaultModuleSelector();
         _statusForm.ShowSettings(_lastSnapshot);
     }
 
@@ -2967,6 +3320,23 @@ public sealed class MainForm : Form, IMessageFilter
         {
             return Text;
         }
+    }
+
+    private sealed record DefaultFilterOption(string Text, int? Value)
+    {
+        public override string ToString() => Text;
+    }
+
+    private sealed record DefaultPartyTypeOption(string Text, string? Value)
+    {
+        public override string ToString() => Text;
+    }
+
+    private sealed record DefaultModuleOption(string? ModuleId, string Text)
+    {
+        public static readonly DefaultModuleOption Empty = new(null, "暂无符合筛选的模块");
+
+        public override string ToString() => Text;
     }
 
     private static Icon? LoadApplicationIcon()
