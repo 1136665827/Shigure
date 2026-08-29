@@ -476,9 +476,9 @@ public sealed class ModuleStore
     }
 
     /// <summary>
-    /// 回写导入阶段清理过的依赖快照，并保留模块原有文件位置。
+    /// 回写已更新的模块依赖快照，并保留模块原有文件位置。
     /// </summary>
-    public ModuleDefinition SaveDependencyCleanup(ModuleDefinition module)
+    public ModuleDefinition SaveDependenciesInPlace(ModuleDefinition module)
     {
         Normalize(module);
         lock (_gate)
@@ -501,6 +501,8 @@ public sealed class ModuleStore
             _modules.Remove(existing);
             _modules.Add(module.Clone());
             _modules = SortModules(_modules).ToList();
+            _rejectedModuleIds.Remove(module.Id);
+            _importIssueModuleIds.Remove(module.Id);
             return module.Clone();
         }
     }

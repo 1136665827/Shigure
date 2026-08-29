@@ -123,6 +123,11 @@ public sealed class MainForm : Form, IMessageFilter
         FuyutsuiKeymapConverter.UpdateResult? Keymap,
         FuyutsuiAddonSyncResult AddonSync);
 
+    private sealed record ClassModuleSaveResult(
+        int SavedCount,
+        IReadOnlyList<string> Warnings,
+        IReadOnlyList<string> Errors);
+
     internal MainForm(
         AppOptions initialOptions,
         string baseDirectory,
@@ -175,7 +180,7 @@ public sealed class MainForm : Form, IMessageFilter
         _statusForm.AttachModuleEditor(_moduleEditor);
         _classConfigEditor = new ClassConfigEditorControl(
             () => Path.Combine(_addonSyncService.SourceRoot, "class"),
-            UpdateConfigAfterSaveAsync);
+            UpdateClassConfigAfterSaveAsync);
         _statusForm.AttachConfigEditor(_classConfigEditor);
         _classConfigEditor.DirtyStateChanged += dirty => _statusForm.SetPageDirty(SettingsPage.Config, dirty);
         _classMacrosEditor = new ClassMacrosEditorControl(
@@ -310,7 +315,7 @@ public sealed class MainForm : Form, IMessageFilter
         {
             try
             {
-                _moduleStore.SaveDependencyCleanup(module);
+                _moduleStore.SaveDependenciesInPlace(module);
                 cleanedModuleCount++;
             }
             catch (Exception ex)
@@ -1492,6 +1497,69 @@ public sealed class MainForm : Form, IMessageFilter
     {
         var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath);
         return DescribeAddonSyncIssue(result.AddonSync);
+    }
+
+    private async Task<ClassConfigPostSaveResult> UpdateClassConfigAfterSaveAsync(
+        string savedAddonFilePath,
+        int classId)
+    {
+        var moduleResult = SaveModulesForClass(classId);
+        var result = await QueueProjectConfigUpdateAsync(savedAddonFilePath);
+        if (moduleResult.Errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"配置已更新，但该职业有 {moduleResult.Errors.Count} 个模块保存失败；"
+                + $"已成功保存 {moduleResult.SavedCount} 个模块。详情见日志。");
+        }
+
+        return new ClassConfigPostSaveResult(
+            DescribeAddonSyncIssue(result.AddonSync),
+            moduleResult.SavedCount,
+            moduleResult.Warnings);
+    }
+
+    private ClassModuleSaveResult SaveModulesForClass(int classId)
+    {
+        var modules = _moduleStore.GetModulesForDisplay()
+            .Where(module => module.Match.ClassId == classId)
+            .ToList();
+        var warnings = new List<string>();
+        var errors = new List<string>();
+        var savedCount = 0;
+
+        foreach (var module in modules)
+        {
+            try
+            {
+                module.Version = AppInfo.Version;
+                var warning = _moduleDependencyService.Capture(module);
+                _moduleStore.SaveDependenciesInPlace(module);
+                savedCount++;
+                if (!string.IsNullOrWhiteSpace(warning))
+                {
+                    warnings.Add($"{module.Name}: {warning}");
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"{module.Name}: {ex.Message}");
+            }
+        }
+
+        var className = ClassNames.GetClassAndSpecName(classId, null).ClassName ?? $"职业{classId}";
+        AppendLog($"保存{className}配置时已同步保存 {savedCount}/{modules.Count} 个该职业模块。");
+        foreach (var warning in warnings)
+        {
+            AppendLog($"模块依赖保存提示: {warning}");
+        }
+        foreach (var error in errors)
+        {
+            AppendLog($"模块依赖保存失败: {error}");
+        }
+
+        RefreshModuleSelector(_lastSnapshot, forceRefresh: true);
+        RefreshDefaultModuleSelector();
+        return new ClassModuleSaveResult(savedCount, warnings, errors);
     }
 
     private Task<ProjectConfigUpdateResult> QueueProjectConfigUpdateAsync(string? savedAddonFilePath)
