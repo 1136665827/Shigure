@@ -151,6 +151,7 @@ public sealed class ConditionEditorForm : Form
     private static readonly string[] AllOperators = ["==", "!=", ">", ">=", "<", "<=", "in", "not in"];
     private static readonly string[] TextOperators = ["==", "!=", "in", "not in"];
     private static readonly string[] BoolOperators = ["==", "!="];
+    private static readonly string[] SpellOperators = ["==", "!="];
     private static readonly string[] DelayOperators = ["=="];
     private static readonly CategoryItem[] CategoryItems =
     [
@@ -163,7 +164,9 @@ public sealed class ConditionEditorForm : Form
     ];
 
     private readonly IReadOnlyList<ConditionField> _fields;
+    private readonly IReadOnlyList<ConditionSpell> _spells;
     private readonly Func<IReadOnlyList<ConditionField>>? _conditionFieldsProvider;
+    private readonly Func<IReadOnlyList<ConditionSpell>>? _conditionSpellsProvider;
     private readonly string _originalCondition;
     private readonly bool _allowSubConditions;
     private readonly bool _allowRuleSettings;
@@ -191,11 +194,15 @@ public sealed class ConditionEditorForm : Form
         int? delayMs = null,
         int? logicDelayMs = null,
         bool allowRuleSettings = false,
-        Func<IReadOnlyList<ConditionField>>? conditionFieldsProvider = null)
+        Func<IReadOnlyList<ConditionField>>? conditionFieldsProvider = null,
+        IReadOnlyList<ConditionSpell>? spells = null,
+        Func<IReadOnlyList<ConditionSpell>>? conditionSpellsProvider = null)
     {
         // 保存独立快照，避免父级字段集合后续刷新时影响当前弹窗；子弹窗则通过 provider 取得最新目录。
         _fields = fields.ToArray();
+        _spells = (spells ?? []).ToArray();
         _conditionFieldsProvider = conditionFieldsProvider;
+        _conditionSpellsProvider = conditionSpellsProvider;
         _originalCondition = condition ?? string.Empty;
         _allowSubConditions = allowSubConditions;
         _allowRuleSettings = allowRuleSettings;
@@ -509,10 +516,13 @@ public sealed class ConditionEditorForm : Form
     private string? PromptSubCondition(string current)
     {
         var fields = _conditionFieldsProvider?.Invoke() ?? _fields;
+        var spells = _conditionSpellsProvider?.Invoke() ?? _spells;
         using var editor = new ConditionEditorForm(
             fields,
             current,
-            conditionFieldsProvider: _conditionFieldsProvider);
+            conditionFieldsProvider: _conditionFieldsProvider,
+            spells: spells,
+            conditionSpellsProvider: _conditionSpellsProvider);
         return editor.ShowDialog(this) == DialogResult.OK ? editor.ConditionText : null;
     }
 
@@ -633,12 +643,25 @@ public sealed class ConditionEditorForm : Form
         }
 
         var cell = _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+        cell.ToolTipText = string.Empty;
+        var missingSpell = GetMissingSpellMessage(_conditionsGrid.Rows[e.RowIndex]);
+        if (missingSpell is not null)
+        {
+            e.CellStyle.BackColor = UiTheme.DangerSoft;
+            e.CellStyle.ForeColor = UiTheme.Danger;
+            e.CellStyle.SelectionBackColor = UiTheme.Danger;
+            e.CellStyle.SelectionForeColor = UiTheme.Background;
+            cell.ToolTipText = missingSpell;
+            return;
+        }
+
         if (e.ColumnIndex == _conditionsGrid.Columns[FieldColumn]!.Index)
         {
             cell.ToolTipText = cell.Value?.ToString() switch
             {
-                "一键辅助" => "一键辅助, 数值参考技能列表",
-                "插入法术" => "插入法术, 数值参考技能列表",
+                "一键辅助" => "一键辅助，条件保存技能列表中的 spellId",
+                "插入法术" => "插入法术，条件保存技能列表中的 spellId",
+                "施法技能" => "施法技能，条件保存技能列表中的 spellId",
                 _ => e.Value?.ToString() ?? string.Empty
             };
             return;
@@ -747,9 +770,15 @@ public sealed class ConditionEditorForm : Form
         }
 
         var items = sourceItems
-            .Select(item => item is FieldItem field
-                ? new UiDropDownOption(field.Name, field.Display)
-                : new UiDropDownOption(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty))
+            .Select(item => item switch
+            {
+                FieldItem field => new UiDropDownOption(field.Name, field.Display),
+                SpellValueItem spell => new UiDropDownOption(
+                    spell.Value,
+                    spell.Display,
+                    spell.Missing ? null : SpellIconCatalog.Get(spell.SpellId)),
+                _ => new UiDropDownOption(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty)
+            })
             .DistinctBy(item => item.Value?.ToString(), StringComparer.Ordinal)
             .ToList();
         var currentValue = cell.Value is FieldItem field
@@ -1012,6 +1041,7 @@ public sealed class ConditionEditorForm : Form
 
         RefreshConnectors();
         UpdatePreview();
+        _conditionsGrid.InvalidateRow(e.RowIndex);
     }
 
     private void RefreshConnectors()
@@ -1235,11 +1265,13 @@ public sealed class ConditionEditorForm : Form
         var isRuleSetting = IsRuleSettingField(field);
         var ops = isRuleSetting
             ? DelayOperators
-            : field is { IsCustom: false, Type: ConditionFieldType.Bool }
-            ? BoolOperators
-            : field is { IsCustom: false, Type: ConditionFieldType.String }
-                ? TextOperators
-                : AllOperators;
+            : SpellIdConditionFields.Contains(field?.Name)
+                ? SpellOperators
+                : field is { IsCustom: false, Type: ConditionFieldType.Bool }
+                    ? BoolOperators
+                    : field is { IsCustom: false, Type: ConditionFieldType.String }
+                        ? TextOperators
+                        : AllOperators;
 
         var cell = (DataGridViewComboBoxCell)row.Cells[OperatorColumn];
         cell.Items.Clear();
@@ -1253,9 +1285,15 @@ public sealed class ConditionEditorForm : Form
             : DataGridViewComboBoxDisplayStyle.DropDownButton;
     }
 
-    private static void ConfigureValueCell(DataGridViewRow row, string? rawValue, bool preserveRaw)
+    private void ConfigureValueCell(DataGridViewRow row, string? rawValue, bool preserveRaw)
     {
         var field = SelectedField(row);
+        if (SpellIdConditionFields.Contains(field?.Name))
+        {
+            ConfigureSpellValueCell(row, rawValue, preserveRaw);
+            return;
+        }
+
         if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
         {
             var combo = new DataGridViewComboBoxCell
@@ -1286,6 +1324,71 @@ public sealed class ConditionEditorForm : Form
         }
 
         row.Cells[ValueColumn] = new DataGridViewTextBoxCell { Value = text };
+    }
+
+    private void ConfigureSpellValueCell(DataGridViewRow row, string? rawValue, bool preserveRaw)
+    {
+        var combo = new DataGridViewComboBoxCell
+        {
+            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
+            FlatStyle = FlatStyle.Flat,
+            DisplayMember = nameof(SpellValueItem.Display),
+            ValueMember = nameof(SpellValueItem.Value),
+            ValueType = typeof(string)
+        };
+        foreach (var spell in _spells
+                     .Where(spell => spell.SpellId > 0)
+                     .DistinctBy(spell => spell.SpellId)
+                     .OrderBy(spell => spell.Index)
+                     .ThenBy(spell => spell.SpellId))
+        {
+            combo.Items.Add(new SpellValueItem(
+                spell.SpellId.ToString(CultureInfo.InvariantCulture),
+                spell.DisplayName,
+                spell.SpellId));
+        }
+
+        var value = preserveRaw ? rawValue?.Trim() ?? string.Empty : string.Empty;
+        if (value.Length == 0 && combo.Items.Count > 0)
+        {
+            value = ((SpellValueItem)combo.Items[0]!).Value;
+        }
+
+        if (value.Length > 0
+            && !combo.Items.Cast<SpellValueItem>().Any(item =>
+                string.Equals(item.Value, value, StringComparison.Ordinal)))
+        {
+            var parsed = long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spellId)
+                ? spellId
+                : 0;
+            combo.Items.Insert(0, new SpellValueItem(
+                value,
+                $"spellId {value}（不存在）",
+                parsed,
+                Missing: true));
+        }
+
+        combo.Value = value;
+        row.Cells[ValueColumn] = combo;
+    }
+
+    private string? GetMissingSpellMessage(DataGridViewRow row)
+    {
+        var field = SelectedField(row)?.Name;
+        if (!SpellIdConditionFields.Contains(field))
+        {
+            return null;
+        }
+
+        var value = row.Cells[ValueColumn].Value?.ToString()?.Trim() ?? string.Empty;
+        if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spellId)
+            || spellId <= 0
+            || !_spells.Any(spell => spell.SpellId == spellId))
+        {
+            return $"{field}不存在 spellId 为 {value} 的法术";
+        }
+
+        return null;
     }
 
     private List<ConditionTerm> CollectTerms()
@@ -1552,6 +1655,15 @@ public sealed class ConditionEditorForm : Form
         ConditionFieldCategory Category,
         string? Classification,
         bool IsCustom)
+    {
+        public override string ToString() => Display;
+    }
+
+    private sealed record SpellValueItem(
+        string Value,
+        string Display,
+        long SpellId,
+        bool Missing = false)
     {
         public override string ToString() => Display;
     }

@@ -687,16 +687,10 @@ internal sealed class ModuleDependencyService
         foreach (var entry in incoming)
         {
             var byId = local.FirstOrDefault(item => item.SpellId == entry.SpellId);
-            var byIndex = local.FirstOrDefault(item => item.Index == entry.Index);
-            if (byId is not null || byIndex is not null)
+            if (byId is not null)
             {
-                var existing = byId ?? byIndex!;
-                if (existing.SpellId != entry.SpellId
-                    || existing.Index != entry.Index
-                    || !string.Equals(existing.Name, entry.Name, StringComparison.Ordinal))
-                {
-                    counters.Conflicts.Add($"一键法术 {entry.Index}/{entry.SpellId} 与本地索引或 SpellId 冲突，已保留本地。");
-                }
+                // spellId 是跨模块稳定标识；索引是当前职业文件的本地编码。
+                // 同一 spellId 已存在时保留本地索引/名称，不因来源索引不同产生冲突。
                 continue;
             }
 

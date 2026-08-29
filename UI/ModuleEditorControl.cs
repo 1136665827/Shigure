@@ -59,6 +59,7 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ModuleValueAdjustment> _valueAdjustments = new();
     private readonly Dictionary<string, List<long>> _currentClassSpellIdsByName =
         new(StringComparer.Ordinal);
+    private readonly List<ConditionSpell> _currentClassConditionSpells = new();
     private HashSet<string>? _availableConditionFields;
     private HashSet<string>? _availableGroupConditionFields;
     // 载入时程序化写入"类型"单元格会触发 CellValueChanged; 置真以跳过"按类型清空数值"的联动。
@@ -585,11 +586,15 @@ public sealed class ModuleEditorControl : UserControl
             RefreshKeymapColumns();
             RefreshAdjustmentFieldColumn();
             RefreshRuleSpellIcons();
+            InvalidateConditionFieldValidation();
+            _rulesGrid.Invalidate();
         };
         _specBox.SelectedIndexChanged += (_, _) =>
         {
             ResetHeroTalentOptions(_heroTalentBox, ReadMatchCombo(_classBox), ReadMatchCombo(_specBox));
             RefreshAdjustmentFieldColumn();
+            InvalidateConditionFieldValidation();
+            _rulesGrid.Invalidate();
         };
 
         AddMatchField(row, "职业:", _classBox, 0);
@@ -1193,6 +1198,7 @@ public sealed class ModuleEditorControl : UserControl
     private void ReloadCurrentClassSpellIds()
     {
         _currentClassSpellIdsByName.Clear();
+        _currentClassConditionSpells.Clear();
         var classId = ReadMatchCombo(_classBox);
         if (classId is null)
         {
@@ -1213,6 +1219,11 @@ public sealed class ModuleEditorControl : UserControl
                          .ThenBy(spell => spell.SpellId))
             {
                 var name = spell.Name.Trim();
+                if (_currentClassConditionSpells.All(item => item.SpellId != spell.SpellId))
+                {
+                    _currentClassConditionSpells.Add(new ConditionSpell(spell.SpellId, spell.Index, name));
+                }
+
                 if (!_currentClassSpellIdsByName.TryGetValue(name, out var spellIds))
                 {
                     spellIds = [];
@@ -1896,9 +1907,11 @@ public sealed class ModuleEditorControl : UserControl
             return;
         }
 
-        if (!row.IsNewRow && GetMissingConditionFields(row).Count > 0)
+        if (!row.IsNewRow
+            && (GetMissingConditionFields(row).Count > 0
+                || GetMissingConditionSpells(row).Count > 0))
         {
-            // 缺失字段会让条件静默不命中；用整行红色状态在保存前就提醒用户修复配置。
+            // 缺失字段或 spellId 会让条件不命中；用整行红色状态提醒用户修复配置。
             e.CellStyle.BackColor = UiTheme.DangerSoft;
             e.CellStyle.ForeColor = UiTheme.Danger;
             e.CellStyle.SelectionBackColor = UiTheme.Danger;
@@ -1958,6 +1971,42 @@ public sealed class ModuleEditorControl : UserControl
                 if (seen.Add(original))
                 {
                     missing.Add(original);
+                }
+            }
+        }
+
+        return missing;
+    }
+
+    private IReadOnlyList<string> GetMissingConditionSpells(DataGridViewRow row)
+    {
+        var availableSpellIds = _currentClassConditionSpells
+            .Select(spell => spell.SpellId)
+            .ToHashSet();
+        var missing = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var metadata = GetRuleMetadata(row);
+        foreach (var expression in new[] { CellText(row, "Condition") }.Concat(metadata.SubConditions))
+        {
+            foreach (var term in ConditionExpression.Parse(expression))
+            {
+                if (!SpellIdConditionFields.Contains(term.Field))
+                {
+                    continue;
+                }
+
+                var value = term.Value.Trim();
+                if (long.TryParse(value, out var spellId)
+                    && spellId > 0
+                    && availableSpellIds.Contains(spellId))
+                {
+                    continue;
+                }
+
+                var message = $"{term.Field}不存在 spellId 为 {value} 的法术";
+                if (seen.Add(message))
+                {
+                    missing.Add(message);
                 }
             }
         }
@@ -2197,9 +2246,18 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         var missingFields = GetMissingConditionFields(_rulesGrid.Rows[rowIndex]);
-        if (missingFields.Count > 0)
+        var missingSpells = GetMissingConditionSpells(_rulesGrid.Rows[rowIndex]);
+        if (missingFields.Count > 0 || missingSpells.Count > 0)
         {
-            return $"条件字段不存在：{string.Join("、", missingFields)}\n请先添加对应字段。";
+            var messages = new List<string>();
+            if (missingFields.Count > 0)
+            {
+                messages.Add($"条件字段不存在：{string.Join("、", missingFields)}");
+                messages.Add("请先添加对应字段。");
+            }
+
+            messages.AddRange(missingSpells);
+            return string.Join('\n', messages);
         }
 
         if (columnName is "MoveUp" or "MoveDown" or "Copy" or "InsertBlank" or "Delete")
@@ -2558,7 +2616,9 @@ public sealed class ModuleEditorControl : UserControl
         using var editor = new ConditionEditorForm(
             RefreshAndBuildConditionFields(),
             current,
-            conditionFieldsProvider: () => RefreshAndBuildConditionFields());
+            conditionFieldsProvider: () => RefreshAndBuildConditionFields(),
+            spells: RefreshAndBuildConditionSpells(),
+            conditionSpellsProvider: () => RefreshAndBuildConditionSpells());
         if (editor.ShowDialog(FindForm()) != DialogResult.OK)
         {
             return;
@@ -2909,6 +2969,7 @@ public sealed class ModuleEditorControl : UserControl
         var current = row.IsNewRow ? string.Empty : CellText(row, "Condition");
         var currentMetadata = row.IsNewRow ? new RuleRowMetadata() : GetRuleMetadata(row);
         var fields = RefreshAndBuildConditionFields(includeRuleSettings: true);
+        var spells = RefreshAndBuildConditionSpells();
 
         using var editor = new ConditionEditorForm(
             fields,
@@ -2918,7 +2979,9 @@ public sealed class ModuleEditorControl : UserControl
             delayMs: currentMetadata.DelayMs,
             logicDelayMs: currentMetadata.LogicDelayMs,
             allowRuleSettings: true,
-            conditionFieldsProvider: () => RefreshAndBuildConditionFields(includeRuleSettings: true));
+            conditionFieldsProvider: () => RefreshAndBuildConditionFields(includeRuleSettings: true),
+            spells: spells,
+            conditionSpellsProvider: () => RefreshAndBuildConditionSpells());
         if (editor.ShowDialog(FindForm()) != DialogResult.OK)
         {
             return;
@@ -2974,6 +3037,12 @@ public sealed class ModuleEditorControl : UserControl
         _fieldCatalog = ConditionFieldCatalog.Load(_baseDirectory);
         InvalidateConditionFieldValidation();
         return BuildConditionFields(includeRuleSettings);
+    }
+
+    private IReadOnlyList<ConditionSpell> RefreshAndBuildConditionSpells()
+    {
+        ReloadCurrentClassSpellIds();
+        return _currentClassConditionSpells.ToArray();
     }
 
     private IReadOnlyList<ConditionField> BuildConditionFields(bool includeRuleSettings = false)

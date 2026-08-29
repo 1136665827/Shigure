@@ -9,4 +9,6 @@ public interface IKeymapResolver
     IReadOnlyDictionary<int, string> GetCurrentFailedSpells();
 
     IReadOnlyDictionary<int, string> GetCurrentOneKeySpells();
+
+    IReadOnlyDictionary<long, int> GetCurrentSpellIndices();
 }

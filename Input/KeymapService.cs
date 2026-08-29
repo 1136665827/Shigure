@@ -9,6 +9,7 @@ public sealed class KeymapService : IKeymapResolver
     private readonly ConfigService _config;
     private readonly Dictionary<(int Unit, string Spell, string MacroCondition), string> _hotkeys = new();
     private readonly Dictionary<(int Unit, string Spell), string> _fallbackHotkeys = new();
+    private readonly Dictionary<long, int> _spellIndices = new();
     private int? _currentClassId;
     private int? _currentSpecId;
 
@@ -34,6 +35,9 @@ public sealed class KeymapService : IKeymapResolver
         _currentSpecId = specId;
         _hotkeys.Clear();
         _fallbackHotkeys.Clear();
+        _spellIndices.Clear();
+
+        LoadSpellIndices(classId);
 
         var path = KeymapCatalog.ResolveKeymapFilePath(_baseDirectory, _config.GetKeymapName(classId));
         if (!File.Exists(path))
@@ -115,5 +119,37 @@ public sealed class KeymapService : IKeymapResolver
     public IReadOnlyDictionary<int, string> GetCurrentOneKeySpells()
     {
         return _config.GetOneKeySpells(_currentClassId);
+    }
+
+    public IReadOnlyDictionary<long, int> GetCurrentSpellIndices()
+    {
+        return _spellIndices;
+    }
+
+    private void LoadSpellIndices(int? classId)
+    {
+        if (classId is null)
+        {
+            return;
+        }
+
+        var classPath = Path.Combine(
+            _baseDirectory,
+            "Fuyutsui",
+            "class",
+            $"{ClassNames.GetConfigFileName(classId.Value)}.lua");
+        try
+        {
+            var document = ClassBlocksStore.Load(classPath);
+            foreach (var spell in document.SpellsList.Where(spell => spell.SpellId > 0))
+            {
+                _spellIndices.TryAdd(spell.SpellId, spell.Index);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or InvalidDataException or ArgumentException)
+        {
+            // 职业技能列表不可用时保持空映射；引用 spellId 的条件会安全地按不命中处理。
+        }
     }
 }
