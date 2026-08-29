@@ -30,3 +30,6 @@ __pycache__/
 /.plan
 
 outputs/
+
+# Local spell icon package sources, tools, and generated data
+/SpellIconPackage/

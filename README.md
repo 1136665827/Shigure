@@ -114,8 +114,12 @@ Fuyutsui\               权威插件源码、配置/宏编辑源及游戏部署�
 config\                 由 Fuyutsui 职业配置生成的扫描映射
 keymap\                 由 Fuyutsui 职业宏生成的按键映射
 module\                 模块示例模板（运行时模块保存在我的文档目录 `{MyDocuments}/Shigure/module`）
+SpellIconPackage\       本地技能图标数据包清单、构建与修复工具（Git 忽略）
 Tools\                  辅助脚本
 ```
+
+`SpellIconPackage/` 中保存数据包源清单、本地构建工具和生成的
+`SpellIcons.shgpack`；整个目录由 `.gitignore` 排除，不提交到仓库。
 
 ## Fuyutsui 配置同步
 

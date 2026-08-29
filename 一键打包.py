@@ -33,6 +33,7 @@ SKIP_DIRS = {
     "cache",
     "obj",
     "outputs",
+    "SpellIconPackage",
 }
 
 TEXT_EXTENSIONS = {
@@ -280,9 +281,6 @@ def copy_to_build_environment(root: Path, script_path: Path, build_root: Path) -
         resolved_directory = Path(directory).resolve()
         if resolved_directory == resolved_root:
             ignored.add(script_path.name)
-        if resolved_directory == resolved_root / "Assets":
-            ignored.add("SpellIconManifest.json")
-            ignored.add("SpellIcons.shgpack")
         if resolved_directory == resolved_root / "Assets" / "Spell":
             ignored.update(name for name in names if name.startswith("icon-") and name.endswith(".jpg"))
         return ignored

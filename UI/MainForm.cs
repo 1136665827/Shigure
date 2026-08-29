@@ -828,7 +828,7 @@ public sealed class MainForm : Form, IMessageFilter
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             BackColor = UiTheme.Surface,
             ColumnCount = 2,
-            RowCount = 3,
+            RowCount = 4,
             Padding = new Padding(0),
             Margin = new Padding(0)
         };
@@ -1047,7 +1047,7 @@ public sealed class MainForm : Form, IMessageFilter
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(0, 0, settingsCardGap / 2, 0)
+            Margin = new Padding(0, 0, settingsCardGap / 2, settingsCardGap)
         };
         layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         layoutCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -1097,7 +1097,7 @@ public sealed class MainForm : Form, IMessageFilter
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(settingsCardGap / 2, 0, 0, 0)
+            Margin = new Padding(settingsCardGap / 2, 0, 0, settingsCardGap)
         };
         closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         closeBehaviorCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -1143,7 +1143,7 @@ public sealed class MainForm : Form, IMessageFilter
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(UiTheme.CardPadding),
-            Margin = new Padding(0)
+            Margin = new Padding(0, 0, settingsCardGap / 2, 0)
         };
         spellIconPackageCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         spellIconPackageCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -1173,7 +1173,6 @@ public sealed class MainForm : Form, IMessageFilter
         _downloadSpellIconPackageButton.Click += (_, _) => StartSpellIconPackageDownload();
         spellIconPackageCard.Controls.Add(_downloadSpellIconPackageButton, 0, 3);
         panel.Controls.Add(spellIconPackageCard, 0, 3);
-        panel.SetColumnSpan(spellIconPackageCard, 2);
 
         UpdateLayoutButtons();
         UpdateCloseBehaviorButtons();

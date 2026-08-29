@@ -14,6 +14,7 @@ internal static class SpellIconCatalog
     private static readonly Dictionary<long, Image> Icons = new();
     private static readonly Dictionary<string, Image?> NamedIcons = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, long> RegisteredSpellIdsByName = new(StringComparer.Ordinal);
+    private static readonly Dictionary<long, string> RegisteredSpellNamesById = new();
 
     private static readonly Dictionary<long, string> SpellIdIconResources = new()
     {
@@ -38,10 +39,11 @@ internal static class SpellIconCatalog
 
     private static SpellIconPackage? _package;
     private static Dictionary<string, long> _spellIdsByName = new(StringComparer.Ordinal);
-    private static SpellSuggestion[] _suggestionsBySpellId = [];
+    private static IReadOnlyList<SpellSuggestion> _suggestionsBySpellId = Array.Empty<SpellSuggestion>();
 
     static SpellIconCatalog()
     {
+        PromotePendingPackage();
         _package = SpellIconPackage.TryOpen(PackagePath);
         RebuildIndexesLocked();
     }
@@ -53,6 +55,8 @@ internal static class SpellIconCatalog
         "data",
         "SpellIcons.shgpack");
 
+    internal static string PendingPackagePath => $"{PackagePath}.pending";
+
     internal static bool IsPackageAvailable
     {
         get
@@ -61,6 +65,29 @@ internal static class SpellIconCatalog
             {
                 return _package is not null;
             }
+        }
+    }
+
+    private static void PromotePendingPackage()
+    {
+        if (!File.Exists(PendingPackagePath))
+        {
+            return;
+        }
+
+        try
+        {
+            using (SpellIconPackage.Open(PendingPackagePath))
+            {
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(PackagePath)!);
+            File.Move(PendingPackagePath, PackagePath, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or InvalidDataException or ArgumentException)
+        {
+            // 保留当前可用数据包；待下次启动时再次尝试应用已校验的名称修复包。
         }
     }
 
@@ -120,7 +147,7 @@ internal static class SpellIconCatalog
         }
     }
 
-    public static void Register(long spellId, string? spellName)
+    public static void Register(long spellId, string? spellName, bool overwriteIdName = false)
     {
         var normalized = spellName?.Trim();
         if (spellId <= 0 || string.IsNullOrWhiteSpace(normalized))
@@ -131,96 +158,47 @@ internal static class SpellIconCatalog
         lock (SyncRoot)
         {
             RegisteredSpellIdsByName[normalized] = spellId;
+            if (overwriteIdName)
+            {
+                RegisteredSpellNamesById[spellId] = normalized;
+            }
+            else
+            {
+                RegisteredSpellNamesById.TryAdd(spellId, normalized);
+            }
+
             _spellIdsByName[normalized] = spellId;
         }
     }
 
-    internal static IReadOnlyList<SpellSuggestion> SearchByIdPrefix(string? prefix, int limit)
+    internal static string? ResolveSuggestionName(long spellId, string? packageName)
+    {
+        if (!string.IsNullOrWhiteSpace(packageName))
+        {
+            return packageName;
+        }
+
+        lock (SyncRoot)
+        {
+            return RegisteredSpellNamesById.GetValueOrDefault(spellId);
+        }
+    }
+
+    internal static IReadOnlyDictionary<long, string> GetRegisteredSpellNamesSnapshot()
     {
         lock (SyncRoot)
         {
-            var normalized = prefix;
-            if (_package is null
-                || limit <= 0
-                || string.IsNullOrEmpty(normalized)
-                || normalized.Length > 19
-                || normalized[0] == '0'
-                || _suggestionsBySpellId.Length == 0)
-            {
-                return Array.Empty<SpellSuggestion>();
-            }
+            return new Dictionary<long, string>(RegisteredSpellNamesById);
+        }
+    }
 
-            long prefixValue = 0;
-            foreach (var character in normalized)
-            {
-                if (character is < '0' or > '9')
-                {
-                    return Array.Empty<SpellSuggestion>();
-                }
-
-                var digit = character - '0';
-                if (prefixValue > (long.MaxValue - digit) / 10)
-                {
-                    return Array.Empty<SpellSuggestion>();
-                }
-
-                prefixValue = prefixValue * 10 + digit;
-            }
-
-            if (prefixValue <= 0)
-            {
-                return Array.Empty<SpellSuggestion>();
-            }
-
-            var maximumSpellId = _suggestionsBySpellId[^1].SpellId;
-            var maximumDigits = 1;
-            for (var remaining = maximumSpellId; remaining >= 10; remaining /= 10)
-            {
-                maximumDigits++;
-            }
-
-            var maximumSuffixDigits = maximumDigits - normalized.Length;
-            if (maximumSuffixDigits < 0)
-            {
-                return Array.Empty<SpellSuggestion>();
-            }
-
-            var matches = new List<SpellSuggestion>(Math.Min(limit, 8));
-            long scale = 1;
-            for (var suffixDigits = 0; suffixDigits <= maximumSuffixDigits; suffixDigits++)
-            {
-                if (prefixValue > long.MaxValue / scale)
-                {
-                    break;
-                }
-
-                var start = prefixValue * scale;
-                var intervalLength = scale - 1;
-                var end = intervalLength > long.MaxValue - start
-                    ? long.MaxValue
-                    : start + intervalLength;
-                var index = LowerBoundSuggestionLocked(start);
-                while (index < _suggestionsBySpellId.Length
-                       && _suggestionsBySpellId[index].SpellId <= end)
-                {
-                    matches.Add(_suggestionsBySpellId[index]);
-                    if (matches.Count >= limit)
-                    {
-                        return matches;
-                    }
-
-                    index++;
-                }
-
-                if (scale > long.MaxValue / 10)
-                {
-                    break;
-                }
-
-                scale *= 10;
-            }
-
-            return matches;
+    internal static IReadOnlyList<SpellSuggestion> GetSuggestionsSnapshot()
+    {
+        lock (SyncRoot)
+        {
+            return _package is null
+                ? Array.Empty<SpellSuggestion>()
+                : _suggestionsBySpellId;
         }
     }
 
@@ -319,26 +297,6 @@ internal static class SpellIconCatalog
         }
     }
 
-    private static int LowerBoundSuggestionLocked(long spellId)
-    {
-        var low = 0;
-        var high = _suggestionsBySpellId.Length;
-        while (low < high)
-        {
-            var middle = low + (high - low) / 2;
-            if (_suggestionsBySpellId[middle].SpellId < spellId)
-            {
-                low = middle + 1;
-            }
-            else
-            {
-                high = middle;
-            }
-        }
-
-        return low;
-    }
-
     private static Image CacheLocked(long spellId, Image icon)
     {
         if (Icons.TryGetValue(spellId, out var cached))
@@ -387,7 +345,7 @@ internal static class SpellIconCatalog
         _spellIdsByName = new Dictionary<string, long>(RegisteredSpellIdsByName, StringComparer.Ordinal);
         if (_package is null)
         {
-            _suggestionsBySpellId = [];
+            _suggestionsBySpellId = Array.Empty<SpellSuggestion>();
             return;
         }
 
@@ -396,11 +354,12 @@ internal static class SpellIconCatalog
             _spellIdsByName.TryAdd(name, spellId);
         }
 
-        _suggestionsBySpellId = _package.SpellNamesById
-            .Where(pair => pair.Key > 0 && !string.IsNullOrWhiteSpace(pair.Value))
-            .OrderBy(pair => pair.Key)
-            .Select(pair => new SpellSuggestion(pair.Key, pair.Value))
-            .ToArray();
+        _suggestionsBySpellId = Array.AsReadOnly(
+            _package.SpellIds
+                .Select(spellId => new SpellSuggestion(
+                    spellId,
+                    _package.SpellNamesById.GetValueOrDefault(spellId) ?? string.Empty))
+                .ToArray());
     }
 
     private static void DisposeImageCachesLocked()
@@ -536,6 +495,7 @@ internal static class SpellIconCatalog
 
         public Dictionary<string, long> SpellIdsByName { get; }
         public Dictionary<long, string> SpellNamesById { get; }
+        public IReadOnlyList<long> SpellIds => _spellIds;
 
         public static SpellIconPackage Open(string path) => new(path);
 
