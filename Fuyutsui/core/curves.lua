@@ -42,6 +42,14 @@ function Fuyutsui:CreatePowerCurve(powerType)
 end
 
 Fuyutsui.powerCurves = powerCurves
+
+-- 队伍生命曲线必须在进入战斗前创建。战斗中只选择既有曲线，
+-- 避免首次施放对应治疗法术时临时调用 C_CurveUtil.CreateColorCurve。
 Fuyutsui.curve100 = Fuyutsui:CreateColorCurveScaling(100)
+Fuyutsui.groupHealthCurves = {
+    default = Fuyutsui.curve100,
+    incoming15 = Fuyutsui:CreateColorCurveScaling(115),
+    incoming40 = Fuyutsui:CreateColorCurveScaling(140),
+}
 Fuyutsui.curve255 = Fuyutsui:CreateColorCurve(255, 255)
 Fuyutsui.castCurve = Fuyutsui:CreateColorCurve(25.5, 255)

@@ -132,6 +132,7 @@ local stateBlockGetters = {
         ["敌人数-有仇恨"] = function() return state.threatEnemyCount or 0 end,
         ["酒池"] = function() return state.staggerPercent or 0 end,
         ["神圣军备"] = function() return state.holyArmaments or 0 end,
+        ["吸血鬼打击"] = function() return state.VampiricStrike or 0 end,
         ["收割者战刃"] = function() return state.reaverGlaive or 0 end,
         ["英勇打击"] = function() return state.heroicStrike or 0 end,
         -- 兼容：旧职业表仍把能量/配置/物品写在 ["状态"] 下
@@ -271,6 +272,11 @@ local stateBlockGetters = {
     ["宠物"] = {
         ["存在"] = function() return pet.exists or 0 end,
         ["生命值"] = function() return pet.healthPercent or 0 end,
+        ["施法(倒计时)"] = function(self) return self:GetUnitCastPixel("pet", "cast") end,
+        ["施法(正计时)"] = function(self) return self:GetUnitCastPixel("pet", "castElapsed") end,
+        ["施法可打断"] = function(self) return self:GetUnitInterruptiblePixel("pet", "cast") end,
+        ["引导"] = function(self) return self:GetUnitCastPixel("pet", "channel") end,
+        ["引导可打断"] = function(self) return self:GetUnitInterruptiblePixel("pet", "channel") end,
     },
 }
 

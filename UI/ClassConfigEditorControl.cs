@@ -27,10 +27,16 @@ public sealed class ClassConfigEditorControl : UserControl
     private readonly DataGridView _spellsGrid = new();
     private readonly DataGridView _spellsListGrid = new();
     private readonly TextBox _spellsListSearchBox = new();
-    private readonly TextBox _newSpellIdBox = new();
-    private readonly TextBox _newSpellNameBox = new();
-    private ToolStripDropDown? _spellSuggestionDropDown;
-    private bool _suppressSpellSuggestions;
+    private readonly DataGridView _spellDatabaseGrid = new();
+    private readonly TextBox _spellDatabaseFilterBox = new();
+    private readonly Label _spellDatabaseStatusLabel = new();
+    private readonly System.Windows.Forms.Timer _spellDatabaseFilterTimer = new() { Interval = 150 };
+    private const int SpellDatabasePageSize = 20;
+    private SpellDatabaseResultSet _spellDatabaseResults = SpellDatabaseResultSet.Empty;
+    private int _spellDatabaseVisibleCount;
+    private bool _expandingSpellDatabaseRows;
+    private CancellationTokenSource? _spellDatabaseFilterCancellation;
+    private int _spellDatabaseFilterVersion;
     private readonly NumericUpDown _groupNumBox = new();
     private readonly NumericUpDown _groupHealthBox = new();
     private readonly NumericUpDown _groupRoleBox = new();
@@ -76,7 +82,7 @@ public sealed class ClassConfigEditorControl : UserControl
         _reloadButton = UiTheme.CreateButton("刷新", UiTheme.ButtonKind.Secondary);
         _saveButton = UiTheme.CreateButton("保存", UiTheme.ButtonKind.Primary);
         InitializeComponent();
-        SpellIconCatalog.IconAvailable += OnSpellIconAvailable;
+        SpellIconCatalog.CatalogChanged += OnSpellIconCatalogChanged;
         ReloadFromAddon();
     }
 
@@ -85,8 +91,10 @@ public sealed class ClassConfigEditorControl : UserControl
         if (disposing)
         {
             CloseStateComboDropDown();
-            CloseSpellSuggestions();
-            SpellIconCatalog.IconAvailable -= OnSpellIconAvailable;
+            _spellDatabaseFilterTimer.Stop();
+            _spellDatabaseFilterTimer.Dispose();
+            _spellDatabaseFilterCancellation?.Cancel();
+            SpellIconCatalog.CatalogChanged -= OnSpellIconCatalogChanged;
         }
 
         base.Dispose(disposing);
@@ -359,11 +367,6 @@ public sealed class ClassConfigEditorControl : UserControl
             if (selectedIndex == index)
             {
                 return;
-            }
-
-            if (index != 4)
-            {
-                CloseSpellSuggestions();
             }
 
             selectedIndex = index;
@@ -647,20 +650,7 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private Control BuildSpellsListPage()
     {
-        var panel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 3,
-            BackColor = UiTheme.SurfaceRaised,
-            Margin = new Padding(0),
-            Padding = new Padding(0)
-        };
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var actionBar = new TableLayoutPanel
+        var split = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
@@ -669,16 +659,28 @@ public sealed class ClassConfigEditorControl : UserControl
             Margin = new Padding(0),
             Padding = new Padding(0)
         };
-        actionBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        actionBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        actionBar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        split.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var leftColumn = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(0, 0, 5, 0),
+            Padding = new Padding(0)
+        };
+        leftColumn.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
+        leftColumn.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var searchCard = new UiCardPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            Margin = new Padding(0, 0, 10, 10),
+            Margin = new Padding(0, 0, 0, 10),
             Padding = new Padding(12, 8, 12, 8)
         };
         searchCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
@@ -705,100 +707,40 @@ public sealed class ClassConfigEditorControl : UserControl
         _spellsListSearchBox.PlaceholderText = "法术 ID、索引或名称";
         _spellsListSearchBox.TextChanged += (_, _) => ApplySpellsListFilter();
         searchCard.Controls.Add(_spellsListSearchBox, 1, 0);
-        actionBar.Controls.Add(searchCard, 0, 0);
+        leftColumn.Controls.Add(searchCard, 0, 0);
 
-        var addCard = new UiCardPanel
+        var currentListCard = new UiCardPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 5,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        currentListCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        currentListCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        currentListCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var currentListHeader = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
             RowCount = 1,
-            Margin = new Padding(0, 0, 0, 10),
-            Padding = new Padding(12, 8, 12, 8)
-        };
-        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
-        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
-        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
-        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        addCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 96));
-        addCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        addCard.Controls.Add(new Label
-        {
-            Dock = DockStyle.Fill,
-            Text = "添加技能",
-            ForeColor = UiTheme.Text,
             BackColor = Color.Transparent,
-            Font = new Font(Font.FontFamily, 9F, FontStyle.Bold, GraphicsUnit.Point),
-            TextAlign = ContentAlignment.MiddleLeft,
             Margin = new Padding(0),
-            Padding = new Padding(8, 0, 0, 0)
-        }, 0, 0);
-
-        UiTheme.StyleTextBox(_newSpellIdBox);
-        _newSpellIdBox.Dock = DockStyle.None;
-        _newSpellIdBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-        _newSpellIdBox.Margin = new Padding(0, 0, 8, 0);
-        _newSpellIdBox.Height = 30;
-        _newSpellIdBox.PlaceholderText = "spellId";
-        _newSpellIdBox.MaxLength = 20;
-        addCard.Controls.Add(_newSpellIdBox, 1, 0);
-
-        UiTheme.StyleTextBox(_newSpellNameBox);
-        _newSpellNameBox.Dock = DockStyle.None;
-        _newSpellNameBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-        _newSpellNameBox.Margin = new Padding(0, 0, 8, 0);
-        _newSpellNameBox.Height = 30;
-        _newSpellNameBox.PlaceholderText = "名称";
-        addCard.Controls.Add(_newSpellNameBox, 2, 0);
-
-        _newSpellIdBox.TextChanged += (_, _) => UpdateSpellSuggestions(addCard);
-        _newSpellIdBox.VisibleChanged += (_, _) =>
-        {
-            if (!_newSpellIdBox.Visible)
-            {
-                CloseSpellSuggestions();
-            }
+            Padding = new Padding(12, 0, 12, 0)
         };
-
-        var addControl = new UiPillTab("添加")
-        {
-            Selected = true,
-            Dock = DockStyle.None,
-            Anchor = AnchorStyles.Left | AnchorStyles.Right,
-            Margin = new Padding(0),
-            Height = 30,
-            MinimumSize = new Size(88, 30)
-        };
-        addControl.Click += (_, _) => AddSpellsListEntry();
-        addCard.Controls.Add(addControl, 4, 0);
-
-        void HandleAddOnEnter(object? _, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Escape && _spellSuggestionDropDown is not null)
-            {
-                e.Handled = true;
-                e.SuppressKeyPress = true;
-                CloseSpellSuggestions();
-                return;
-            }
-
-            if (e.KeyCode != Keys.Enter)
-            {
-                return;
-            }
-
-            e.SuppressKeyPress = true;
-            AddSpellsListEntry();
-        }
-
-        _newSpellIdBox.KeyDown += HandleAddOnEnter;
-        _newSpellNameBox.KeyDown += HandleAddOnEnter;
-        actionBar.Controls.Add(addCard, 1, 0);
-        panel.Controls.Add(actionBar, 0, 0);
-
-        var hint = CreateFieldCaption("来自当前职业 Lua 的 Fuyutsui.spellsList，仅编辑索引 1–100；保存后同步修改 Lua 对应条目。");
-        hint.Padding = new Padding(8, 0, 0, 0);
-        panel.Controls.Add(hint, 0, 1);
+        currentListHeader.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        currentListHeader.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        var currentListTitle = CreateCardTitle("技能列表");
+        currentListTitle.AutoSize = true;
+        currentListTitle.Dock = DockStyle.None;
+        currentListTitle.Anchor = AnchorStyles.Left;
+        currentListHeader.Controls.Add(currentListTitle, 0, 0);
+        var hint = CreateFieldCaption("来自当前职业 Lua，仅编辑索引 1–100。");
+        hint.TextAlign = ContentAlignment.MiddleRight;
+        currentListHeader.Controls.Add(hint, 1, 0);
+        currentListCard.Controls.Add(currentListHeader, 0, 0);
 
         ConfigureGrid(_spellsListGrid, "class-config-spells-list");
         _spellsListGrid.AllowUserToAddRows = false;
@@ -815,14 +757,14 @@ public sealed class ClassConfigEditorControl : UserControl
         {
             Name = "SpellId",
             HeaderText = "法术 ID",
-            Width = 150,
+            Width = 125,
             SortMode = DataGridViewColumnSortMode.NotSortable
         });
         _spellsListGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "Index",
             HeaderText = "索引",
-            Width = 120,
+            Width = 76,
             SortMode = DataGridViewColumnSortMode.NotSortable
         });
         _spellsListGrid.Columns.Add(CreateSpellIconColumn());
@@ -834,9 +776,134 @@ public sealed class ClassConfigEditorControl : UserControl
             SortMode = DataGridViewColumnSortMode.NotSortable
         });
         _spellsListGrid.Columns.Add(CreateDeleteColumn());
-        panel.Controls.Add(_spellsListGrid, 0, 2);
-        return panel;
+        currentListCard.Controls.Add(_spellsListGrid, 0, 1);
+        leftColumn.Controls.Add(currentListCard, 0, 1);
+        split.Controls.Add(leftColumn, 0, 0);
+
+        var rightColumn = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = UiTheme.SurfaceRaised,
+            Margin = new Padding(5, 0, 0, 0),
+            Padding = new Padding(0)
+        };
+        rightColumn.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
+        rightColumn.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var filterCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0, 0, 0, 10),
+            Padding = new Padding(12, 8, 12, 8)
+        };
+        filterCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+        filterCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        filterCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        filterCard.Controls.Add(CreateCardTitle("筛选", 8), 0, 0);
+        UiTheme.StyleTextBox(_spellDatabaseFilterBox);
+        _spellDatabaseFilterBox.Dock = DockStyle.None;
+        _spellDatabaseFilterBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _spellDatabaseFilterBox.Margin = new Padding(0);
+        _spellDatabaseFilterBox.Height = 30;
+        _spellDatabaseFilterBox.PlaceholderText = "spellId 或名称";
+        _spellDatabaseFilterBox.TextChanged += (_, _) => ScheduleSpellDatabaseFilter();
+        filterCard.Controls.Add(_spellDatabaseFilterBox, 1, 0);
+        rightColumn.Controls.Add(filterCard, 0, 0);
+
+        var databaseListCard = new UiCardPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        databaseListCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        databaseListCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        databaseListCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        var databaseHeader = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Padding = new Padding(12, 0, 12, 0)
+        };
+        databaseHeader.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        databaseHeader.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        databaseHeader.Controls.Add(CreateCardTitle("技能列表"), 0, 0);
+        _spellDatabaseStatusLabel.Dock = DockStyle.Fill;
+        _spellDatabaseStatusLabel.ForeColor = UiTheme.Muted;
+        _spellDatabaseStatusLabel.BackColor = Color.Transparent;
+        _spellDatabaseStatusLabel.TextAlign = ContentAlignment.MiddleRight;
+        _spellDatabaseStatusLabel.Margin = new Padding(0);
+        databaseHeader.Controls.Add(_spellDatabaseStatusLabel, 1, 0);
+        databaseListCard.Controls.Add(databaseHeader, 0, 0);
+
+        ConfigureGrid(_spellDatabaseGrid, "class-config-spell-database");
+        _spellDatabaseGrid.AllowUserToAddRows = false;
+        _spellDatabaseGrid.ReadOnly = true;
+        _spellDatabaseGrid.VirtualMode = true;
+        _spellDatabaseGrid.EditMode = DataGridViewEditMode.EditProgrammatically;
+        _spellDatabaseGrid.RowCount = 0;
+        _spellDatabaseGrid.CellValueNeeded += OnSpellDatabaseCellValueNeeded;
+        _spellDatabaseGrid.CellContentClick += OnSpellDatabaseCellContentClick;
+        _spellDatabaseGrid.Scroll += OnSpellDatabaseScroll;
+        _spellDatabaseGrid.Columns.Add(CreateSpellIconColumn());
+        _spellDatabaseGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "SpellId",
+            HeaderText = "spellId",
+            Width = 125,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _spellDatabaseGrid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "Name",
+            HeaderText = "名称",
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _spellDatabaseGrid.Columns.Add(new DataGridViewButtonColumn
+        {
+            Name = "Add",
+            HeaderText = "添加",
+            Text = "添加",
+            UseColumnTextForButtonValue = true,
+            Width = 72,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        });
+        _spellDatabaseGrid.HandleCreated += (_, _) => RefreshSpellDatabase();
+        databaseListCard.Controls.Add(_spellDatabaseGrid, 0, 1);
+        rightColumn.Controls.Add(databaseListCard, 0, 1);
+
+        _spellDatabaseFilterTimer.Tick += async (_, _) =>
+        {
+            _spellDatabaseFilterTimer.Stop();
+            await ApplySpellDatabaseFilterAsync();
+        };
+
+        split.Controls.Add(rightColumn, 1, 0);
+        return split;
     }
+
+    private Label CreateCardTitle(string text, int leftPadding = 0)
+        => new()
+        {
+            Dock = DockStyle.Fill,
+            Text = text,
+            ForeColor = UiTheme.Text,
+            BackColor = Color.Transparent,
+            Font = new Font(Font.FontFamily, 9F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0),
+            Padding = new Padding(leftPadding, 0, 0, 0)
+        };
 
     private Control BuildGroupPage()
     {
@@ -1232,6 +1299,7 @@ public sealed class ClassConfigEditorControl : UserControl
                 {
                     var doc = ClassBlocksStore.Load(path);
                     _documents[classId] = doc;
+                    RegisterDocumentSpellNames(doc);
                     _classList.Items.Add(new ClassListItem(classId, className, fileName, doc.IsModernFormat));
                 }
                 catch (Exception ex)
@@ -1252,6 +1320,65 @@ public sealed class ClassConfigEditorControl : UserControl
         }
 
         SelectClassFromList();
+    }
+
+    private static void RegisterDocumentSpellNames(ClassBlocksStore.ClassFileDocument document)
+    {
+        foreach (var spec in document.Specs.Values)
+        {
+            foreach (var spell in spec.Spells)
+            {
+                SpellIconCatalog.Register(spell.SpellId, spell.Name);
+            }
+
+            IEnumerable<ClassBlocksStore.AuraEntry>[] auraLists =
+            {
+                spec.PlayerAuras,
+                spec.TargetHarmfulAuras,
+                spec.TargetHelpfulAuras,
+                spec.FocusHarmfulAuras,
+                spec.FocusHelpfulAuras
+            };
+            foreach (var auras in auraLists)
+            {
+                foreach (var aura in auras)
+                {
+                    if (aura.SpellId is { } spellId)
+                    {
+                        SpellIconCatalog.Register(spellId, aura.Name);
+                    }
+
+                    foreach (var candidate in aura.SpellIds)
+                    {
+                        SpellIconCatalog.Register(candidate, aura.Name);
+                    }
+                }
+            }
+
+            if (spec.Group is not { } group)
+            {
+                continue;
+            }
+
+            foreach (var aura in group.Auras)
+            {
+                if (aura.SpellId is { } spellId)
+                {
+                    SpellIconCatalog.Register(spellId, aura.Name);
+                }
+
+                foreach (var candidate in aura.SpellIds)
+                {
+                    SpellIconCatalog.Register(candidate, aura.Name);
+                }
+            }
+        }
+
+        // spellsList 是用户实际添加/保存技能时使用的名称，优先级高于专精规则中的同 ID 别名。
+        foreach (var spell in document.SpellsList)
+        {
+            SpellIconCatalog.Register(spell.SpellId, spell.Name, overwriteIdName: true);
+        }
     }
 
     private void SelectClassFromList()
@@ -1782,8 +1909,6 @@ public sealed class ClassConfigEditorControl : UserControl
     {
         _spellsListGrid.Rows.Clear();
         _spellsListSearchBox.Clear();
-        _newSpellIdBox.Clear();
-        _newSpellNameBox.Clear();
         if (_currentDocument is null)
         {
             return;
@@ -1819,92 +1944,314 @@ public sealed class ClassConfigEditorControl : UserControl
             .Select(columnName => row.Cells[columnName].Value?.ToString() ?? string.Empty)
             .Any(value => value.Contains(query, StringComparison.OrdinalIgnoreCase));
 
-    private void UpdateSpellSuggestions(Control owner)
+    private void ScheduleSpellDatabaseFilter()
     {
-        if (_suppressSpellSuggestions)
+        _spellDatabaseFilterTimer.Stop();
+        _spellDatabaseFilterVersion++;
+        CancelSpellDatabaseFilter();
+        if (!_spellDatabaseGrid.IsHandleCreated || IsDisposed || Disposing)
         {
             return;
         }
 
-        CloseSpellSuggestions();
-        if (!_newSpellIdBox.Focused)
+        if (!SpellIconCatalog.IsPackageAvailable)
         {
+            ApplySpellDatabaseResults(SpellDatabaseResultSet.Empty, "未安装技能数据库");
             return;
         }
 
-        var suggestions = SpellIconCatalog.SearchByIdPrefix(_newSpellIdBox.Text, 8);
-        if (suggestions.Count == 0)
-        {
-            return;
-        }
-
-        var selectionStart = _newSpellIdBox.SelectionStart;
-        var selectionLength = _newSpellIdBox.SelectionLength;
-        var anchorBounds = Rectangle.Union(_newSpellIdBox.Bounds, _newSpellNameBox.Bounds);
-        ToolStripDropDown? dropDown = null;
-        dropDown = SpellSuggestionPopup.Show(
-            owner,
-            anchorBounds,
-            suggestions,
-            ApplySpellSuggestion,
-            closed: () =>
-            {
-                if (ReferenceEquals(_spellSuggestionDropDown, dropDown))
-                {
-                    _spellSuggestionDropDown = null;
-                }
-            });
-        _spellSuggestionDropDown = dropDown;
-        if (dropDown is not null)
-        {
-            _newSpellIdBox.Focus();
-            _newSpellIdBox.SelectionStart = Math.Min(selectionStart, _newSpellIdBox.TextLength);
-            _newSpellIdBox.SelectionLength = Math.Min(
-                selectionLength,
-                _newSpellIdBox.TextLength - _newSpellIdBox.SelectionStart);
-            BeginInvoke((Action)(() =>
-            {
-                if (IsDisposed
-                    || Disposing
-                    || !ReferenceEquals(_spellSuggestionDropDown, dropDown)
-                    || dropDown.IsDisposed)
-                {
-                    return;
-                }
-
-                _newSpellIdBox.Focus();
-                _newSpellIdBox.SelectionStart = Math.Min(selectionStart, _newSpellIdBox.TextLength);
-                _newSpellIdBox.SelectionLength = Math.Min(
-                    selectionLength,
-                    _newSpellIdBox.TextLength - _newSpellIdBox.SelectionStart);
-            }));
-        }
+        _spellDatabaseStatusLabel.Text = "正在筛选…";
+        _spellDatabaseFilterTimer.Start();
     }
 
-    private void ApplySpellSuggestion(SpellSuggestion suggestion)
+    private void RefreshSpellDatabase()
     {
-        _suppressSpellSuggestions = true;
+        if (IsDisposed || Disposing || !_spellDatabaseGrid.IsHandleCreated)
+        {
+            return;
+        }
+
+        _spellDatabaseFilterTimer.Stop();
+        _spellDatabaseFilterVersion++;
+        CancelSpellDatabaseFilter();
+        var packageAvailable = SpellIconCatalog.IsPackageAvailable;
+        _spellDatabaseFilterBox.Enabled = packageAvailable;
+        if (!packageAvailable)
+        {
+            ApplySpellDatabaseResults(SpellDatabaseResultSet.Empty, "未安装技能数据库");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_spellDatabaseFilterBox.Text))
+        {
+            var snapshot = SpellIconCatalog.GetSuggestionsSnapshot();
+            ApplySpellDatabaseResults(SpellDatabaseResultSet.FromAll(snapshot));
+            return;
+        }
+
+        _spellDatabaseStatusLabel.Text = "正在筛选…";
+        _ = ApplySpellDatabaseFilterAsync();
+    }
+
+    private async Task ApplySpellDatabaseFilterAsync()
+    {
+        if (IsDisposed || Disposing || !_spellDatabaseGrid.IsHandleCreated)
+        {
+            return;
+        }
+
+        var version = _spellDatabaseFilterVersion;
+        var query = _spellDatabaseFilterBox.Text.Trim();
+        var snapshot = SpellIconCatalog.GetSuggestionsSnapshot();
+        var registeredNames = SpellIconCatalog.GetRegisteredSpellNamesSnapshot();
+        if (string.IsNullOrEmpty(query))
+        {
+            ApplySpellDatabaseResults(SpellDatabaseResultSet.FromAll(snapshot));
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _spellDatabaseFilterCancellation = cancellation;
         try
         {
-            _newSpellIdBox.Text = suggestion.SpellId.ToString(CultureInfo.InvariantCulture);
-            _newSpellNameBox.Text = suggestion.Name;
+            var results = await Task.Run(
+                () => FilterSpellDatabase(snapshot, registeredNames, query, cancellation.Token),
+                cancellation.Token);
+            if (cancellation.IsCancellationRequested
+                || version != _spellDatabaseFilterVersion
+                || IsDisposed
+                || Disposing)
+            {
+                return;
+            }
+
+            ApplySpellDatabaseResults(results);
+        }
+        catch (OperationCanceledException)
+        {
         }
         finally
         {
-            _suppressSpellSuggestions = false;
-        }
+            if (ReferenceEquals(_spellDatabaseFilterCancellation, cancellation))
+            {
+                _spellDatabaseFilterCancellation = null;
+            }
 
-        CloseSpellSuggestions();
-        _newSpellNameBox.Focus();
-        _newSpellNameBox.SelectionStart = _newSpellNameBox.TextLength;
-        _newSpellNameBox.SelectionLength = 0;
+            cancellation.Dispose();
+        }
     }
 
-    private void CloseSpellSuggestions()
+    private static SpellDatabaseResultSet FilterSpellDatabase(
+        IReadOnlyList<SpellSuggestion> source,
+        IReadOnlyDictionary<long, string> registeredNames,
+        string query,
+        CancellationToken cancellationToken)
     {
-        var dropDown = _spellSuggestionDropDown;
-        _spellSuggestionDropDown = null;
-        SpellSuggestionPopup.Dismiss(dropDown);
+        var numeric = query.All(character => character is >= '0' and <= '9');
+        if (numeric)
+        {
+            return FilterSpellDatabaseByIdPrefix(source, query);
+        }
+
+        var indices = new List<int>();
+        for (var index = 0; index < source.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var suggestion = source[index];
+            var name = string.IsNullOrWhiteSpace(suggestion.Name)
+                ? registeredNames.GetValueOrDefault(suggestion.SpellId) ?? string.Empty
+                : suggestion.Name;
+            if (name.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                indices.Add(index);
+            }
+        }
+
+        return SpellDatabaseResultSet.FromIndices(source, indices.ToArray());
+    }
+
+    private static SpellDatabaseResultSet FilterSpellDatabaseByIdPrefix(
+        IReadOnlyList<SpellSuggestion> source,
+        string query)
+    {
+        if (source.Count == 0
+            || query.Length > 19
+            || query[0] == '0'
+            || !long.TryParse(query, NumberStyles.None, CultureInfo.InvariantCulture, out var prefix)
+            || prefix <= 0)
+        {
+            return SpellDatabaseResultSet.Empty;
+        }
+
+        var ranges = new List<SpellDatabaseRange>(19);
+        long scale = 1;
+        while (prefix <= long.MaxValue / scale)
+        {
+            var startSpellId = prefix * scale;
+            var intervalLength = scale - 1;
+            var endSpellId = intervalLength > long.MaxValue - startSpellId
+                ? long.MaxValue
+                : startSpellId + intervalLength;
+            var startIndex = LowerBoundSpellSuggestion(source, startSpellId);
+            var endIndex = UpperBoundSpellSuggestion(source, endSpellId);
+            if (endIndex > startIndex)
+            {
+                ranges.Add(new SpellDatabaseRange(startIndex, endIndex - startIndex));
+            }
+
+            if (scale > long.MaxValue / 10)
+            {
+                break;
+            }
+
+            scale *= 10;
+        }
+
+        return SpellDatabaseResultSet.FromRanges(source, ranges.ToArray());
+    }
+
+    private static int LowerBoundSpellSuggestion(IReadOnlyList<SpellSuggestion> source, long spellId)
+    {
+        var low = 0;
+        var high = source.Count;
+        while (low < high)
+        {
+            var middle = low + (high - low) / 2;
+            if (source[middle].SpellId < spellId)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
+    }
+
+    private static int UpperBoundSpellSuggestion(IReadOnlyList<SpellSuggestion> source, long spellId)
+    {
+        var low = 0;
+        var high = source.Count;
+        while (low < high)
+        {
+            var middle = low + (high - low) / 2;
+            if (source[middle].SpellId <= spellId)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
+    }
+
+    private void ApplySpellDatabaseResults(SpellDatabaseResultSet results, string? status = null)
+    {
+        _spellDatabaseGrid.ClearSelection();
+        _spellDatabaseGrid.CurrentCell = null;
+        _spellDatabaseResults = results;
+        _spellDatabaseVisibleCount = Math.Min(SpellDatabasePageSize, results.Count);
+        _spellDatabaseGrid.RowCount = _spellDatabaseVisibleCount;
+        _spellDatabaseStatusLabel.Text = status ?? FormatSpellDatabaseStatus();
+        _spellDatabaseGrid.Invalidate();
+    }
+
+    private string FormatSpellDatabaseStatus()
+        => _spellDatabaseResults.Count == 0
+            ? "匹配 0 个技能"
+            : $"已显示 {_spellDatabaseVisibleCount:N0} / 共 {_spellDatabaseResults.Count:N0} 个技能";
+
+    private void OnSpellDatabaseScroll(object? sender, ScrollEventArgs e)
+    {
+        if (e.ScrollOrientation != ScrollOrientation.VerticalScroll
+            || _expandingSpellDatabaseRows
+            || _spellDatabaseVisibleCount >= _spellDatabaseResults.Count
+            || _spellDatabaseGrid.FirstDisplayedScrollingRowIndex < 0)
+        {
+            return;
+        }
+
+        var lastDisplayedRow = _spellDatabaseGrid.FirstDisplayedScrollingRowIndex
+                               + _spellDatabaseGrid.DisplayedRowCount(includePartialRow: true);
+        if (lastDisplayedRow < _spellDatabaseVisibleCount - 2)
+        {
+            return;
+        }
+
+        _expandingSpellDatabaseRows = true;
+        try
+        {
+            _spellDatabaseVisibleCount = Math.Min(
+                _spellDatabaseVisibleCount + SpellDatabasePageSize,
+                _spellDatabaseResults.Count);
+            _spellDatabaseGrid.RowCount = _spellDatabaseVisibleCount;
+            _spellDatabaseStatusLabel.Text = FormatSpellDatabaseStatus();
+        }
+        finally
+        {
+            _expandingSpellDatabaseRows = false;
+        }
+    }
+
+    private void CancelSpellDatabaseFilter()
+    {
+        var cancellation = _spellDatabaseFilterCancellation;
+        _spellDatabaseFilterCancellation = null;
+        if (cancellation is null)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
+    }
+
+    private void OnSpellDatabaseCellValueNeeded(object? sender, DataGridViewCellValueEventArgs e)
+    {
+        if (e.RowIndex < 0 || e.RowIndex >= _spellDatabaseVisibleCount || e.ColumnIndex < 0)
+        {
+            return;
+        }
+
+        var suggestion = _spellDatabaseResults[e.RowIndex];
+        var displayName = SpellIconCatalog.ResolveSuggestionName(suggestion.SpellId, suggestion.Name) ?? string.Empty;
+        e.Value = _spellDatabaseGrid.Columns[e.ColumnIndex].Name switch
+        {
+            "Icon" => SpellIconCatalog.Get(suggestion.SpellId),
+            "SpellId" => suggestion.SpellId.ToString(CultureInfo.InvariantCulture),
+            "Name" => displayName,
+            "Add" => "添加",
+            _ => null
+        };
+    }
+
+    private void OnSpellDatabaseCellContentClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0
+            || e.RowIndex >= _spellDatabaseVisibleCount
+            || e.ColumnIndex < 0
+            || _spellDatabaseGrid.Columns[e.ColumnIndex].Name != "Add")
+        {
+            return;
+        }
+
+        var suggestion = _spellDatabaseResults[e.RowIndex];
+        var name = SpellIconCatalog.ResolveSuggestionName(suggestion.SpellId, suggestion.Name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            MessageBox.Show(
+                $"当前技能数据库缺少 spellId {suggestion.SpellId} 的名称，请更新技能数据包后再添加。",
+                "技能列表",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        AddSpellFromDatabase(new SpellSuggestion(suggestion.SpellId, name));
     }
 
     private void FillGroupEditors()
@@ -2022,7 +2369,7 @@ public sealed class ClassConfigEditorControl : UserControl
         }
     }
 
-    private void AddSpellsListEntry()
+    private void AddSpellFromDatabase(SpellSuggestion suggestion)
     {
         if (_currentDocument is null)
         {
@@ -2043,38 +2390,20 @@ public sealed class ClassConfigEditorControl : UserControl
             return;
         }
 
-        if (!long.TryParse(_newSpellIdBox.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var spellId)
-            || spellId <= 0)
+        WriteBackSpellsList();
+        if (_currentDocument.SpellsList.Any(entry => entry.SpellId == suggestion.SpellId))
         {
-            MessageBox.Show("spellId 必须是正整数。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            _newSpellIdBox.Focus();
+            MessageBox.Show(
+                $"已有此技能：{suggestion.Name}（{suggestion.SpellId}）",
+                "技能列表",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
             return;
         }
 
-        var name = _newSpellNameBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            MessageBox.Show("名称不能为空。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            _newSpellNameBox.Focus();
-            return;
-        }
-
-        if (_currentDocument.SpellsList.Any(entry => entry.SpellId == spellId)
-            || _spellsListGrid.Rows.Cast<DataGridViewRow>().Any(row =>
-                long.TryParse(row.Cells["SpellId"].Value?.ToString(), NumberStyles.None,
-                    CultureInfo.InvariantCulture, out var existingSpellId)
-                && existingSpellId == spellId))
-        {
-            MessageBox.Show($"法术 ID {spellId} 已存在。", "技能列表", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            _newSpellIdBox.Focus();
-            return;
-        }
-
-        var usedIndices = _spellsListGrid.Rows
-            .Cast<DataGridViewRow>()
-            .Select(row => int.TryParse(row.Cells["Index"].Value?.ToString(), NumberStyles.None,
-                CultureInfo.InvariantCulture, out var value) ? value : 0)
-            .Where(value => value is >= 1 and <= 100)
+        var usedIndices = _currentDocument.SpellsList
+            .Select(entry => entry.Index)
+            .Where(index => index is >= 1 and <= 100)
             .ToHashSet();
         var nextIndex = Enumerable.Range(1, 100).FirstOrDefault(index => !usedIndices.Contains(index));
         if (nextIndex == 0)
@@ -2085,94 +2414,64 @@ public sealed class ClassConfigEditorControl : UserControl
 
         var entry = new ClassBlocksStore.SpellsListEntry
         {
-            SpellId = spellId,
+            SpellId = suggestion.SpellId,
             Index = nextIndex,
-            Name = name
+            Name = suggestion.Name
         };
         _currentDocument.SpellsList.Add(entry);
-        SpellIconCatalog.Register(spellId, name);
+        SpellIconCatalog.Register(suggestion.SpellId, suggestion.Name);
 
         var rowIndex = _spellsListGrid.Rows.Add(
-            spellId.ToString(CultureInfo.InvariantCulture),
+            suggestion.SpellId.ToString(CultureInfo.InvariantCulture),
             nextIndex.ToString(CultureInfo.InvariantCulture),
-            (SpellIconCatalog.Get(spellId) ?? SpellIconCatalog.Get(name))!,
-            name);
+            (SpellIconCatalog.Get(suggestion.SpellId) ?? SpellIconCatalog.Get(suggestion.Name))!,
+            suggestion.Name);
         var row = _spellsListGrid.Rows[rowIndex];
         row.Tag = entry;
+        _spellsListSearchBox.Clear();
         ApplySpellsListFilter();
-        if (row.Visible)
-        {
-            row.Selected = true;
-            _spellsListGrid.CurrentCell = row.Cells["SpellId"];
-            _spellsListGrid.FirstDisplayedScrollingRowIndex = rowIndex;
-        }
+        row.Selected = true;
+        _spellsListGrid.CurrentCell = row.Cells["SpellId"];
+        _spellsListGrid.FirstDisplayedScrollingRowIndex = rowIndex;
 
-        _newSpellIdBox.Clear();
-        _newSpellNameBox.Clear();
-        _newSpellIdBox.Focus();
         MarkDirty();
     }
 
-    private void OnSpellIconAvailable(long spellId)
+    private void OnSpellIconCatalogChanged()
     {
         if (IsDisposed || Disposing || !IsHandleCreated)
         {
             return;
         }
 
-        BeginInvoke((Action)(() =>
+        if (InvokeRequired)
         {
-            if (IsDisposed || Disposing)
+            BeginInvoke(OnSpellIconCatalogChanged);
+            return;
+        }
+
+        RefreshSpellDatabase();
+        foreach (var grid in new[] { _spellsGrid, _spellsListGrid })
+        {
+            foreach (DataGridViewRow row in grid.Rows)
             {
-                return;
+                if (!row.IsNewRow)
+                {
+                    UpdateSpellGridIcon(row);
+                }
             }
 
-            RefreshDownloadedIcons(_spellsGrid, spellId);
-            RefreshDownloadedIcons(_spellsListGrid, spellId);
-            RefreshDownloadedAuraIcons(spellId);
-        }));
-    }
+            grid.Invalidate();
+        }
 
-    private void RefreshDownloadedAuraIcons(long spellId)
-    {
         foreach (var grid in new[] { _aurasGrid, _groupAurasGrid })
         {
             foreach (DataGridViewRow row in grid.Rows)
             {
-                if (!row.IsNewRow && AuraRowUsesSpellId(row, spellId))
-                {
-                    UpdateAuraGridIcon(row);
-                }
+                UpdateAuraGridIcon(row);
             }
-        }
-    }
 
-    private static bool AuraRowUsesSpellId(DataGridViewRow row, long spellId)
-    {
-        if (long.TryParse(
-                row.Cells["SpellId"].Value?.ToString(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var primarySpellId)
-            && primarySpellId == spellId)
-        {
-            return true;
-        }
-
-        return ParseIdList(row.Cells["SpellIds"].Value?.ToString() ?? "").Contains(spellId);
-    }
-
-    private static void RefreshDownloadedIcons(DataGridView grid, long spellId)
-    {
-        foreach (DataGridViewRow row in grid.Rows)
-        {
-            if (!row.IsNewRow
-                && long.TryParse(row.Cells["SpellId"].Value?.ToString(), NumberStyles.Integer,
-                    CultureInfo.InvariantCulture, out var rowSpellId)
-                && rowSpellId == spellId)
-            {
-                UpdateSpellGridIcon(row);
-            }
+            grid.Invalidate();
         }
     }
 
@@ -2662,6 +2961,90 @@ public sealed class ClassConfigEditorControl : UserControl
 
     private static bool IsHiddenStateName(string? name)
         => name is not null && FixedStateNames.Contains(name, StringComparer.Ordinal);
+
+    private readonly record struct SpellDatabaseRange(int SourceIndex, int Count);
+
+    private sealed class SpellDatabaseResultSet
+    {
+        private readonly IReadOnlyList<SpellSuggestion> _source;
+        private readonly SpellDatabaseRange[]? _ranges;
+        private readonly int[]? _indices;
+
+        private SpellDatabaseResultSet(
+            IReadOnlyList<SpellSuggestion> source,
+            SpellDatabaseRange[]? ranges,
+            int[]? indices,
+            int count)
+        {
+            _source = source;
+            _ranges = ranges;
+            _indices = indices;
+            Count = count;
+        }
+
+        public static SpellDatabaseResultSet Empty { get; } = new(
+            Array.Empty<SpellSuggestion>(),
+            Array.Empty<SpellDatabaseRange>(),
+            null,
+            0);
+
+        public int Count { get; }
+
+        public SpellSuggestion this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= Count)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+
+                if (_indices is not null)
+                {
+                    return _source[_indices[index]];
+                }
+
+                var remaining = index;
+                foreach (var range in _ranges!)
+                {
+                    if (remaining < range.Count)
+                    {
+                        return _source[range.SourceIndex + remaining];
+                    }
+
+                    remaining -= range.Count;
+                }
+
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+        }
+
+        public static SpellDatabaseResultSet FromAll(IReadOnlyList<SpellSuggestion> source)
+            => source.Count == 0
+                ? Empty
+                : new SpellDatabaseResultSet(
+                    source,
+                    [new SpellDatabaseRange(0, source.Count)],
+                    null,
+                    source.Count);
+
+        public static SpellDatabaseResultSet FromRanges(
+            IReadOnlyList<SpellSuggestion> source,
+            SpellDatabaseRange[] ranges)
+        {
+            var count = ranges.Sum(range => range.Count);
+            return count == 0
+                ? Empty
+                : new SpellDatabaseResultSet(source, ranges, null, count);
+        }
+
+        public static SpellDatabaseResultSet FromIndices(
+            IReadOnlyList<SpellSuggestion> source,
+            int[] indices)
+            => indices.Length == 0
+                ? Empty
+                : new SpellDatabaseResultSet(source, null, indices, indices.Length);
+    }
 
     private sealed record ClassListItem(int ClassId, string Name, string FileName, bool IsModern, string? Error = null)
     {

@@ -80,13 +80,13 @@ function Fuyutsui:OnInitialize()
         Fuyutsui:SlashCommand(msg, editbox)
     end
 
-    self:GetCharacterInfo()
+    self:InitializeCharacterState()
 end
 
 function Fuyutsui:OnEnable()
-    self:GetCharacterSpecInfo()
+    self:InitializeSpecializationState()
     self:UpdateSpellKnown()
-    self:UpdatePlayerBlocks()
+    self:RefreshPlayerState()
     self:ReadKeybindings()
     self:HookChatFrameEditBox()
 
@@ -164,14 +164,23 @@ Fuyutsui.state = {
     className = className,
     classFilename = classFilename,
 }
+
+local function CreateUnitState()
+    return {
+        casting = false,
+        channeling = false,
+        empowering = false,
+    }
+end
+
 Fuyutsui.blocks = {}
-Fuyutsui.target = {}
-Fuyutsui.focus = {}
-Fuyutsui.mouseover = {}
-Fuyutsui.pet = {}
+Fuyutsui.target = CreateUnitState()
+Fuyutsui.focus = CreateUnitState()
+Fuyutsui.mouseover = CreateUnitState()
+Fuyutsui.pet = CreateUnitState()
 Fuyutsui.boss = {}
 for index = 1, 5 do
-    Fuyutsui.boss["boss" .. index] = {}
+    Fuyutsui.boss["boss" .. index] = CreateUnitState()
 end
 Fuyutsui.nameplate = {}
 Fuyutsui.group = {}

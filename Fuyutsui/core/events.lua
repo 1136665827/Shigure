@@ -3,7 +3,6 @@ local addon, ns = ...
 local isSec = issecretvalue
 
 local state = Fuyutsui.state
-local target = Fuyutsui.target
 local nameplate = Fuyutsui.nameplate
 
 function Fuyutsui:RefreshZoneState()
@@ -26,66 +25,67 @@ end
 function Fuyutsui:PLAYER_ENTERING_WORLD()
     state.mapID = C_Map.GetBestMapForUnit("player") or 0
     self:UpdateHolyArmaments(375576)
+    self:UpdateVampiricStrike(206930)
     self:UpdateReaverGlaive(204157)
     self:UpdateHeroTalent()
-    self:GetMountsInfo()
-    self:UpdateChargedComboPoints()
+    self:CacheCollectedMountSpells()
+    self:RefreshChargedComboPoints()
     C_Timer.After(3, function()
-        self:UpdateGroup()
+        self:RebuildGroupRoster()
         self:LoadPlayerMacros()
     end)
 end
 
 function Fuyutsui:PLAYER_TALENT_UPDATE()
-    self:UpdatePlayerSpecInfo()
-    self:UpdateGroup()
-    self:UpdateChargedComboPoints()
+    self:RebuildSpecializationState()
+    self:RebuildGroupRoster()
+    self:RefreshChargedComboPoints()
 end
 
-function Fuyutsui:RefreshPlayerDeathValid()
+function Fuyutsui:RefreshPlayerDeathAndValidity()
     self.state.isDead = UnitIsDeadOrGhost("player")
-    self:UpdatePlayerValid()
+    self:RefreshPlayerValidity()
 end
 
 function Fuyutsui:PLAYER_DEAD()
-    self:RefreshPlayerDeathValid()
+    self:RefreshPlayerDeathAndValidity()
 end
 
 function Fuyutsui:PLAYER_ALIVE()
-    self:RefreshPlayerDeathValid()
+    self:RefreshPlayerDeathAndValidity()
 end
 
 function Fuyutsui:PLAYER_UNGHOST()
-    self:RefreshPlayerDeathValid()
+    self:RefreshPlayerDeathAndValidity()
 end
 
 function Fuyutsui:PLAYER_MOUNT_DISPLAY_CHANGED()
-    self:UpdatePlayerMounted()
+    self:RefreshPlayerMountedState()
 end
 
 function Fuyutsui:UNIT_PET(_, unit)
     if unit == "player" then
-        self:UpdatePlayerPet()
+        self:RefreshPlayerPetState()
     end
 end
 
 function Fuyutsui:PLAYER_REGEN_DISABLED()
-    self:UpdateTargetCanAttack()
+    self:RefreshTargetReactionState()
     state.combat = true
     state.combatStartTime = GetTime()
 end
 
 function Fuyutsui:PLAYER_REGEN_ENABLED()
-    self:UpdateTargetCanAttack()
+    self:RefreshTargetReactionState()
     state.combat = false
 end
 
 function Fuyutsui:PLAYER_STARTED_MOVING()
-    self:UpdatePlayerMoving(true)
+    self:SetPlayerMoving(true)
 end
 
 function Fuyutsui:PLAYER_STOPPED_MOVING()
-    self:UpdatePlayerMoving(false)
+    self:SetPlayerMoving(false)
 end
 
 function Fuyutsui:UNIT_SPELLCAST_SENT(_, unitTarget, targetName, castGUID, spellID)
@@ -102,97 +102,105 @@ function Fuyutsui:UNIT_SPELLCAST_SENT(_, unitTarget, targetName, castGUID, spell
     end
 end
 
-function Fuyutsui:UNIT_SPELLCAST_START(_, unitTarget, castGUID, spellID, castBarID)
-    if unitTarget == "player" then
-        state.casting = true
-        self:ApplyIncomingHealsCurve(spellID)
-        self:UpdatePlayerCasting(spellID)
-        self:UpdateMountCasting(spellID, true)
+local function SetUnitCastState(self, unit, stateField, isActive)
+    if not self:SetTrackedUnitCastState(unit, stateField, isActive) then return false end
+    if isActive then return true end
+
+    if unit == "player" then
+        if stateField == "casting" then
+            self:RefreshPlayerCastingStateBlocks()
+        elseif stateField == "channeling" then
+            self:RefreshPlayerChannelStateBlock()
+        elseif stateField == "empowering" then
+            self:RefreshPlayerEmpowerStateBlocks()
+        end
+    else
+        self:ClearUnitCastStateBlocks(unit, stateField)
     end
-    if unitTarget == "target" then
-        target.casting = true
+    return true
+end
+
+local function ClearPlayerCastTarget(self)
+    state.castTargetUnit = nil
+    state.castTargetName = nil
+    state.castTargetIndex = 0
+    self:SetPlayerCastingSpell(0)
+end
+
+function Fuyutsui:UNIT_SPELLCAST_START(_, unitTarget, castGUID, spellID, castBarID)
+    SetUnitCastState(self, unitTarget, "casting", true)
+    if unitTarget == "player" then
+        self:RecordIncomingHealEstimate(spellID)
+        self:SetPlayerCastingSpell(spellID)
+        self:SetMountSpellCasting(spellID, true)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_STOP(_, unitTarget, castGUID, spellID, castBarID)
+    SetUnitCastState(self, unitTarget, "casting", false)
     if unitTarget == "player" then
-        self:UpdateAllIncomingHealsCurves()
-        state.casting = false
-        state.castTargetUnit = nil
-        state.castTargetName = nil
-        state.castTargetIndex = 0
-        self:UpdatePlayerCasting(0)
-        self:UpdateMountCasting(spellID, false)
-    elseif unitTarget == "target" then
-        target.casting = false
+        self:ClearIncomingHealEstimates()
+        ClearPlayerCastTarget(self)
+        self:SetMountSpellCasting(spellID, false)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_INTERRUPTED(_, unitTarget, castGUID, spellID, castBarID)
+    SetUnitCastState(self, unitTarget, "casting", false)
     if unitTarget == "player" then
-        self:UpdateMountCasting(spellID, false)
+        self:ClearIncomingHealEstimates()
+        ClearPlayerCastTarget(self)
+        self:SetMountSpellCasting(spellID, false)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_CHANNEL_START(_, unitTarget, castGUID, spellID, castBarID)
+    SetUnitCastState(self, unitTarget, "channeling", true)
     if unitTarget == "player" then
-        state.channeling = true
         state.channelingSpellID = spellID
-        self:UpdatePlayerCasting(spellID)
-    elseif unitTarget == "target" then
-        target.channeling = true
+        self:SetPlayerCastingSpell(spellID)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_CHANNEL_STOP(_, unitTarget, castGUID, spellID, castBarID)
+    SetUnitCastState(self, unitTarget, "channeling", false)
     if unitTarget == "player" then
-        state.channeling = false
-        state.castTargetUnit = nil
-        state.castTargetName = nil
-        state.castTargetIndex = 0
-        self:UpdatePlayerCasting(0)
-    elseif unitTarget == "target" then
-        target.channeling = false
+        state.channelingSpellID = nil
+        ClearPlayerCastTarget(self)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_EMPOWER_START(_, unitTarget, castGUID, spellID, castBarID)
+    SetUnitCastState(self, unitTarget, "empowering", true)
     if unitTarget == "player" then
-        state.empowering = true
         state.empoweringSpellID = spellID
-        self:UpdatePlayerCasting(spellID)
-    elseif unitTarget == "target" then
-        target.empowering = true
+        self:SetPlayerCastingSpell(spellID)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_EMPOWER_STOP(_, unitTarget, castGUID, spellID, complete, interruptedBy, castBarID)
+    SetUnitCastState(self, unitTarget, "empowering", false)
     if unitTarget == "player" then
-        state.empowering = false
-        state.castTargetUnit = nil
-        state.castTargetName = nil
-        state.castTargetIndex = 0
-        self:UpdatePlayerCasting(0)
-    elseif unitTarget == "target" then
-        target.empowering = false
+        state.empoweringSpellID = nil
+        ClearPlayerCastTarget(self)
     end
 end
 
 function Fuyutsui:UNIT_SPELLCAST_SUCCEEDED(_, unitTarget, castGUID, spellID, castBarID)
     if unitTarget ~= "player" or isSec(spellID) then return end
-    self:UpdateDrinkStatus(spellID)
+    self:RefreshDrinkStatus(spellID)
     self:UpdateInsertSpellBySuccess(spellID)
     if spellID == 384255 then
         self:ClearAllFuyutsuiBars()
         print("切换天赋")
         C_Timer.After(1, function()
-            self:UpdatePlayerSpecInfo()
+            self:RebuildSpecializationState()
         end)
     elseif spellID == 200749 then
         self:ClearAllFuyutsuiBars()
         print("切换专精")
         C_Timer.After(1, function()
-            self:UpdatePlayerSpecInfo()
+            self:RebuildSpecializationState()
         end)
     end
 end
@@ -203,7 +211,7 @@ function Fuyutsui:SPELL_UPDATE_COOLDOWN(_, spellID, baseSpellID)
     if spellID == 25771 then
         self:UpdatePlayerForbearance()
     end
-    self:UpdateKnightStatus(spellID)
+    self:RecordKnightSpellState(spellID)
 end
 
 local potions = {
@@ -240,23 +248,24 @@ function Fuyutsui:UNIT_HEALTH(_, unit)
         self:UpdatePlayerHealth()
         self:UpdatePlayerStagger()
     end
+    if self.group[unit] then
+        self:RefreshGroupMemberHealth(unit)
+        self:RefreshGroupMemberDeath(unit, "health")
+    end
     if unit == "target" then
-        self:UpdateTargetHealth()
+        self:RefreshTargetHealthState()
     end
     if unit == "focus" then
-        self:UpdateFocusHealth()
+        self:RefreshFocusHealthState()
     end
     if unit == "mouseover" then
-        self:UpdateMouseoverHealth()
+        self:RefreshMouseoverHealthState()
     end
     if unit == "pet" then
-        self:UpdateUnitHealthBlock(unit)
+        self:RefreshUnitHealthState(unit)
     end
-    if unit and unit:match("^boss[1-5]$") then
-        self:UpdateUnitHealthBlock(unit)
-    end
-    if self.group[unit] then
-        self:UpdateUnitDeath(unit, "health")
+    if self:IsBossUnit(unit) then
+        self:RefreshUnitHealthState(unit)
     end
 end
 
@@ -264,17 +273,18 @@ function Fuyutsui:UNIT_MAXHEALTH(_, unit)
     if unit == "player" then
         self:UpdatePlayerHealth()
     end
+    if self.group[unit] then
+        self:RefreshGroupMemberHealth(unit)
+        self:RefreshGroupMemberDeath(unit, "health")
+    end
     if unit == "mouseover" then
-        self:UpdateMouseoverHealth()
+        self:RefreshMouseoverHealthState()
     end
     if unit == "pet" then
-        self:UpdateUnitHealthBlock(unit)
+        self:RefreshUnitHealthState(unit)
     end
-    if unit and unit:match("^boss[1-5]$") then
-        self:UpdateUnitHealthBlock(unit)
-    end
-    if self.group[unit] then
-        self:UpdateUnitDeath(unit, "health")
+    if self:IsBossUnit(unit) then
+        self:RefreshUnitHealthState(unit)
     end
 end
 
@@ -283,7 +293,8 @@ function Fuyutsui:UNIT_HEAL_ABSORB_AMOUNT_CHANGED(_, unit)
         self:UpdatePlayerHealth()
     end
     if self.group[unit] then
-        self:UpdateUnitDeath(unit, "health")
+        self:RefreshGroupMemberHealth(unit)
+        self:RefreshGroupMemberDeath(unit, "health")
     end
 end
 
@@ -292,7 +303,8 @@ function Fuyutsui:UNIT_HEAL_PREDICTION(_, unit)
         self:UpdatePlayerHealth()
     end
     if self.group[unit] then
-        self:UpdateUnitDeath(unit, "health")
+        self:RefreshGroupMemberHealth(unit)
+        self:RefreshGroupMemberDeath(unit, "health")
     end
 end
 
@@ -301,7 +313,7 @@ function Fuyutsui:UNIT_POWER_UPDATE(_, unit, powerType)
     self:UpdatePlayerPower(powerType)
     if powerType == "COMBO_POINTS" then
         C_Timer.After(0, function()
-            self:UpdateChargedComboPoints()
+            self:RefreshChargedComboPoints()
         end)
     end
 end
@@ -309,7 +321,7 @@ end
 function Fuyutsui:UNIT_POWER_POINT_CHARGE(_, unit)
     if unit ~= "player" then return end
     C_Timer.After(0, function()
-        self:UpdateChargedComboPoints()
+        self:RefreshChargedComboPoints()
     end)
 end
 
@@ -319,6 +331,7 @@ end
 function Fuyutsui:SPELL_UPDATE_ICON(_, spellID)
     if issecretvalue(spellID) then return end
     self:UpdateHolyArmaments(spellID)
+    self:UpdateVampiricStrike(spellID)
     self:UpdateReaverGlaive(spellID)
     self:UpdateHeroicStrike(spellID)
 end
@@ -330,16 +343,16 @@ function Fuyutsui:GROUP_ROSTER_UPDATE()
         rosterTimer:Cancel()
     end
     rosterTimer = C_Timer.NewTimer(1, function()
-        self:UpdateGroup()
-        self:UpdateGroupCount()
-        self:UpdateGroupType()
+        self:RebuildGroupRoster()
+        self:RefreshGroupCountState()
+        self:RefreshGroupTypeState()
         rosterTimer = nil
     end)
 end
 
 function Fuyutsui:UNIT_DIED(_, unitGUID)
     if not isSec(unitGUID) then
-        self:UpdateUnitDeath(unitGUID, "guid")
+        self:RefreshGroupMemberDeath(unitGUID, "guid")
     end
 end
 
@@ -351,7 +364,7 @@ end
 
 function Fuyutsui:UI_ERROR_MESSAGE(_, errorType, message)
     if message == "目标不在视野中" then
-        self:UpdateUnitInSight(state.castTargetUnit)
+        self:MarkGroupMemberTemporarilyOutOfSight(state.castTargetUnit)
     end
 end
 
@@ -372,17 +385,17 @@ function Fuyutsui:ACTIONBAR_HIDEGRID()
 end
 
 function Fuyutsui:PLAYER_TARGET_CHANGED()
-    self:UpdateTargetFullInfo()
+    self:RefreshTargetState()
     self:UpdateUnitAuraContainer("target")
 end
 
 function Fuyutsui:PLAYER_FOCUS_CHANGED()
-    self:UpdateFocusFullInfo()
+    self:RefreshFocusState()
     self:UpdateUnitAuraContainer("focus")
 end
 
 function Fuyutsui:UPDATE_MOUSEOVER_UNIT()
-    self:UpdateMouseoverFullInfo()
+    self:RefreshMouseoverState()
 end
 
 --- 过场/影片结束后重绑 spellId 过滤（槽位否则会落到排序第一的光环）
@@ -399,52 +412,48 @@ function Fuyutsui:STOP_MOVIE()
 end
 
 function Fuyutsui:NAME_PLATE_UNIT_ADDED(_, unit)
-    self:AddNameplate(unit)
-    self:UpdateTargetCanAttack()
-    for index = 1, 5 do
-        local boss = "boss" .. index
-        self:UpdateUnitCanAttack(boss)
-        self:UpdateUnitRangeBlock(boss)
-    end
+    self:CacheNameplateUnit(unit)
+    self:RefreshTargetReactionState()
+    self:RefreshBossReactionAndRangeStates()
 end
 
 function Fuyutsui:NAME_PLATE_UNIT_REMOVED(_, unit)
     nameplate[unit] = nil
-    self:UpdateTargetCanAttack()
+    self:RefreshTargetReactionState()
 end
 
 function Fuyutsui:UNIT_THREAT_SITUATION_UPDATE(_, unitTarget)
     if nameplate[unitTarget] then
-        self:UpdateNameplateThreat(unitTarget)
-        self:UpdateThreatEnemyCounts()
+        self:RefreshNameplateThreat(unitTarget)
+        self:RefreshThreatEnemyCounts()
         return
     end
     if unitTarget ~= "player" then return end
     for unit in pairs(nameplate) do
-        self:UpdateNameplateThreat(unit)
+        self:RefreshNameplateThreat(unit)
     end
-    self:UpdateThreatEnemyCounts()
+    self:RefreshThreatEnemyCounts()
 end
 
-function Fuyutsui:RefreshShapeshiftAndMount()
-    self:UpdateShapeshiftForm()
-    self:UpdatePlayerMounted()
+function Fuyutsui:RefreshShapeshiftAndMountStates()
+    self:RefreshShapeshiftFormState()
+    self:RefreshPlayerMountedState()
 end
 
 function Fuyutsui:UPDATE_SHAPESHIFT_FORM()
-    self:RefreshShapeshiftAndMount()
+    self:RefreshShapeshiftAndMountStates()
 end
 
 function Fuyutsui:UPDATE_SHAPESHIFT_FORMS()
-    self:RefreshShapeshiftAndMount()
+    self:RefreshShapeshiftAndMountStates()
 end
 
 function Fuyutsui:ENCOUNTER_START(_, encounterID, encounterName, difficultyID, groupSize)
-    self:UpdateEncounterID(encounterID, difficultyID)
+    self:SetEncounterState(encounterID, difficultyID)
 end
 
 function Fuyutsui:ENCOUNTER_END(_, encounterID, encounterName, difficultyID, groupSize, success)
-    self:UpdateEncounterID(0, 0)
+    self:SetEncounterState(0, 0)
 end
 
 function Fuyutsui:ENCOUNTER_TIMELINE_EVENT_ADDED(_, eventInfo)
@@ -469,34 +478,57 @@ end
 Fuyutsui.timeElapsed = 0
 Fuyutsui.timeElapsed1 = 0
 
-function Fuyutsui:OnUpdate(elapsed)
-    self:UpdatePlayerCastBlocks()
-    self:UpdateUnitCastingOrChannelingInfo("target")
-    self:UpdateUnitCastingOrChannelingInfo("focus")
-    self:UpdateUnitCastingOrChannelingInfo("mouseover")
-    for index = 1, 5 do
-        self:UpdateUnitCastingOrChannelingInfo("boss" .. index)
+local updateErrorTimes = {}
+local UPDATE_ERROR_THROTTLE_SECONDS = 10
+
+local function RunUpdateSafely(self, methodName, ...)
+    local method = self[methodName]
+    if type(method) ~= "function" then return end
+
+    local errorKey = methodName
+    local context = select(1, ...)
+    if type(context) == "string" then
+        errorKey = methodName .. "(" .. context .. ")"
     end
-    self:UpdateGroupInRangeAndHealth()
+
+    local success, errorMessage = pcall(method, self, ...)
+    if success then return end
+
+    local now = GetTime()
+    local lastErrorTime = updateErrorTimes[errorKey]
+    if not lastErrorTime or now - lastErrorTime >= UPDATE_ERROR_THROTTLE_SECONDS then
+        updateErrorTimes[errorKey] = now
+        print("Fuyutsui OnUpdate error [" .. errorKey .. "]: " .. tostring(errorMessage))
+    end
+end
+
+function Fuyutsui:OnUpdate(elapsed)
+    RunUpdateSafely(self, "RefreshNextGroupMemberState")
 
     self.timeElapsed = self.timeElapsed + elapsed
     if self.timeElapsed > 0.2 then
-        self:UpdateSpellCooldown()
-        self:UpdatePlayerAssistant()
-        self:UpdateRune()
-        self:UpdateTargetRangeBlock()
-        self:UpdateFocusRangeBlock()
-        self:UpdateMouseoverRangeBlock()
+        RunUpdateSafely(self, "UpdateSpellCooldown")
+        RunUpdateSafely(self, "RefreshAssistedCombatSuggestion")
+        RunUpdateSafely(self, "UpdateRune")
+        RunUpdateSafely(self, "RefreshTargetRangeState")
+        RunUpdateSafely(self, "RefreshFocusRangeState")
+        RunUpdateSafely(self, "RefreshMouseoverRangeState")
 
-        self:UpdateEnemyCount()
-        self:UpdateItemCooldown()
+        RunUpdateSafely(self, "RefreshEnemyCounts")
+        RunUpdateSafely(self, "UpdateItemCooldown")
         self.timeElapsed = 0
     end
 
     self.timeElapsed1 = self.timeElapsed1 + elapsed
     if self.timeElapsed1 >= 1 then
-        self:UpdatePlayerCombatTime()
-        self:UpdateKnightStatusCount()
+        RunUpdateSafely(self, "RefreshPlayerCombatDuration")
+        RunUpdateSafely(self, "RefreshActiveKnightCount")
         self.timeElapsed1 = 0
     end
+
+    RunUpdateSafely(self, "RefreshPlayerCastStateBlocks")
+    RunUpdateSafely(self, "RefreshUnitCastStateBlocks", "target")
+    RunUpdateSafely(self, "RefreshUnitCastStateBlocks", "focus")
+    RunUpdateSafely(self, "RefreshUnitCastStateBlocks", "mouseover")
+    RunUpdateSafely(self, "RefreshBossCastStateBlocks", RunUpdateSafely)
 end
