@@ -9,14 +9,14 @@ local spellsList = Fuyutsui.spellsList
 
 local drinkStatusTimer = nil
 
-function Fuyutsui:GetCharacterInfo()
+function Fuyutsui:InitializeCharacterState()
     self.db.char.level = UnitLevel("player")
     self.state.name = UnitName("player")
     self.state.GUID = UnitGUID("player")
     self.state.classColor = RAID_CLASS_COLORS[self.state.classFilename].colorStr
 end
 
-function Fuyutsui:GetCharacterSpecInfo()
+function Fuyutsui:InitializeSpecializationState()
     self.state.specIndex = C_SpecializationInfo.GetSpecialization()
     local specID, specName, _, _, role = C_SpecializationInfo.GetSpecializationInfo(self.state.specIndex)
     self.state.specID = specID
@@ -27,12 +27,13 @@ function Fuyutsui:GetCharacterSpecInfo()
     self.state.isChatOpen = false
     self.state.casting = false
     self.state.channeling = false
+    self.state.empowering = false
     self.state.mountCasting = false
     self:LoadPlayerBlocks(self.state.specIndex)
     self:UpdateSpellKnown()
-    self:UpdatePlayerMounted()
-    self:UpdatePlayerPet()
-    self:UpdateGroup()
+    self:RefreshPlayerMountedState()
+    self:RefreshPlayerPetState()
+    self:RebuildGroupRoster()
     -- 登录阶段其他插件可能稍后写入覆盖绑定；首次加载延后 5 秒，确保本插件最后绑定。
     C_Timer.After(5, function()
         self:LoadPlayerMacros()
@@ -42,7 +43,7 @@ function Fuyutsui:GetCharacterSpecInfo()
     self:UpdateStateBlock("状态", "专精")
 end
 
-function Fuyutsui:UpdatePlayerSpecInfo()
+function Fuyutsui:RebuildSpecializationState()
     self:ClearAllTextures()
     self.state.specIndex = C_SpecializationInfo.GetSpecialization()
     local specID, specName, _, _, role = C_SpecializationInfo.GetSpecializationInfo(self.state.specIndex)
@@ -52,24 +53,24 @@ function Fuyutsui:UpdatePlayerSpecInfo()
     self.state.specRange = self.rangeSpecID[specID]
     self:LoadPlayerBlocks(self.state.specIndex)
     self:UpdateSpellKnown()
-    self:UpdatePlayerBlocks()
+    self:RefreshPlayerState()
     self:LoadPlayerMacros()
     self:UpdateStateBlock("状态", "职业")
     self:UpdateStateBlock("状态", "专精")
 end
 
-function Fuyutsui:UpdatePlayerValid()
+function Fuyutsui:RefreshPlayerValidity()
     local valid = not state.isDead and not state.mounted and not state.isChatOpen and not state.drinkStatus and
         not state.mountCasting
     state.valid = valid and 1 / 255 or 0
     self:UpdateStateBlock("状态", "有效性")
 end
 
-function Fuyutsui:UpdatePlayerCombat()
+function Fuyutsui:RefreshPlayerCombatState()
     state.combat = UnitAffectingCombat("player")
 end
 
-function Fuyutsui:UpdatePlayerCombatTime()
+function Fuyutsui:RefreshPlayerCombatDuration()
     if state.combat then
         local combatTime = GetTime() - state.combatStartTime
         state.combatTime = math.min(1, combatTime / 255)
@@ -79,37 +80,41 @@ function Fuyutsui:UpdatePlayerCombatTime()
     self:UpdateStateBlock("状态", "战斗时间")
 end
 
-function Fuyutsui:UpdatePlayerMoving(boolean)
+function Fuyutsui:SetPlayerMoving(isMoving)
     state.drinkStatus = false
-    self:UpdatePlayerValid()
-    state.moving = boolean and 1 / 255 or 0
+    self:RefreshPlayerValidity()
+    state.moving = isMoving and 1 / 255 or 0
     self:UpdateStateBlock("状态", "移动")
 end
 
-function Fuyutsui:UpdatePlayerCastBlocks()
+function Fuyutsui:RefreshPlayerCastStateBlocks()
+    if state.casting then
+        self:RefreshPlayerCastingStateBlocks()
+    end
+    if state.channeling then
+        self:RefreshPlayerChannelStateBlock()
+    end
+    if state.empowering then
+        self:RefreshPlayerEmpowerStateBlocks()
+    end
+end
+
+function Fuyutsui:RefreshPlayerCastingStateBlocks()
     self:UpdateStateBlock("状态", "施法(正计时)")
     self:UpdateStateBlock("状态", "施法(倒计时)")
-    self:UpdateStateBlock("状态", "引导")
-    self:UpdateStateBlock("状态", "蓄力")
-    self:UpdateStateBlock("状态", "蓄力层数")
 end
 
-function Fuyutsui:UpdatePlayerCastingInfo()
-    self:UpdateStateBlock("状态", "施法(正计时)")
-    self:UpdateStateBlock("状态", "施法(倒计时)")
-end
-
-function Fuyutsui:UpdatePlayerChannelingInfo()
+function Fuyutsui:RefreshPlayerChannelStateBlock()
     self:UpdateStateBlock("状态", "引导")
 end
 
-function Fuyutsui:UpdatePlayerEmpowerInfo()
+function Fuyutsui:RefreshPlayerEmpowerStateBlocks()
     self:UpdateStateBlock("状态", "蓄力")
     self:UpdateStateBlock("状态", "蓄力层数")
 end
 
 function Fuyutsui:UpdatePlayerHealth()
-    local healthPercent = UnitHealthPercent("player", false, self.curve100)
+    local healthPercent = UnitHealthPercent("player", true, self.curve100)
     ---@diagnostic disable-next-line: param-type-mismatch
     local _, _, b = healthPercent:GetRGB()
     state.healthPercent = b
@@ -135,13 +140,13 @@ function Fuyutsui:UpdatePlayerPower(powerType)
     end
 end
 
-function Fuyutsui:UpdateChargedComboPoints()
+function Fuyutsui:RefreshChargedComboPoints()
     local chargedPoints = GetUnitChargedPowerPoints("player")
     state.chargedComboPoints = (chargedPoints and #chargedPoints or 0) / 255
     self:UpdateStateBlock("能量", "增压层数")
 end
 
-function Fuyutsui:UpdatePlayerPowerType()
+function Fuyutsui:RefreshAllPlayerPowers()
     state.power = {}
     for powerType in pairs(EnumPowerType) do
         self:CreatePowerCurve(powerType)
@@ -160,7 +165,7 @@ local empowerSpellId = {
 local assistantWasEmpower = false
 local assistantSuppressUntil = 0
 
-function Fuyutsui:UpdatePlayerAssistant()
+function Fuyutsui:RefreshAssistedCombatSuggestion()
     local spellId = C_AssistedCombat.GetNextCastSpell()
     local now = GetTime()
 
@@ -198,7 +203,7 @@ function Fuyutsui:UpdatePlayerAssistant()
     self:UpdateStateBlock("状态", "一键辅助")
 end
 
-function Fuyutsui:UpdateGroupType()
+function Fuyutsui:RefreshGroupTypeState()
     local index = 0
     if UnitInRaid("player") then
         index = UnitInRaid("player") or 0
@@ -209,23 +214,10 @@ function Fuyutsui:UpdateGroupType()
     self:UpdateStateBlock("状态", "队伍类型")
 end
 
-function Fuyutsui:UpdateGroupCount()
+function Fuyutsui:RefreshGroupCountState()
     local count = GetNumGroupMembers()
     state.groupCount = count / 255 or 0
     self:UpdateStateBlock("状态", "队伍人数")
-end
-
-function Fuyutsui:UpdateEncounterID(encounterID, difficultyID)
-    state.encounterID = encounterID
-    local id = self.bossID and self.bossID[encounterID] or 0
-    if id then
-        state.bossID = id / 255 or 0
-    else
-        state.bossID = 0
-    end
-    self:UpdateStateBlock("状态", "首领战")
-    state.difficultyID = difficultyID
-    self:UpdateStateBlock("状态", "难度")
 end
 
 function Fuyutsui:UpdateHeroTalent()
@@ -243,7 +235,7 @@ function Fuyutsui:UpdateHeroTalent()
     end
 end
 
-function Fuyutsui:UpdatePlayerBarInfo()
+function Fuyutsui:RefreshPlayerBars()
     local blocks = self.blocks
     if self.RefreshPlayerAuraContainers then
         self:RefreshPlayerAuraContainers()
@@ -258,25 +250,25 @@ function Fuyutsui:UpdatePlayerBarInfo()
     end
 end
 
-function Fuyutsui:UpdatePlayerPet()
-    self:UpdateUnitType("pet")
-    self:UpdateUnitHealthBlock("pet")
+function Fuyutsui:RefreshPlayerPetState()
+    self:RefreshUnitTypeState("pet")
+    self:RefreshUnitHealthState("pet")
 end
 
-function Fuyutsui:UpdatePlayerMounted()
+function Fuyutsui:RefreshPlayerMountedState()
     state.mounted = IsMounted() or state.shapeshiftFormID == 27 or state.shapeshiftFormID == 3 or
         state.shapeshiftFormID == 29
-    self:UpdatePlayerValid()
+    self:RefreshPlayerValidity()
 end
 
-function Fuyutsui:UpdatePlayerCasting(spellId)
+function Fuyutsui:SetPlayerCastingSpell(spellId)
     local castingSpell = spellsList[spellId] and spellsList[spellId].index or 0
     state.castingSpell = castingSpell / 255 or 0
     self:UpdateStateBlock("状态", "施法目标")
     self:UpdateStateBlock("状态", "施法技能")
 end
 
-function Fuyutsui:UpdatePlayerConfig()
+function Fuyutsui:RefreshPlayerConfigStateBlocks()
     if not (self.db and self.db.char) then return end
     local names = { "爆发开关", "AOE开关", "输出模式", "爆发药水开关" }
     for i = 1, #names do
@@ -385,24 +377,24 @@ function Fuyutsui:UpdateRune()
     self:UpdateBareStateBlock("符文", { "能量", "状态" })
 end
 
-function Fuyutsui:UpdateShapeshiftForm()
+function Fuyutsui:RefreshShapeshiftFormState()
     local shapeshiftFormID = GetShapeshiftFormID() or 0
     state.shapeshiftFormID = shapeshiftFormID / 255
     self:UpdateStateBlock("状态", "姿态")
 end
 
-function Fuyutsui:UpdateDrinkStatus(spellID)
+function Fuyutsui:RefreshDrinkStatus(spellID)
     local name = C_Spell.GetSpellName(spellID)
     if name == "饮水" or name == "进食饮水" then
         state.drinkStatus = true
-        self:UpdatePlayerValid()
+        self:RefreshPlayerValidity()
         if drinkStatusTimer then
             drinkStatusTimer:Cancel()
             drinkStatusTimer = nil
         end
         drinkStatusTimer = C_Timer.NewTimer(20, function()
             state.drinkStatus = false
-            self:UpdatePlayerValid()
+            self:RefreshPlayerValidity()
             drinkStatusTimer = nil
         end)
     else
@@ -411,7 +403,7 @@ function Fuyutsui:UpdateDrinkStatus(spellID)
             drinkStatusTimer = nil
         end
         state.drinkStatus = false
-        self:UpdatePlayerValid()
+        self:RefreshPlayerValidity()
     end
 end
 
@@ -430,7 +422,7 @@ local InactiveKnightSpells = {
 }
 local ActiveKnights = { false, false, false, false }
 
-function Fuyutsui:UpdateKnightStatus(spellID)
+function Fuyutsui:RecordKnightSpellState(spellID)
     if ActiveKnightSpells[spellID] then
         ActiveKnights[ActiveKnightSpells[spellID]] = true
     end
@@ -449,7 +441,7 @@ local function GetActiveKnightsCount()
     return count
 end
 
-function Fuyutsui:UpdateKnightStatusCount()
+function Fuyutsui:RefreshActiveKnightCount()
     state.knightCount = GetActiveKnightsCount() / 255
     self:UpdateStateBlock("状态", "天启骑士数量")
 end
@@ -460,11 +452,11 @@ function Fuyutsui:HookChatFrameEditBox()
         if editBox then
             editBox:HookScript("OnEditFocusGained", function()
                 state.isChatOpen = true
-                self:UpdatePlayerValid()
+                self:RefreshPlayerValidity()
             end)
             editBox:HookScript("OnEditFocusLost", function()
                 state.isChatOpen = false
-                self:UpdatePlayerValid()
+                self:RefreshPlayerValidity()
             end)
         end
     end
@@ -473,7 +465,7 @@ end
 local mounts = {}
 local mountCastingTimer = nil
 
-function Fuyutsui:GetMountsInfo()
+function Fuyutsui:CacheCollectedMountSpells()
     wipe(mounts)
     local mountIDs = C_MountJournal.GetMountIDs()
     for i = 1, #mountIDs do
@@ -484,15 +476,15 @@ function Fuyutsui:GetMountsInfo()
     end
 end
 
-function Fuyutsui:UpdateMountCasting(spellID, casting)
-    if casting then
+function Fuyutsui:SetMountSpellCasting(spellID, isCasting)
+    if isCasting then
         if spellID and not issecretvalue(spellID) and mounts[spellID] then
             if mountCastingTimer then
                 mountCastingTimer:Cancel()
                 mountCastingTimer = nil
             end
             state.mountCasting = true
-            self:UpdatePlayerValid()
+            self:RefreshPlayerValidity()
         end
     elseif state.mountCasting then
         if mountCastingTimer then
@@ -500,7 +492,7 @@ function Fuyutsui:UpdateMountCasting(spellID, casting)
         end
         mountCastingTimer = C_Timer.NewTimer(0.1, function()
             state.mountCasting = false
-            self:UpdatePlayerValid()
+            self:RefreshPlayerValidity()
             mountCastingTimer = nil
         end)
     end

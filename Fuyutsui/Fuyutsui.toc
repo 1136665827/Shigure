@@ -1,7 +1,7 @@
 ## Interface: 120100
 
 ## Title: Fuyutsui
-## Version: 1.2.1.13
+## Version: 1.2.1.14
 ## Author: Wayne Bian
 ## IconTexture: Interface\AddOns\Fuyutsui\core\Spell_Misc_EmotionHappy.blp
 ## OptionalDeps: LibRangeCheck-3.0
@@ -51,9 +51,10 @@ class/Druid.lua
 class/DemonHunter.lua
 class/Evoker.lua
 
-core/player.lua
+unit/player.lua
 core/spells.lua
-core/target.lua
-core/group.lua
+unit/target.lua
+unit/group.lua
+unit/boss.lua
 core/events.lua
 main.lua

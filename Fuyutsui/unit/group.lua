@@ -4,19 +4,20 @@ local EvaluateColorFromBoolean = C_CurveUtil.EvaluateColorFromBoolean
 
 local state = Fuyutsui.state
 local roleMap = Fuyutsui.roleMap
+local groupHealthCurves = Fuyutsui.groupHealthCurves
 local ColorValue0 = CreateColor(0, 0, 0, 1)
 local updateIndex = 1
 local GROUP_MAX_MEMBERS = 40
 
--- 施法治疗预估偏移（近似秒数/权重，写入生命曲线）
-local helpfulSpells = {
-    [2061] = 15,
-    [1262763] = 15,
-    [82326] = 40,
-    [19750] = 15,
-    [8936] = 15,
-    [186263] = 40,
-    [77472] = 15,
+-- 治疗法术直接选择登录时预创建的生命曲线，禁止在战斗中创建曲线。
+local helpfulSpellCurves = {
+    [2061] = groupHealthCurves.incoming15,
+    [1262763] = groupHealthCurves.incoming15,
+    [82326] = groupHealthCurves.incoming40,
+    [19750] = groupHealthCurves.incoming15,
+    [8936] = groupHealthCurves.incoming15,
+    [186263] = groupHealthCurves.incoming40,
+    [77472] = groupHealthCurves.incoming15,
 }
 
 function Fuyutsui:IterateGroupMembers(reversed, forceParty)
@@ -35,27 +36,26 @@ function Fuyutsui:IterateGroupMembers(reversed, forceParty)
     end
 end
 
-function Fuyutsui:UpdateUnitHealthInfo(unit)
+function Fuyutsui:RefreshGroupMemberHealth(unit)
     local blocks = self.blocks
     local group = self.group
     local obj = group[unit]
     if not blocks or not blocks.groups or not obj then return end
     local index = blocks.groups.start + (obj.index - 1) * blocks.groups.num + blocks.groups.healthPercent
-    obj.curve = self:CreateColorCurveScaling(100 + (obj.inComingHeals or 0))
-    local healthPercent = UnitHealthPercent(unit, false, obj.curve)
+    local healthPercent = UnitHealthPercent(unit, true, obj.curve or groupHealthCurves.default)
     ---@diagnostic disable-next-line: param-type-mismatch
     local _, _, b = healthPercent:GetRGB()
     obj.healthPercent = b
     self:CreateTexture(index, obj.healthPercent)
 end
 
-function Fuyutsui:UpdateUnitValid(unit)
+function Fuyutsui:RefreshGroupMemberValidity(unit)
     local obj = self.group[unit]
     if not obj then return end
     obj.valid = not obj.isDead and obj.canAssist and obj.inSight
 end
 
-function Fuyutsui:UpdateGroupInRangeAndHealth()
+function Fuyutsui:RefreshNextGroupMemberState()
     local blocks = self.blocks
     local group = self.group
     local groupList = self.groupList
@@ -77,7 +77,6 @@ function Fuyutsui:UpdateGroupInRangeAndHealth()
         return
     end
 
-    self:UpdateUnitHealthInfo(unit)
     local index = blocks.groups.start + (obj.index - 1) * blocks.groups.num + blocks.groups.role
     obj.isDead = UnitIsDeadOrGhost(unit)
     obj.canAssist = UnitCanAssist("player", unit)
@@ -97,13 +96,13 @@ function Fuyutsui:UpdateGroupInRangeAndHealth()
 end
 
 --- source: "guid" | "health" | nil
-function Fuyutsui:UpdateUnitDeath(unitOrGuid, source)
+function Fuyutsui:RefreshGroupMemberDeath(unitOrGuid, source)
     local group = self.group
     if source == "guid" then
         for unit, data in pairs(group) do
             if data.GUID == unitOrGuid then
                 data.isDead = true
-                self:UpdateUnitValid(unit)
+                self:RefreshGroupMemberValidity(unit)
             end
         end
         return
@@ -112,10 +111,10 @@ function Fuyutsui:UpdateUnitDeath(unitOrGuid, source)
     local obj = group[unitOrGuid]
     if not obj then return end
     obj.isDead = UnitIsDeadOrGhost(unitOrGuid)
-    self:UpdateUnitValid(unitOrGuid)
+    self:RefreshGroupMemberValidity(unitOrGuid)
 end
 
-function Fuyutsui:UpdateUnitInSight(unit)
+function Fuyutsui:MarkGroupMemberTemporarilyOutOfSight(unit)
     local obj = self.group[unit]
     if not obj then return end
     obj.inSight = false
@@ -126,29 +125,33 @@ function Fuyutsui:UpdateUnitInSight(unit)
     obj.inSightTimer = C_Timer.NewTimer(1.5, function()
         obj.inSight = true
         obj.inSightTimer = nil
-        Fuyutsui:UpdateUnitValid(unit)
+        Fuyutsui:RefreshGroupMemberValidity(unit)
     end)
-    self:UpdateUnitValid(unit)
+    self:RefreshGroupMemberValidity(unit)
 end
 
-function Fuyutsui:ApplyIncomingHealsCurve(spellID)
+function Fuyutsui:RecordIncomingHealEstimate(spellID)
     local unit = state.castTargetUnit
     if not unit then return end
     local obj = self.group[unit]
     if not obj then return end
-    local isHelpfulSpell = helpfulSpells[spellID]
-    if isHelpfulSpell then
-        obj.inComingHeals = isHelpfulSpell
+    local curve = helpfulSpellCurves[spellID]
+    if curve then
+        obj.curve = curve
+        self:RefreshGroupMemberHealth(unit)
     end
 end
 
-function Fuyutsui:UpdateAllIncomingHealsCurves()
-    for _, data in pairs(self.group) do
-        data.inComingHeals = 0
+function Fuyutsui:ClearIncomingHealEstimates()
+    for unit, data in pairs(self.group) do
+        if data.curve ~= groupHealthCurves.default then
+            data.curve = groupHealthCurves.default
+            self:RefreshGroupMemberHealth(unit)
+        end
     end
 end
 
-function Fuyutsui:ClearGroupBlocks()
+function Fuyutsui:ClearGroupStateBlocks()
     local blocks = self.blocks
     local groups = blocks and blocks.groups or nil
     if not groups or not groups.start or not groups.num then
@@ -161,8 +164,8 @@ function Fuyutsui:ClearGroupBlocks()
     end
 end
 
-function Fuyutsui:UpdateGroup()
-    self:ClearGroupBlocks()
+function Fuyutsui:RebuildGroupRoster()
+    self:ClearGroupStateBlocks()
     updateIndex = 1
     self.group = {}
     self.groupList = {}
@@ -186,11 +189,10 @@ function Fuyutsui:UpdateGroup()
             canAssist = UnitCanAssist("player", unit),
             inSight = true,
             inSightTimer = nil,
-            curve = self.curve100,
-            inComingHeals = 0,
+            curve = groupHealthCurves.default,
         }
-        self:UpdateUnitValid(unit)
-        self:UpdateUnitHealthInfo(unit)
+        self:RefreshGroupMemberValidity(unit)
+        self:RefreshGroupMemberHealth(unit)
         i = i + 1
     end
     if self.RefreshGroupAuraContainers then

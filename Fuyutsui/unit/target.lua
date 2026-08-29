@@ -10,7 +10,7 @@ local pet = Fuyutsui.pet
 local boss = Fuyutsui.boss
 local nameplate = Fuyutsui.nameplate
 
-function Fuyutsui:GetUnitRange(unit)
+function Fuyutsui:GetUnitRangeBounds(unit)
     local minRange, maxRange = rc:GetRange(unit)
     return minRange, maxRange
 end
@@ -27,7 +27,8 @@ local unitZHMap = {
     ["boss5"] = "首领5",
 }
 
-local function GetUnitCache(unit)
+local function GetUnitState(unit)
+    if unit == "player" then return state end
     if unit == "target" then return target end
     if unit == "focus" then return focus end
     if unit == "mouseover" then return mouseover end
@@ -35,7 +36,30 @@ local function GetUnitCache(unit)
     if boss and boss[unit] then return boss[unit] end
 end
 
-local function isSameUnit(unit1, unit2)
+local castStateFields = {
+    casting = true,
+    channeling = true,
+    empowering = true,
+}
+
+function Fuyutsui:SetTrackedUnitCastState(unit, stateField, isActive)
+    local cache = GetUnitState(unit)
+    if not cache or not castStateFields[stateField] then return false end
+    cache[stateField] = isActive == true
+    return true
+end
+
+function Fuyutsui:ResetTrackedUnitCastState(unit)
+    local cache = GetUnitState(unit)
+    if not cache then return end
+    cache.casting = false
+    cache.channeling = false
+    cache.empowering = false
+    self:ClearUnitCastStateBlocks(unit, "casting")
+    self:ClearUnitCastStateBlocks(unit, "channeling")
+end
+
+local function AreSameUnits(unit1, unit2)
     local isSame = UnitIsUnit(unit1, unit2)
     if issecretvalue(isSame) then
         return false
@@ -43,27 +67,27 @@ local function isSameUnit(unit1, unit2)
     return isSame
 end
 
-local function getUnitTypeIndex(unit)
+local function GetUnitIdentityIndex(unit)
     if IsInRaid() then
         for index = 1, 40 do
-            if isSameUnit(unit, "raid" .. index) then
+            if AreSameUnits(unit, "raid" .. index) then
                 return index
             end
         end
     elseif UnitInParty("player") then
         for index = 1, 4 do
-            if isSameUnit(unit, "party" .. index) then
+            if AreSameUnits(unit, "party" .. index) then
                 return 41 + index
             end
         end
     end
 
-    if isSameUnit(unit, "player") then
+    if AreSameUnits(unit, "player") then
         return 41
     end
 
     for index = 1, 5 do
-        if isSameUnit(unit, "boss" .. index) then
+        if AreSameUnits(unit, "boss" .. index) then
             return 45 + index
         end
     end
@@ -71,22 +95,22 @@ local function getUnitTypeIndex(unit)
     return 51
 end
 
-local function getUnitType(unit)
+local function EncodeUnitType(unit)
     if not UnitExists(unit) then return 0 end
 
     local canAttack = UnitCanAttack("player", unit)
     local canAssist = UnitCanAssist("player", unit)
     if not canAttack and not canAssist then return 0 end
 
-    local index = getUnitTypeIndex(unit)
+    local index = GetUnitIdentityIndex(unit)
     if canAssist then
         index = index + 100
     end
     return index / 255
 end
 
-function Fuyutsui:UpdateUnitType(unit)
-    local cache = GetUnitCache(unit)
+function Fuyutsui:RefreshUnitTypeState(unit)
+    local cache = GetUnitState(unit)
     local category = unitZHMap[unit]
     if not cache or not category then return end
 
@@ -104,14 +128,14 @@ function Fuyutsui:UpdateUnitType(unit)
 
     local unitType = 0
     if not cache.isDead then
-        unitType = getUnitType(unit)
+        unitType = EncodeUnitType(unit)
     end
     cache.type = unitType
     self:UpdateStateBlock(category, "类型")
 end
 
-function Fuyutsui:UpdateUnitCanAttack(unit)
-    local cache = GetUnitCache(unit)
+function Fuyutsui:RefreshUnitReactionState(unit)
+    local cache = GetUnitState(unit)
     if not cache then return end
     cache.canAttack = UnitCanAttack("player", unit)
     if boss and boss[unit] then
@@ -119,50 +143,71 @@ function Fuyutsui:UpdateUnitCanAttack(unit)
     else
         cache.canAssist = UnitCanAssist("player", unit)
     end
-    self:UpdateUnitType(unit)
+    self:RefreshUnitTypeState(unit)
 end
 
-function Fuyutsui:UpdateUnitRangeBlock(unit)
-    local cache = GetUnitCache(unit)
+function Fuyutsui:RefreshUnitRangeState(unit)
+    local cache = GetUnitState(unit)
     local category = unitZHMap[unit]
     if not cache or not category then return end
-    local minRange, maxRange = self:GetUnitRange(unit)
+    local minRange, maxRange = self:GetUnitRangeBounds(unit)
     cache.minRange = minRange
     cache.maxRange = maxRange
     if cache.canAttack then
         if cache.maxRange and self.state.specRange then
             cache.inRange = cache.maxRange <= self.state.specRange
-            self:UpdateUnitType(unit)
+            self:RefreshUnitTypeState(unit)
         end
     elseif cache.canAssist then
         if cache.maxRange then
             cache.inRange = cache.maxRange <= 40
-            self:UpdateUnitType(unit)
+            self:RefreshUnitTypeState(unit)
         end
     end
     self:UpdateStateBlock(category, "距离")
 end
 
-function Fuyutsui:UpdateUnitCastingOrChannelingInfo(unit)
-    local obj = unitZHMap[unit]
-    if obj then
-        self:UpdateStateBlock(obj, "施法(倒计时)")
-        self:UpdateStateBlock(obj, "施法(正计时)")
-        self:UpdateStateBlock(obj, "施法可打断")
-        self:UpdateStateBlock(obj, "引导")
-        self:UpdateStateBlock(obj, "引导可打断")
+function Fuyutsui:RefreshUnitCastStateBlocks(unit)
+    local cache = GetUnitState(unit)
+    local category = unitZHMap[unit]
+    if not cache or not category or not UnitExists(unit) then return end
+
+    if cache.casting then
+        self:UpdateStateBlock(category, "施法(倒计时)")
+        self:UpdateStateBlock(category, "施法(正计时)")
+        self:UpdateStateBlock(category, "施法可打断")
+    end
+    if cache.channeling or cache.empowering then
+        self:UpdateStateBlock(category, "引导")
+        self:UpdateStateBlock(category, "引导可打断")
     end
 end
 
-function Fuyutsui:UpdateUnitDeathStatus(unit)
-    local cache = GetUnitCache(unit)
-    if not cache then return end
-    cache.isDead = UnitIsDeadOrGhost(unit)
-    self:UpdateUnitType(unit)
+function Fuyutsui:ClearUnitCastStateBlocks(unit, stateField)
+    local cache = GetUnitState(unit)
+    local category = unitZHMap[unit]
+    if not cache or not category then return end
+
+    if stateField == "casting" then
+        self:UpdateStateBlock(category, "施法(倒计时)")
+        self:UpdateStateBlock(category, "施法(正计时)")
+        self:UpdateStateBlock(category, "施法可打断")
+    elseif (stateField == "channeling" or stateField == "empowering")
+        and not cache.channeling and not cache.empowering then
+        self:UpdateStateBlock(category, "引导")
+        self:UpdateStateBlock(category, "引导可打断")
+    end
 end
 
-function Fuyutsui:UpdateUnitHealthBlock(unit)
-    local cache = GetUnitCache(unit)
+function Fuyutsui:RefreshUnitDeathState(unit)
+    local cache = GetUnitState(unit)
+    if not cache then return end
+    cache.isDead = UnitIsDeadOrGhost(unit)
+    self:RefreshUnitTypeState(unit)
+end
+
+function Fuyutsui:RefreshUnitHealthState(unit)
+    local cache = GetUnitState(unit)
     local category = unitZHMap[unit]
     if not cache or not category then return end
     if not UnitExists(unit) then
@@ -177,89 +222,90 @@ function Fuyutsui:UpdateUnitHealthBlock(unit)
     self:UpdateStateBlock(category, "生命值")
 end
 
-function Fuyutsui:UpdateUnitFullInfo(unit)
-    self:UpdateUnitCanAttack(unit)
-    self:UpdateUnitDeathStatus(unit)
-    self:UpdateUnitHealthBlock(unit)
+function Fuyutsui:RefreshUnitState(unit)
+    self:ResetTrackedUnitCastState(unit)
+    self:RefreshUnitReactionState(unit)
+    self:RefreshUnitDeathState(unit)
+    self:RefreshUnitHealthState(unit)
 end
 
 -- 目标兼容包装
-function Fuyutsui:UpdateTargetType()
-    self:UpdateUnitType("target")
+function Fuyutsui:RefreshTargetTypeState()
+    self:RefreshUnitTypeState("target")
 end
 
-function Fuyutsui:UpdateTargetCanAttack()
-    self:UpdateUnitCanAttack("target")
+function Fuyutsui:RefreshTargetReactionState()
+    self:RefreshUnitReactionState("target")
 end
 
-function Fuyutsui:UpdateTargetRangeBlock()
-    self:UpdateUnitRangeBlock("target")
+function Fuyutsui:RefreshTargetRangeState()
+    self:RefreshUnitRangeState("target")
 end
 
-function Fuyutsui:UpdateTargetDeath()
-    self:UpdateUnitDeathStatus("target")
+function Fuyutsui:RefreshTargetDeathState()
+    self:RefreshUnitDeathState("target")
 end
 
-function Fuyutsui:UpdateTargetHealth()
-    self:UpdateUnitHealthBlock("target")
+function Fuyutsui:RefreshTargetHealthState()
+    self:RefreshUnitHealthState("target")
 end
 
-function Fuyutsui:UpdateTargetFullInfo()
-    self:UpdateUnitFullInfo("target")
+function Fuyutsui:RefreshTargetState()
+    self:RefreshUnitState("target")
 end
 
 -- 焦点包装
-function Fuyutsui:UpdateFocusType()
-    self:UpdateUnitType("focus")
+function Fuyutsui:RefreshFocusTypeState()
+    self:RefreshUnitTypeState("focus")
 end
 
-function Fuyutsui:UpdateFocusCanAttack()
-    self:UpdateUnitCanAttack("focus")
+function Fuyutsui:RefreshFocusReactionState()
+    self:RefreshUnitReactionState("focus")
 end
 
-function Fuyutsui:UpdateFocusRangeBlock()
-    self:UpdateUnitRangeBlock("focus")
+function Fuyutsui:RefreshFocusRangeState()
+    self:RefreshUnitRangeState("focus")
 end
 
-function Fuyutsui:UpdateFocusDeath()
-    self:UpdateUnitDeathStatus("focus")
+function Fuyutsui:RefreshFocusDeathState()
+    self:RefreshUnitDeathState("focus")
 end
 
-function Fuyutsui:UpdateFocusHealth()
-    self:UpdateUnitHealthBlock("focus")
+function Fuyutsui:RefreshFocusHealthState()
+    self:RefreshUnitHealthState("focus")
 end
 
-function Fuyutsui:UpdateFocusFullInfo()
-    self:UpdateUnitFullInfo("focus")
+function Fuyutsui:RefreshFocusState()
+    self:RefreshUnitState("focus")
 end
 
 -- 鼠标指向包装
-function Fuyutsui:UpdateMouseoverType()
-    self:UpdateUnitType("mouseover")
+function Fuyutsui:RefreshMouseoverTypeState()
+    self:RefreshUnitTypeState("mouseover")
 end
 
-function Fuyutsui:UpdateMouseoverCanAttack()
-    self:UpdateUnitCanAttack("mouseover")
+function Fuyutsui:RefreshMouseoverReactionState()
+    self:RefreshUnitReactionState("mouseover")
 end
 
-function Fuyutsui:UpdateMouseoverRangeBlock()
-    self:UpdateUnitRangeBlock("mouseover")
+function Fuyutsui:RefreshMouseoverRangeState()
+    self:RefreshUnitRangeState("mouseover")
 end
 
-function Fuyutsui:UpdateMouseoverDeath()
-    self:UpdateUnitDeathStatus("mouseover")
+function Fuyutsui:RefreshMouseoverDeathState()
+    self:RefreshUnitDeathState("mouseover")
 end
 
-function Fuyutsui:UpdateMouseoverHealth()
-    self:UpdateUnitHealthBlock("mouseover")
+function Fuyutsui:RefreshMouseoverHealthState()
+    self:RefreshUnitHealthState("mouseover")
 end
 
-function Fuyutsui:UpdateMouseoverFullInfo()
-    self:UpdateUnitFullInfo("mouseover")
+function Fuyutsui:RefreshMouseoverState()
+    self:RefreshUnitState("mouseover")
 end
 
-function Fuyutsui:AddNameplate(unit)
-    local minRange, maxRange = self:GetUnitRange(unit)
+function Fuyutsui:CacheNameplateUnit(unit)
+    local minRange, maxRange = self:GetUnitRangeBounds(unit)
     nameplate[unit] = {
         name = GetUnitName(unit, true),
         GUID = UnitGUID(unit),
@@ -272,7 +318,7 @@ function Fuyutsui:AddNameplate(unit)
     }
 end
 
-function Fuyutsui:UpdateNameplateThreat(unit)
+function Fuyutsui:RefreshNameplateThreat(unit)
     local data = nameplate[unit]
     if not data then return end
     data.threatStatus = UnitThreatSituation("player", unit)
@@ -290,7 +336,7 @@ local function IsCountedEnemy(self, data, inTestMap, inTestEncounter)
         and (data.affectingCombat or inTestMap or inTestEncounter)
 end
 
-function Fuyutsui:UpdateThreatEnemyCounts()
+function Fuyutsui:RefreshThreatEnemyCounts()
     local noThreatCount = 0
     local threatCount = 0
     local inTestMap = state.mapID and testMap[state.mapID]
@@ -310,12 +356,12 @@ function Fuyutsui:UpdateThreatEnemyCounts()
     self:UpdateStateBlock("状态", "敌人数-有仇恨")
 end
 
-function Fuyutsui:UpdateEnemyCount()
+function Fuyutsui:RefreshEnemyCounts()
     local count = 0
     local inTestMap = state.mapID and testMap[state.mapID]
     local inTestEncounter = state.encounterID and testEncounter[state.encounterID]
     for unit, data in pairs(nameplate) do
-        local minRange, maxRange = self:GetUnitRange(unit)
+        local minRange, maxRange = self:GetUnitRangeBounds(unit)
         data.minRange = minRange
         data.maxRange = maxRange
         data.affectingCombat = UnitAffectingCombat(unit)
@@ -325,5 +371,5 @@ function Fuyutsui:UpdateEnemyCount()
     end
     state.enemyCount = count / 255 or 0
     self:UpdateStateBlock("状态", "敌人数量")
-    self:UpdateThreatEnemyCounts()
+    self:RefreshThreatEnemyCounts()
 end
