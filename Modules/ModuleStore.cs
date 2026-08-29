@@ -475,6 +475,36 @@ public sealed class ModuleStore
         }
     }
 
+    /// <summary>
+    /// 回写导入阶段清理过的依赖快照，并保留模块原有文件位置。
+    /// </summary>
+    public ModuleDefinition SaveDependencyCleanup(ModuleDefinition module)
+    {
+        Normalize(module);
+        lock (_gate)
+        {
+            var existing = _modules.FirstOrDefault(item =>
+                string.Equals(item.Id, module.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing is null || string.IsNullOrWhiteSpace(existing.FilePath))
+            {
+                throw new InvalidOperationException($"找不到要清理的模块“{module.Name}”。");
+            }
+
+            var path = existing.FilePath;
+            if (!IsInsideModuleDirectory(path) || !File.Exists(path))
+            {
+                throw new InvalidOperationException($"模块文件不在模块目录中或已不存在: {path}");
+            }
+
+            module.FilePath = path;
+            WriteFileAtomically(path, JsonSerializer.Serialize(module, JsonOptions));
+            _modules.Remove(existing);
+            _modules.Add(module.Clone());
+            _modules = SortModules(_modules).ToList();
+            return module.Clone();
+        }
+    }
+
     public void Delete(ModuleDefinition module)
     {
         lock (_gate)

@@ -304,6 +304,21 @@ public sealed class MainForm : Form, IMessageFilter
             return false;
         }
 
+        var cleanedModuleCount = 0;
+        var cleanupErrors = new List<string>();
+        foreach (var module in result.SanitizedModules)
+        {
+            try
+            {
+                _moduleStore.SaveDependencyCleanup(module);
+                cleanedModuleCount++;
+            }
+            catch (Exception ex)
+            {
+                cleanupErrors.Add($"{module.Name}: {ex.Message}");
+            }
+        }
+
         _moduleStore.SetImportIssues(
             result.Rejected.Select(item => item.ModuleId),
             result.ConflictedModuleIds);
@@ -317,6 +332,18 @@ public sealed class MainForm : Form, IMessageFilter
         foreach (var conflict in result.Conflicts.Take(50))
         {
             AppendLog($"模块依赖冲突: {conflict}");
+        }
+        foreach (var field in result.RemovedStateFields.Take(50))
+        {
+            AppendLog($"模块“{field.ModuleName}”已忽略未识别配置字段: {field.Category}.{field.Name}");
+        }
+        if (result.RemovedStateFields.Count > 0)
+        {
+            AppendLog($"已从 {cleanedModuleCount} 个模块删除 {result.RemovedStateFields.Count} 个未识别配置字段，未导入本地配置。");
+        }
+        foreach (var error in cleanupErrors)
+        {
+            AppendLog($"模块依赖字段清理回写失败: {error}");
         }
 
         string? postUpdateError = null;
@@ -337,7 +364,10 @@ public sealed class MainForm : Form, IMessageFilter
             }
         }
 
-        if (showFeedback && (result.HasChanges || result.Rejected.Count > 0 || result.Conflicts.Count > 0))
+        if (showFeedback && (result.HasChanges
+                             || result.Rejected.Count > 0
+                             || result.Conflicts.Count > 0
+                             || result.RemovedStateFields.Count > 0))
         {
             var lines = new List<string>();
             if (result.HasChanges)
@@ -353,11 +383,19 @@ public sealed class MainForm : Form, IMessageFilter
             {
                 lines.Add($"发现 {result.Conflicts.Count} 项冲突，均已保留本地内容；详情见日志。");
             }
+            if (result.RemovedStateFields.Count > 0)
+            {
+                lines.Add($"已忽略 {result.RemovedStateFields.Count} 个未识别配置字段，并从 {cleanedModuleCount} 个模块中删除；这些字段未写入本地配置。");
+            }
+            if (cleanupErrors.Count > 0)
+            {
+                lines.Add($"有 {cleanupErrors.Count} 个模块无法回写清理结果；本次仍未导入这些未识别字段，详情见日志。");
+            }
             if (!string.IsNullOrWhiteSpace(postUpdateError))
             {
                 lines.Add($"本地依赖已写入，但 config/keymap 或游戏同步更新失败：{postUpdateError}");
             }
-            var hasWarning = result.Rejected.Count > 0 || postUpdateError is not null;
+            var hasWarning = result.Rejected.Count > 0 || cleanupErrors.Count > 0 || postUpdateError is not null;
             MessageBox.Show(
                 string.Join(Environment.NewLine, lines),
                 hasWarning ? "模块导入完成（有警告）" : "模块导入完成",
