@@ -12,16 +12,19 @@ public sealed class LogicRegistry : IRuntimeLogic
     private readonly IKeymapResolver _keymap;
     private readonly ModuleStore _moduleStore;
     private readonly string? _selectedModuleId;
+    private readonly IReadOnlyList<DefaultModuleSelection> _defaultModules;
 
     public LogicRegistry(
         IKeymapResolver keymap,
         ModuleStore moduleStore,
         string? selectedModuleId,
-        IEnumerable<KeyValuePair<int, IClassLogic>>? classLogics = null)
+        IEnumerable<KeyValuePair<int, IClassLogic>>? classLogics = null,
+        IReadOnlyList<DefaultModuleSelection>? defaultModules = null)
     {
         _keymap = keymap;
         _moduleStore = moduleStore;
         _selectedModuleId = string.IsNullOrWhiteSpace(selectedModuleId) ? null : selectedModuleId.Trim();
+        _defaultModules = defaultModules ?? [];
         _defaultLogic = new DefaultClassLogic(keymap);
         _logicByClass = classLogics?.ToDictionary(pair => pair.Key, pair => pair.Value) ?? new();
     }
@@ -58,12 +61,22 @@ public sealed class LogicRegistry : IRuntimeLogic
 
     private ModuleDefinition? FindModule(int? classId, int? specId, GameState state)
     {
+        var partyType = state.GetInt("队伍类型");
+        var heroTalent = state.GetInt("英雄天赋");
+        var defaultModuleId = _defaultModules
+            .Select((selection, index) => (Selection: selection, Index: index))
+            .Where(item => item.Selection.Matches(classId, specId, partyType, heroTalent))
+            .OrderByDescending(item => item.Selection.Specificity)
+            .ThenByDescending(item => item.Index)
+            .Select(item => item.Selection.ModuleId)
+            .FirstOrDefault(moduleId => !string.IsNullOrWhiteSpace(moduleId));
+
         return _moduleStore.FindSelectedOrBestMatch(
-            _selectedModuleId,
+            _selectedModuleId ?? defaultModuleId,
             classId,
             specId,
-            state.GetInt("队伍类型"),
-            state.GetInt("英雄天赋"));
+            partyType,
+            heroTalent);
     }
 }
 

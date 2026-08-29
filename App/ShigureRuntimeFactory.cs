@@ -40,7 +40,11 @@ internal sealed class ShigureRuntimeFactory : IShigureRuntimeFactory
             new StateBuilder(config),
             new KeySender(_processLocator),
             _triggerKeyState,
-            new LogicRegistry(keymap, _moduleStore, options.ModuleId),
+            new LogicRegistry(
+                keymap,
+                _moduleStore,
+                options.ModuleId,
+                defaultModules: UiCacheStore.Load().DefaultModules),
             _timeProvider);
     }
 }
