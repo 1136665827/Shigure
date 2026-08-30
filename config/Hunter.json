@@ -1,81 +1,81 @@
 ﻿{
   "keymap": "hunter.json",
   "一键法术": {
-    "1": "倒刺射击",
-    "2": "杀戮命令",
-    "3": "眼镜蛇射击",
-    "4": "狂野怒火",
-    "5": "荒野呼唤",
-    "6": "夺命黑鸦",
-    "7": "弹幕射击",
-    "8": "血溅十方",
-    "9": "瞄准射击",
-    "10": "急速射击",
-    "11": "稳固射击",
-    "12": "多重射击",
-    "13": "百发百中",
-    "14": "夺命射击",
-    "15": "爆炸射击",
-    "16": "哀恸箭",
-    "17": "猎人印记",
-    "18": "奥术射击",
-    "19": "奇美拉射击",
-    "20": "召唤宠物1",
-    "21": "狂野鞭笞",
-    "22": "意气风发",
-    "23": "灵龟守护",
-    "24": "反制射击",
-    "25": "哀恸箭",
-    "26": "黑蚀箭",
-    "27": "胁迫",
-    "28": "乱射",
-    "29": "多重射击",
-    "30": "杀戮命令",
-    "31": "投掷手斧",
-    "32": "燎焰沥青",
-    "33": "爆裂火铳",
-    "34": "狩魂一击",
-    "35": "鱼叉猛刺",
-    "36": "猛禽一击",
-    "37": "野火炸弹",
-    "38": "牺牲咆哮",
-    "39": "震荡射击",
-    "40": "宁神射击",
-    "41": "焦油陷进",
-    "42": "恐吓野兽",
-    "43": "束缚射击",
-    "44": "伪装",
-    "45": "摔绊",
-    "46": "猛禽横扫",
-    "101": "奥术洪流",
-    "102": "石像形态",
-    "103": "影遁",
-    "104": "狂暴",
-    "105": "血性狂怒",
-    "106": "战争践踏",
-    "107": "生存意志",
-    "108": "亡灵意志",
-    "109": "逃命专家",
-    "110": "黑暗飞行",
-    "111": "火箭跳",
-    "112": "火箭弹幕",
-    "113": "空间裂隙",
-    "114": "圣光裁决",
-    "115": "先祖召唤",
-    "116": "烈焰之血",
-    "117": "蛮牛冲撞",
-    "118": "奥术脉冲",
-    "119": "袋里乾坤",
-    "120": "再生",
-    "121": "震山掌",
-    "122": "纳鲁的赐福",
-    "123": "重拳出击",
-    "124": "超有机光发起源",
-    "125": "扫尾",
-    "126": "翼击",
-    "127": "艾泽里特涌动",
-    "151": "切换天赋",
-    "152": "切换专精"
+    "1": 217200,
+    "2": 34026,
+    "3": 193455,
+    "4": 19574,
+    "5": 201430,
+    "6": 131894,
+    "7": 120360,
+    "8": 321530,
+    "9": 19434,
+    "10": 257044,
+    "11": 56641,
+    "12": 2643,
+    "13": 288613,
+    "14": 53351,
+    "15": 212431,
+    "16": 389831,
+    "17": 257284,
+    "18": 185358,
+    "19": 342049,
+    "20": 883,
+    "21": 1264359,
+    "22": 109304,
+    "23": 186265,
+    "24": 147362,
+    "25": 392060,
+    "26": 466930,
+    "27": 19577,
+    "28": 260243,
+    "29": 257620,
+    "30": 259489,
+    "31": 193265,
+    "32": 1251592,
+    "33": 1261193,
+    "34": 1250646,
+    "35": 190925,
+    "36": 186270,
+    "37": 259495,
+    "38": 53480,
+    "39": 5116,
+    "40": 19801,
+    "41": 187698,
+    "42": 1513,
+    "43": 109248,
+    "44": 199483,
+    "45": 195645,
+    "46": 1262293,
+    "101": 28730,
+    "102": 20594,
+    "103": 58984,
+    "104": 26297,
+    "105": 20572,
+    "106": 20549,
+    "107": 59752,
+    "108": 7744,
+    "109": 20589,
+    "110": 68992,
+    "111": 69070,
+    "112": 69041,
+    "113": 256948,
+    "114": 255647,
+    "115": 274738,
+    "116": 265221,
+    "117": 255654,
+    "118": 260364,
+    "119": 312411,
+    "120": 291944,
+    "121": 107079,
+    "122": 28880,
+    "123": 287712,
+    "124": 312924,
+    "125": 368970,
+    "126": 357214,
+    "127": 436344,
+    "151": 384255,
+    "152": 200749
   },
   "1": {
     "队伍类型": {
@@ -284,116 +284,228 @@
       "category": "鼠标"
     },
     "auras": {
-      "猎群领袖之嚎": {
+      "player.471877.value": {
         "step": 45,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "猎群领袖之嚎",
+        "spellId": 471877,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          471877
+        ]
       },
-      "眼镜蛇利牙": {
+      "player.1299389.value": {
         "step": 46,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "眼镜蛇利牙",
+        "spellId": 1299389,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1299389
+        ]
       },
-      "自然之友": {
+      "player.1299389.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "眼镜蛇利牙层数",
+        "spellId": 1299389,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          1299389
+        ],
+        "bar": 1
+      },
+      "player.1276720.value": {
         "step": 47,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "自然之友",
+        "spellId": 1276720,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1276720
+        ]
       },
-      "野兽顺劈": {
+      "player.268877.value": {
         "step": 48,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "野兽顺劈",
+        "spellId": 268877,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          268877
+        ]
       },
-      "龙": {
+      "player.471878.value": {
         "step": 49,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "龙",
+        "spellId": 471878,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          471878
+        ]
       },
-      "猪": {
+      "player.472324.value": {
         "step": 50,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "猪",
+        "spellId": 472324,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          472324
+        ]
       },
-      "熊": {
+      "player.472325.value": {
         "step": 51,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "熊",
+        "spellId": 472325,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          472325
+        ]
       },
-      "目标猎人印记": {
+      "target.harmful.259556.value": {
         "step": 52,
         "type": "int",
-        "category": "目标减益"
-      },
-      "眼镜蛇利牙层数": {
-        "step": "bar",
-        "bar": 1,
-        "type": "int"
+        "category": "目标减益",
+        "displayName": "猎人印记",
+        "spellId": 259556,
+        "scope": "target.harmful",
+        "metric": "value",
+        "spellIds": [
+          259556
+        ]
       }
     },
     "spells": {
-      "牺牲咆哮": {
+      "53480.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "牺牲咆哮",
+        "spellId": 53480,
+        "metric": "cooldown"
       },
-      "意气风发": {
+      "109304.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "意气风发",
+        "spellId": 109304,
+        "metric": "cooldown"
       },
-      "胁迫": {
+      "19577.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "胁迫",
+        "spellId": 19577,
+        "metric": "cooldown"
       },
-      "震荡射击": {
+      "5116.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "震荡射击",
+        "spellId": 5116,
+        "metric": "cooldown"
       },
-      "宁神射击": {
+      "19801.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "宁神射击",
+        "spellId": 19801,
+        "metric": "cooldown"
       },
-      "焦油陷进": {
+      "187698.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "焦油陷进",
+        "spellId": 187698,
+        "metric": "cooldown"
       },
-      "恐吓野兽": {
+      "1513.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "恐吓野兽",
+        "spellId": 1513,
+        "metric": "cooldown"
       },
-      "束缚射击": {
+      "109248.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "束缚射击",
+        "spellId": 109248,
+        "metric": "cooldown"
       },
-      "摔绊": {
+      "195645.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "摔绊",
+        "spellId": 195645,
+        "metric": "cooldown"
       },
-      "杀戮命令": {
+      "34026.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "杀戮命令",
+        "spellId": 34026,
+        "metric": "cooldown"
       },
-      "杀戮命令充能": {
+      "34026.chargeCooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "杀戮命令充能",
+        "spellId": 34026,
+        "metric": "chargeCooldown"
       },
-      "倒刺射击": {
+      "217200.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "倒刺射击",
+        "spellId": 217200,
+        "metric": "cooldown"
       },
-      "倒刺射击充能": {
+      "217200.chargeCooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "倒刺射击充能",
+        "spellId": 217200,
+        "metric": "chargeCooldown"
       },
-      "反制射击": {
+      "147362.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "反制射击",
+        "spellId": 147362,
+        "metric": "cooldown"
       },
-      "狂野怒火": {
+      "19574.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "狂野怒火",
+        "spellId": 19574,
+        "metric": "cooldown"
       },
-      "狂野鞭笞": {
+      "1264359.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "狂野鞭笞",
+        "spellId": 1264359,
+        "metric": "cooldown"
       }
     }
   },
@@ -584,61 +696,103 @@
       "category": "鼠标"
     },
     "spells": {
-      "牺牲咆哮": {
+      "53480.cooldown": {
         "step": 41,
-        "type": "int"
+        "type": "int",
+        "displayName": "牺牲咆哮",
+        "spellId": 53480,
+        "metric": "cooldown"
       },
-      "意气风发": {
+      "109304.cooldown": {
         "step": 42,
-        "type": "int"
+        "type": "int",
+        "displayName": "意气风发",
+        "spellId": 109304,
+        "metric": "cooldown"
       },
-      "胁迫": {
+      "19577.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "胁迫",
+        "spellId": 19577,
+        "metric": "cooldown"
       },
-      "震荡射击": {
+      "5116.cooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "震荡射击",
+        "spellId": 5116,
+        "metric": "cooldown"
       },
-      "宁神射击": {
+      "19801.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "宁神射击",
+        "spellId": 19801,
+        "metric": "cooldown"
       },
-      "焦油陷进": {
+      "187698.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "焦油陷进",
+        "spellId": 187698,
+        "metric": "cooldown"
       },
-      "恐吓野兽": {
+      "1513.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "恐吓野兽",
+        "spellId": 1513,
+        "metric": "cooldown"
       },
-      "束缚射击": {
+      "109248.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "束缚射击",
+        "spellId": 109248,
+        "metric": "cooldown"
       },
-      "摔绊": {
+      "195645.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "摔绊",
+        "spellId": 195645,
+        "metric": "cooldown"
       },
-      "反制射击": {
+      "147362.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "反制射击",
+        "spellId": 147362,
+        "metric": "cooldown"
       },
-      "瞄准射击": {
+      "19434.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "瞄准射击",
+        "spellId": 19434,
+        "metric": "cooldown"
       },
-      "瞄准射击充能": {
+      "19434.chargeCooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "瞄准射击充能",
+        "spellId": 19434,
+        "metric": "chargeCooldown"
       },
-      "急速射击": {
+      "257044.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "急速射击",
+        "spellId": 257044,
+        "metric": "cooldown"
       },
-      "百发百中": {
+      "288613.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "百发百中",
+        "spellId": 288613,
+        "metric": "cooldown"
       }
     }
   },
@@ -829,61 +983,103 @@
       "category": "鼠标"
     },
     "spells": {
-      "牺牲咆哮": {
+      "53480.cooldown": {
         "step": 41,
-        "type": "int"
+        "type": "int",
+        "displayName": "牺牲咆哮",
+        "spellId": 53480,
+        "metric": "cooldown"
       },
-      "意气风发": {
+      "109304.cooldown": {
         "step": 42,
-        "type": "int"
+        "type": "int",
+        "displayName": "意气风发",
+        "spellId": 109304,
+        "metric": "cooldown"
       },
-      "胁迫": {
+      "19577.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "胁迫",
+        "spellId": 19577,
+        "metric": "cooldown"
       },
-      "震荡射击": {
+      "5116.cooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "震荡射击",
+        "spellId": 5116,
+        "metric": "cooldown"
       },
-      "宁神射击": {
+      "19801.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "宁神射击",
+        "spellId": 19801,
+        "metric": "cooldown"
       },
-      "焦油陷进": {
+      "187698.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "焦油陷进",
+        "spellId": 187698,
+        "metric": "cooldown"
       },
-      "恐吓野兽": {
+      "1513.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "恐吓野兽",
+        "spellId": 1513,
+        "metric": "cooldown"
       },
-      "束缚射击": {
+      "109248.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "束缚射击",
+        "spellId": 109248,
+        "metric": "cooldown"
       },
-      "摔绊": {
+      "195645.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "摔绊",
+        "spellId": 195645,
+        "metric": "cooldown"
       },
-      "爆裂火铳": {
+      "1261193.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "爆裂火铳",
+        "spellId": 1261193,
+        "metric": "cooldown"
       },
-      "狩魂一击": {
+      "1250646.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "狩魂一击",
+        "spellId": 1250646,
+        "metric": "cooldown"
       },
-      "鱼叉猛刺": {
+      "190925.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "鱼叉猛刺",
+        "spellId": 190925,
+        "metric": "cooldown"
       },
-      "猛禽一击": {
+      "186270.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "猛禽一击",
+        "spellId": 186270,
+        "metric": "cooldown"
       },
-      "野火炸弹": {
+      "259495.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "野火炸弹",
+        "spellId": 259495,
+        "metric": "cooldown"
       }
     }
   }

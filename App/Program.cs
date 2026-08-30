@@ -7,6 +7,19 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Contains("--update-config", StringComparer.OrdinalIgnoreCase))
+        {
+            var baseDirectory = Directory.GetCurrentDirectory();
+            if (!Directory.Exists(Path.Combine(baseDirectory, "Fuyutsui", "class")))
+            {
+                baseDirectory = AppPaths.BaseDirectory;
+            }
+            FuyutsuiConfigConverter.UpdateFromClassDirectory(
+                Path.Combine(baseDirectory, "Fuyutsui", "class"),
+                Path.Combine(baseDirectory, ConfigService.ConfigDirectoryName));
+            return;
+        }
+
         if (!OperatingSystem.IsWindows())
         {
             MessageBox.Show(

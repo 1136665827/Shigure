@@ -1,77 +1,77 @@
 ﻿{
   "keymap": "deathknight.json",
   "一键法术": {
-    "1": "反魔法领域",
-    "2": "窒息",
-    "3": "致盲冰雨",
-    "4": "亡者大军",
-    "5": "心脏打击",
-    "6": "枯萎凋零",
-    "7": "死神的抚摩",
-    "8": "灵界打击",
-    "9": "符文刃舞",
-    "10": "精髓分裂",
-    "11": "血液沸腾",
-    "12": "吸血鬼打击",
-    "13": "亡者复生",
-    "14": "凋零缠绕",
-    "15": "天灾打击",
-    "16": "扩散",
-    "17": "爆发",
-    "18": "脓疮打击",
-    "19": "腐化",
-    "20": "黑暗突变",
-    "21": "灵魂收割",
-    "22": "脓疮毒镰",
-    "23": "血魔之握",
-    "24": "憎恶附肢",
-    "25": "死神印记",
-    "26": "冰川突进",
-    "27": "冰霜巨龙之怒",
-    "28": "冷酷严冬",
-    "29": "冰霜之柱",
-    "30": "冰霜打击",
-    "31": "凛风冲击",
-    "32": "冰霜之镰",
-    "33": "冰龙吐息",
-    "34": "湮灭",
-    "35": "符文武器增效",
-    "36": "符文打击",
-    "37": "冰霜巨龙之怒",
-    "38": "冰霜灾祸",
-    "39": "死亡之握",
-    "40": "吞噬",
-    "41": "灾殃坟茔",
-    "42": "死灵缠绕",
-    "101": "奥术洪流",
-    "102": "石像形态",
-    "103": "影遁",
-    "104": "狂暴",
-    "105": "血性狂怒",
-    "106": "战争践踏",
-    "107": "生存意志",
-    "108": "亡灵意志",
-    "109": "逃命专家",
-    "110": "黑暗飞行",
-    "111": "火箭跳",
-    "112": "火箭弹幕",
-    "113": "空间裂隙",
-    "114": "圣光裁决",
-    "115": "先祖召唤",
-    "116": "烈焰之血",
-    "117": "蛮牛冲撞",
-    "118": "奥术脉冲",
-    "119": "袋里乾坤",
-    "120": "再生",
-    "121": "震山掌",
-    "122": "纳鲁的赐福",
-    "123": "重拳出击",
-    "124": "超有机光发起源",
-    "125": "扫尾",
-    "126": "翼击",
-    "127": "艾泽里特涌动",
-    "151": "切换天赋",
-    "152": "切换专精"
+    "1": 51052,
+    "2": 221562,
+    "3": 207167,
+    "4": 42650,
+    "5": 206930,
+    "6": 43265,
+    "7": 195292,
+    "8": 49998,
+    "9": 49028,
+    "10": 195182,
+    "11": 50842,
+    "12": 433895,
+    "13": 46584,
+    "14": 47541,
+    "15": 55090,
+    "16": 207317,
+    "17": 77575,
+    "18": 85948,
+    "19": 1247378,
+    "20": 1233448,
+    "21": 343294,
+    "22": 458128,
+    "23": 108199,
+    "24": 1263569,
+    "25": 439843,
+    "26": 194913,
+    "27": 279302,
+    "28": 196770,
+    "29": 51271,
+    "30": 49143,
+    "31": 49184,
+    "32": 207230,
+    "33": 1249658,
+    "34": 49020,
+    "35": 47568,
+    "36": 316239,
+    "37": 1265384,
+    "38": 1228433,
+    "39": 49576,
+    "40": 1263824,
+    "41": 383269,
+    "42": 1242174,
+    "101": 28730,
+    "102": 20594,
+    "103": 58984,
+    "104": 26297,
+    "105": 20572,
+    "106": 20549,
+    "107": 59752,
+    "108": 7744,
+    "109": 20589,
+    "110": 68992,
+    "111": 69070,
+    "112": 69041,
+    "113": 256948,
+    "114": 255647,
+    "115": 274738,
+    "116": 265221,
+    "117": 255654,
+    "118": 260364,
+    "119": 312411,
+    "120": 291944,
+    "121": 107079,
+    "122": 28880,
+    "123": 287712,
+    "124": 312924,
+    "125": 368970,
+    "126": 357214,
+    "127": 436344,
+    "151": 384255,
+    "152": 200749
   },
   "1": {
     "队伍类型": {
@@ -165,7 +165,7 @@
       "category": "状态"
     },
     "符文": {
-      "step": 26,
+      "step": 27,
       "type": "int",
       "category": "能量"
     },
@@ -179,324 +179,515 @@
       "type": "int",
       "category": "状态"
     },
-    "符文能量": {
+    "吸血鬼打击": {
       "step": 25,
+      "type": "int",
+      "category": "状态"
+    },
+    "符文能量": {
+      "step": 26,
       "type": "int",
       "category": "能量"
     },
     "治疗石": {
-      "step": 27,
-      "type": "int",
-      "category": "物品"
-    },
-    "鲁莽药水": {
       "step": 28,
       "type": "int",
       "category": "物品"
     },
-    "圣光潜力": {
+    "鲁莽药水": {
       "step": 29,
       "type": "int",
       "category": "物品"
     },
-    "爆发开关": {
+    "圣光潜力": {
       "step": 30,
       "type": "int",
-      "category": "配置开关"
+      "category": "物品"
     },
-    "爆发药水开关": {
+    "爆发开关": {
       "step": 31,
       "type": "int",
       "category": "配置开关"
     },
-    "目标类型": {
+    "爆发药水开关": {
       "step": 32,
       "type": "int",
-      "category": "目标"
+      "category": "配置开关"
     },
-    "目标生命值": {
+    "目标类型": {
       "step": 33,
       "type": "int",
       "category": "目标"
     },
-    "目标施法(倒计时)": {
+    "目标生命值": {
       "step": 34,
       "type": "int",
       "category": "目标"
     },
-    "目标施法(正计时)": {
+    "目标施法(倒计时)": {
       "step": 35,
       "type": "int",
       "category": "目标"
     },
-    "目标施法可打断": {
+    "目标施法(正计时)": {
       "step": 36,
       "type": "int",
       "category": "目标"
     },
-    "目标引导": {
+    "目标施法可打断": {
       "step": 37,
       "type": "int",
       "category": "目标"
     },
-    "目标引导可打断": {
+    "目标引导": {
       "step": 38,
       "type": "int",
       "category": "目标"
     },
-    "目标距离": {
+    "目标引导可打断": {
       "step": 39,
       "type": "int",
       "category": "目标"
     },
-    "焦点施法(倒计时)": {
+    "目标距离": {
       "step": 40,
       "type": "int",
-      "category": "焦点"
+      "category": "目标"
     },
-    "焦点施法(正计时)": {
+    "焦点施法(倒计时)": {
       "step": 41,
       "type": "int",
       "category": "焦点"
     },
-    "焦点施法可打断": {
+    "焦点施法(正计时)": {
       "step": 42,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导": {
+    "焦点施法可打断": {
       "step": 43,
       "type": "int",
       "category": "焦点"
     },
-    "焦点引导可打断": {
+    "焦点引导": {
       "step": 44,
       "type": "int",
       "category": "焦点"
     },
-    "焦点距离": {
+    "焦点引导可打断": {
       "step": 45,
       "type": "int",
       "category": "焦点"
     },
-    "鼠标类型": {
+    "焦点距离": {
       "step": 46,
       "type": "int",
-      "category": "鼠标"
+      "category": "焦点"
     },
-    "鼠标驱散类型": {
+    "鼠标类型": {
       "step": 47,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标生命值": {
+    "鼠标驱散类型": {
       "step": 48,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标距离": {
+    "鼠标生命值": {
       "step": 49,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(倒计时)": {
+    "鼠标距离": {
       "step": 50,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法(正计时)": {
+    "鼠标施法(倒计时)": {
       "step": 51,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标施法可打断": {
+    "鼠标施法(正计时)": {
       "step": 52,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导": {
+    "鼠标施法可打断": {
       "step": 53,
       "type": "int",
       "category": "鼠标"
     },
-    "鼠标引导可打断": {
+    "鼠标引导": {
       "step": 54,
       "type": "int",
       "category": "鼠标"
     },
+    "鼠标引导可打断": {
+      "step": 55,
+      "type": "int",
+      "category": "鼠标"
+    },
     "auras": {
-      "白骨之盾": {
-        "step": 55,
-        "type": "int",
-        "category": "玩家"
-      },
-      "符文刃舞": {
+      "player.195181.value": {
         "step": 56,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "白骨之盾",
+        "spellId": 195181,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          195181
+        ]
       },
-      "吸血鬼之血": {
+      "player.195181.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "白骨之盾层数",
+        "spellId": 195181,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          195181
+        ],
+        "bar": 3
+      },
+      "player.81256.value": {
         "step": 57,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "符文刃舞",
+        "spellId": 81256,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          81256
+        ]
       },
-      "冰封之韧": {
+      "player.55233.value": {
         "step": 58,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "吸血鬼之血",
+        "spellId": 55233,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          55233
+        ]
       },
-      "枯萎凋零": {
+      "player.48792.value": {
         "step": 59,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "冰封之韧",
+        "spellId": 48792,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          48792
+        ]
       },
-      "破灭": {
+      "player.188290.value": {
         "step": 60,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "枯萎凋零",
+        "spellId": 188290,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          188290
+        ]
       },
-      "午夜舞步": {
+      "player.441416.value": {
         "step": 61,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "破灭",
+        "spellId": 441416,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          441416
+        ]
       },
-      "沸点": {
+      "player.1264407.value": {
         "step": 62,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "午夜舞步",
+        "spellId": 1264407,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1264407
+        ]
       },
-      "赤色天灾": {
+      "player.1265968.value": {
         "step": 63,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "沸点",
+        "spellId": 1265968,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1265968
+        ]
       },
-      "鲜血护盾": {
+      "player.81136.value": {
         "step": 64,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "赤色天灾",
+        "spellId": 81136,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          81136
+        ]
       },
-      "鲜血禁闭": {
+      "player.77535.value": {
         "step": 65,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "鲜血护盾",
+        "spellId": 77535,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          77535
+        ]
       },
-      "鲜血女王的精华": {
+      "player.77535.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "鲜血护盾层数",
+        "spellId": 77535,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          77535
+        ],
+        "bar": 4
+      },
+      "player.273947.value": {
         "step": 66,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "鲜血禁闭",
+        "spellId": 273947,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          273947
+        ]
       },
-      "目标血之疫病": {
+      "player.273947.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "鲜血禁闭层数",
+        "spellId": 273947,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          273947
+        ],
+        "bar": 5
+      },
+      "player.433925.value": {
         "step": 67,
         "type": "int",
-        "category": "目标减益"
+        "category": "玩家",
+        "displayName": "鲜血女王的精华",
+        "spellId": 433925,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          433925
+        ]
       },
-      "白骨之盾层数": {
+      "player.433925.apps": {
         "step": "bar",
-        "bar": 3,
-        "type": "int"
+        "type": "int",
+        "category": "玩家",
+        "displayName": "鲜血女王的精华层数",
+        "spellId": 433925,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          433925
+        ],
+        "bar": 6
       },
-      "鲜血护盾层数": {
-        "step": "bar",
-        "bar": 4,
-        "type": "int"
-      },
-      "鲜血禁闭层数": {
-        "step": "bar",
-        "bar": 5,
-        "type": "int"
-      },
-      "鲜血女王的精华层数": {
-        "step": "bar",
-        "bar": 6,
-        "type": "int"
+      "target.harmful.55078.value": {
+        "step": 68,
+        "type": "int",
+        "category": "目标减益",
+        "displayName": "血之疫病",
+        "spellId": 55078,
+        "scope": "target.harmful",
+        "metric": "value",
+        "spellIds": [
+          55078
+        ]
       }
     },
     "spells": {
-      "死亡之握": {
-        "step": 68,
-        "type": "int"
-      },
-      "反魔法领域": {
+      "49576.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "死亡之握",
+        "spellId": 49576,
+        "metric": "cooldown"
       },
-      "窒息": {
+      "51052.cooldown": {
         "step": 70,
-        "type": "int"
+        "type": "int",
+        "displayName": "反魔法领域",
+        "spellId": 51052,
+        "metric": "cooldown"
       },
-      "致盲冰雨": {
+      "221562.cooldown": {
         "step": 71,
-        "type": "int"
+        "type": "int",
+        "displayName": "窒息",
+        "spellId": 221562,
+        "metric": "cooldown"
       },
-      "心灵冰冻": {
+      "207167.cooldown": {
         "step": 72,
-        "type": "int"
+        "type": "int",
+        "displayName": "致盲冰雨",
+        "spellId": 207167,
+        "metric": "cooldown"
       },
-      "死神的抚摩": {
+      "47528.cooldown": {
         "step": 73,
-        "type": "int"
+        "type": "int",
+        "displayName": "心灵冰冻",
+        "spellId": 47528,
+        "metric": "cooldown"
       },
-      "死神印记": {
+      "195292.cooldown": {
         "step": 74,
-        "type": "int"
+        "type": "int",
+        "displayName": "死神的抚摩",
+        "spellId": 195292,
+        "metric": "cooldown"
       },
-      "亡者复生": {
+      "439843.cooldown": {
         "step": 75,
-        "type": "int"
+        "type": "int",
+        "displayName": "死神印记",
+        "spellId": 439843,
+        "metric": "cooldown"
       },
-      "吸血鬼之血": {
+      "46585.cooldown": {
         "step": 76,
-        "type": "int"
+        "type": "int",
+        "displayName": "亡者复生",
+        "spellId": 46585,
+        "metric": "cooldown"
       },
-      "冰封之韧": {
+      "55233.cooldown": {
         "step": 77,
-        "type": "int"
+        "type": "int",
+        "displayName": "吸血鬼之血",
+        "spellId": 55233,
+        "metric": "cooldown"
       },
-      "巫妖之躯": {
+      "48792.cooldown": {
         "step": 78,
-        "type": "int"
+        "type": "int",
+        "displayName": "冰封之韧",
+        "spellId": 48792,
+        "metric": "cooldown"
       },
-      "血魔之握": {
+      "49039.cooldown": {
         "step": 79,
-        "type": "int"
+        "type": "int",
+        "displayName": "巫妖之躯",
+        "spellId": 49039,
+        "metric": "cooldown"
       },
-      "憎恶附肢": {
+      "108199.cooldown": {
         "step": 80,
-        "type": "int"
+        "type": "int",
+        "displayName": "血魔之握",
+        "spellId": 108199,
+        "metric": "cooldown"
       },
-      "吞噬": {
+      "1263569.cooldown": {
         "step": 81,
-        "type": "int"
+        "type": "int",
+        "displayName": "憎恶附肢",
+        "spellId": 1263569,
+        "metric": "cooldown"
       },
-      "血液沸腾": {
+      "1263824.cooldown": {
         "step": 82,
-        "type": "int"
+        "type": "int",
+        "displayName": "吞噬",
+        "spellId": 1263824,
+        "metric": "cooldown"
       },
-      "血液沸腾充能": {
+      "50842.cooldown": {
         "step": 83,
-        "type": "int"
+        "type": "int",
+        "displayName": "血液沸腾",
+        "spellId": 50842,
+        "metric": "cooldown"
       },
-      "血液沸腾层数": {
+      "50842.chargeCooldown": {
+        "step": 84,
+        "type": "int",
+        "displayName": "血液沸腾充能",
+        "spellId": 50842,
+        "metric": "chargeCooldown"
+      },
+      "50842.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "血液沸腾层数",
+        "spellId": 50842,
+        "metric": "count"
       },
-      "枯萎凋零": {
-        "step": 84,
-        "type": "int"
-      },
-      "枯萎凋零充能": {
+      "43265.cooldown": {
         "step": 85,
-        "type": "int"
+        "type": "int",
+        "displayName": "枯萎凋零",
+        "spellId": 43265,
+        "metric": "cooldown"
       },
-      "枯萎凋零层数": {
+      "43265.chargeCooldown": {
+        "step": 86,
+        "type": "int",
+        "displayName": "枯萎凋零充能",
+        "spellId": 43265,
+        "metric": "chargeCooldown"
+      },
+      "43265.count": {
         "step": "bar",
         "bar": 2,
-        "type": "int"
+        "type": "int",
+        "displayName": "枯萎凋零层数",
+        "spellId": 43265,
+        "metric": "count"
       },
-      "符文刃舞": {
-        "step": 86,
-        "type": "int"
+      "49028.cooldown": {
+        "step": 87,
+        "type": "int",
+        "displayName": "符文刃舞",
+        "spellId": 49028,
+        "metric": "cooldown"
       }
     }
   },
@@ -727,101 +918,218 @@
       "category": "鼠标"
     },
     "auras": {
-      "白霜": {
+      "player.59052.value": {
         "step": 49,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "白霜",
+        "spellId": 59052,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          59057,
+          59052
+        ]
       },
-      "冰霜之柱": {
+      "player.51271.value": {
         "step": 50,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "冰霜之柱",
+        "spellId": 51271,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          51271
+        ]
       },
-      "杀戮机器": {
+      "player.51124.value": {
         "step": 51,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "杀戮机器",
+        "spellId": 51124,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          51128,
+          51124
+        ]
       },
-      "冰龙吐息": {
-        "step": 58,
+      "player.1249658.value": {
+        "step": 52,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "冰龙吐息",
+        "spellId": 1249658,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1249658
+        ]
       },
-      "黑暗援助": {
+      "player.101568.value": {
         "step": 53,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "黑暗援助",
+        "spellId": 101568,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          101568
+        ]
       },
-      "霜巢之眷": {
+      "player.1265639.value": {
         "step": 54,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "霜巢之眷",
+        "spellId": 1265639,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1265639
+        ]
       },
-      "破灭": {
+      "player.441378.value": {
         "step": 55,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "破灭",
+        "spellId": 441378,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          441426,
+          447954,
+          441424,
+          441416,
+          441378
+        ]
       },
-      "冷酷严冬": {
+      "player.1233152.value": {
         "step": 56,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "冷酷严冬",
+        "spellId": 1233152,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1233152
+        ]
       },
-      "强效打击": {
+      "player.1269300.value": {
         "step": 57,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "强效打击",
+        "spellId": 1269300,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1269300
+        ]
+      },
+      "player.12449658.value": {
+        "step": 58,
+        "type": "int",
+        "category": "玩家",
+        "displayName": "冰龙吐息",
+        "spellId": 12449658,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          12449658
+        ]
       }
     },
     "spells": {
-      "死亡之握": {
+      "49576.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "死亡之握",
+        "spellId": 49576,
+        "metric": "cooldown"
       },
-      "反魔法领域": {
+      "51052.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "反魔法领域",
+        "spellId": 51052,
+        "metric": "cooldown"
       },
-      "窒息": {
+      "221562.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "窒息",
+        "spellId": 221562,
+        "metric": "cooldown"
       },
-      "致盲冰雨": {
+      "207167.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "致盲冰雨",
+        "spellId": 207167,
+        "metric": "cooldown"
       },
-      "冰霜之柱": {
+      "51271.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "冰霜之柱",
+        "spellId": 51271,
+        "metric": "cooldown"
       },
-      "冰霜巨龙之怒": {
+      "279302.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "冰霜巨龙之怒",
+        "spellId": 279302,
+        "metric": "cooldown"
       },
-      "死神印记": {
+      "439843.cooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "死神印记",
+        "spellId": 439843,
+        "metric": "cooldown"
       },
-      "符文武器增效": {
+      "47568.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "符文武器增效",
+        "spellId": 47568,
+        "metric": "cooldown"
       },
-      "符文武器增效充能": {
+      "47568.chargeCooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "符文武器增效充能",
+        "spellId": 47568,
+        "metric": "chargeCooldown"
       },
-      "符文武器增效层数": {
+      "47568.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "符文武器增效层数",
+        "spellId": 47568,
+        "metric": "count"
       },
-      "冰龙吐息": {
+      "1249658.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "冰龙吐息",
+        "spellId": 1249658,
+        "metric": "cooldown"
       },
-      "心灵冰冻": {
+      "47528.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "心灵冰冻",
+        "spellId": 47528,
+        "metric": "cooldown"
       }
     }
   },
@@ -916,7 +1224,7 @@
       "type": "int",
       "category": "状态"
     },
-    "施法": {
+    "吸血鬼打击": {
       "step": 22,
       "type": "int",
       "category": "状态"
@@ -1006,168 +1314,206 @@
       "type": "int",
       "category": "目标"
     },
-    "目标施法": {
-      "step": 40,
-      "type": "int",
-      "category": "目标"
-    },
     "焦点类型": {
-      "step": 41,
+      "step": 40,
       "type": "int",
       "category": "焦点"
     },
     "焦点生命值": {
-      "step": 42,
+      "step": 41,
       "type": "int",
       "category": "焦点"
     },
     "焦点距离": {
-      "step": 43,
+      "step": 42,
       "type": "int",
       "category": "焦点"
     },
     "焦点施法(倒计时)": {
-      "step": 44,
+      "step": 43,
       "type": "int",
       "category": "焦点"
     },
     "焦点施法(正计时)": {
-      "step": 45,
+      "step": 44,
       "type": "int",
       "category": "焦点"
     },
     "焦点施法可打断": {
-      "step": 46,
+      "step": 45,
       "type": "int",
       "category": "焦点"
     },
     "焦点引导": {
-      "step": 47,
+      "step": 46,
       "type": "int",
       "category": "焦点"
     },
     "焦点引导可打断": {
-      "step": 48,
-      "type": "int",
-      "category": "焦点"
-    },
-    "焦点施法": {
-      "step": 49,
+      "step": 47,
       "type": "int",
       "category": "焦点"
     },
     "鼠标类型": {
-      "step": 50,
+      "step": 48,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标驱散类型": {
-      "step": 51,
+      "step": 49,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标生命值": {
-      "step": 52,
+      "step": 50,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标距离": {
-      "step": 53,
+      "step": 51,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标施法(倒计时)": {
-      "step": 54,
+      "step": 52,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标施法(正计时)": {
-      "step": 55,
+      "step": 53,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标施法可打断": {
-      "step": 56,
+      "step": 54,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标引导": {
-      "step": 57,
+      "step": 55,
       "type": "int",
       "category": "鼠标"
     },
     "鼠标引导可打断": {
-      "step": 58,
+      "step": 56,
       "type": "int",
       "category": "鼠标"
     },
     "spells": {
-      "死亡之握": {
+      "49576.cooldown": {
+        "step": 57,
+        "type": "int",
+        "displayName": "死亡之握",
+        "spellId": 49576,
+        "metric": "cooldown"
+      },
+      "51052.cooldown": {
+        "step": 58,
+        "type": "int",
+        "displayName": "反魔法领域",
+        "spellId": 51052,
+        "metric": "cooldown"
+      },
+      "221562.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "窒息",
+        "spellId": 221562,
+        "metric": "cooldown"
       },
-      "反魔法领域": {
+      "207167.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "致盲冰雨",
+        "spellId": 207167,
+        "metric": "cooldown"
       },
-      "窒息": {
+      "46584.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "亡者复生",
+        "spellId": 46584,
+        "metric": "cooldown"
       },
-      "致盲冰雨": {
+      "42650.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "亡者大军",
+        "spellId": 42650,
+        "metric": "cooldown"
       },
-      "亡者复生": {
+      "1247378.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "腐化",
+        "spellId": 1247378,
+        "metric": "cooldown"
       },
-      "亡者大军": {
+      "1247378.chargeCooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "腐化充能",
+        "spellId": 1247378,
+        "metric": "chargeCooldown"
       },
-      "腐化": {
-        "step": 65,
-        "type": "int"
-      },
-      "腐化充能": {
-        "step": 66,
-        "type": "int"
-      },
-      "腐化层数": {
+      "1247378.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "腐化层数",
+        "spellId": 1247378,
+        "metric": "count"
       },
-      "黑暗突变": {
+      "1233448.cooldown": {
+        "step": 65,
+        "type": "int",
+        "displayName": "黑暗突变",
+        "spellId": 1233448,
+        "metric": "cooldown"
+      },
+      "343294.cooldown": {
+        "step": 66,
+        "type": "int",
+        "displayName": "灵魂收割",
+        "spellId": 343294,
+        "metric": "cooldown"
+      },
+      "43265.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "枯萎凋零",
+        "spellId": 43265,
+        "metric": "cooldown"
       },
-      "灵魂收割": {
+      "43265.chargeCooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "枯萎凋零充能",
+        "spellId": 43265,
+        "metric": "chargeCooldown"
       },
-      "枯萎凋零": {
-        "step": 69,
-        "type": "int"
-      },
-      "枯萎凋零充能": {
-        "step": 70,
-        "type": "int"
-      },
-      "枯萎凋零层数": {
+      "43265.count": {
         "step": "bar",
         "bar": 2,
-        "type": "int"
+        "type": "int",
+        "displayName": "枯萎凋零层数",
+        "spellId": 43265,
+        "metric": "count"
       },
-      "天灾打击": {
-        "step": 71,
-        "type": "int"
+      "55090.cooldown": {
+        "step": 69,
+        "type": "int",
+        "displayName": "天灾打击",
+        "spellId": 55090,
+        "metric": "cooldown"
       },
-      "天灾打击层数": {
+      "55090.count": {
         "step": "bar",
         "bar": 3,
-        "type": "int"
+        "type": "int",
+        "displayName": "天灾打击层数",
+        "spellId": 55090,
+        "metric": "count"
       }
     }
   }

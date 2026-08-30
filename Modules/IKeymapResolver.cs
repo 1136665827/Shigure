@@ -6,9 +6,13 @@ public interface IKeymapResolver
 
     string? GetHotkey(int? unit, string spell, string? macroCondition = null);
 
-    IReadOnlyDictionary<int, string> GetCurrentFailedSpells();
+    string? GetHotkey(int? unit, long spellId, string? macroCondition = null);
 
-    IReadOnlyDictionary<int, string> GetCurrentOneKeySpells();
+    IReadOnlyDictionary<int, long> GetCurrentFailedSpells();
+
+    IReadOnlyDictionary<int, long> GetCurrentOneKeySpells();
 
     IReadOnlyDictionary<long, int> GetCurrentSpellIndices();
+
+    IReadOnlyDictionary<long, string> GetCurrentSpellNames();
 }

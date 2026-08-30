@@ -156,28 +156,28 @@ public sealed class ConfigService
         return string.IsNullOrWhiteSpace(value) ? "keymap.json" : value;
     }
 
-    public IReadOnlyDictionary<int, string> GetFailedSpells(int? classId)
+    public IReadOnlyDictionary<int, long> GetFailedSpells(int? classId)
         => GetClassSpellMap(classId, ModuleSpecialActions.OneKeySpell);
 
-    public IReadOnlyDictionary<int, string> GetOneKeySpells(int? classId)
+    public IReadOnlyDictionary<int, long> GetOneKeySpells(int? classId)
         => GetClassSpellMap(classId, ModuleSpecialActions.OneKeySpell);
 
-    private IReadOnlyDictionary<int, string> GetClassSpellMap(int? classId, string configKey)
+    private IReadOnlyDictionary<int, long> GetClassSpellMap(int? classId, string configKey)
     {
         if (classId is null
             || GetObject(classId.Value.ToString()) is not { } classObj
             || JsonHelpers.Get(classObj, configKey) is not JsonObject spellMap)
         {
-            return new Dictionary<int, string>();
+            return new Dictionary<int, long>();
         }
 
-        var result = new Dictionary<int, string>();
+        var result = new Dictionary<int, long>();
         foreach (var (idText, node) in spellMap)
         {
-            var spell = JsonHelpers.GetString(node);
-            if (int.TryParse(idText, out var id) && !string.IsNullOrWhiteSpace(spell))
+            var spellId = JsonHelpers.GetLong(node);
+            if (int.TryParse(idText, out var id) && spellId is > 0)
             {
-                result[id] = spell.Trim();
+                result[id] = spellId.Value;
             }
         }
 

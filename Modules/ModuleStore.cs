@@ -804,6 +804,7 @@ public static class ModuleLogic
         var unitSlots = ResolveDynamicFields(module, state, spellIndices);
         var failedSpells = keymap.GetCurrentFailedSpells();
         var oneKeySpells = keymap.GetCurrentOneKeySpells();
+        var spellNames = keymap.GetCurrentSpellNames();
 
         for (var ruleIndex = 0; ruleIndex < module.Rules.Count; ruleIndex++)
         {
@@ -856,38 +857,56 @@ public static class ModuleLogic
                 resolvedUnit = int.TryParse(slot, out var slotUnit) ? slotUnit : 0;
             }
 
-            var actionSpell = rule.Spell;
+            long? actionSpellId = null;
+            var actionSpellName = rule.Spell.Trim();
             var isOneKeySpell = false;
-            if (ModuleSpecialActions.IsFailedSpell(actionSpell))
+            if (ModuleSpecialActions.IsFailedSpell(rule.Spell))
             {
-                actionSpell = ModuleSpecialActions.GetFailedSpell(state, failedSpells);
-                if (string.IsNullOrWhiteSpace(actionSpell))
+                actionSpellId = ModuleSpecialActions.GetFailedSpell(state, failedSpells);
+                if (actionSpellId is null)
+                {
+                    continue;
+                }
+                if (!spellNames.TryGetValue(actionSpellId.Value, out actionSpellName))
                 {
                     continue;
                 }
             }
-            else if (ModuleSpecialActions.IsOneKeySpell(actionSpell))
+            else if (ModuleSpecialActions.IsOneKeySpell(rule.Spell))
             {
                 isOneKeySpell = true;
-                actionSpell = ModuleSpecialActions.GetOneKeySpell(state, oneKeySpells);
-                if (string.IsNullOrWhiteSpace(actionSpell))
+                actionSpellId = ModuleSpecialActions.GetOneKeySpell(state, oneKeySpells);
+                if (actionSpellId is null)
+                {
+                    continue;
+                }
+                if (!spellNames.TryGetValue(actionSpellId.Value, out actionSpellName))
                 {
                     continue;
                 }
 
                 resolvedUnit = 0;
             }
+            else if (long.TryParse(actionSpellName, NumberStyles.Integer, CultureInfo.InvariantCulture, out var legacySpellId)
+                     && legacySpellId > 0
+                     && spellNames.TryGetValue(legacySpellId, out var legacySpellName))
+            {
+                // 兼容曾以 spellId 保存的普通动作；编辑器再次保存时会落回技能名称。
+                actionSpellName = legacySpellName;
+            }
 
             var resolvedMacroCondition = rule.MacroCondition;
             var hotkey = string.IsNullOrWhiteSpace(rule.Hotkey)
-                ? string.IsNullOrWhiteSpace(actionSpell) ? null : keymap.GetHotkey(resolvedUnit, actionSpell, resolvedMacroCondition)
+                ? actionSpellId is { } id
+                    ? keymap.GetHotkey(resolvedUnit, id, resolvedMacroCondition)
+                    : keymap.GetHotkey(resolvedUnit, actionSpellName, resolvedMacroCondition)
                 : rule.Hotkey.Trim();
             if (isOneKeySpell
                 && string.IsNullOrWhiteSpace(rule.Hotkey)
                 && string.IsNullOrWhiteSpace(hotkey)
-                && !string.IsNullOrWhiteSpace(actionSpell))
+                && actionSpellId is not null)
             {
-                hotkey = keymap.GetHotkey(ReservedUnit.None, actionSpell, MacroConditionText.NoChanneling);
+                hotkey = keymap.GetHotkey(ReservedUnit.None, actionSpellId.Value, MacroConditionText.NoChanneling);
                 if (!string.IsNullOrWhiteSpace(hotkey))
                 {
                     resolvedUnit = ReservedUnit.None;
@@ -895,9 +914,11 @@ public static class ModuleLogic
                 }
             }
 
-            var step = BuildStep(module, rule, hotkey, actionSpell);
+            var step = BuildStep(module, rule, hotkey, actionSpellName);
             info["命中条件"] = string.IsNullOrWhiteSpace(rule.Condition) ? "始终" : rule.Condition;
-            info["动作技能"] = string.IsNullOrWhiteSpace(actionSpell) ? "-" : actionSpell;
+            info["动作技能"] = string.IsNullOrWhiteSpace(actionSpellName)
+                ? "-"
+                : actionSpellId is null ? actionSpellName : $"{actionSpellName} / {actionSpellId}";
             info["宏条件"] = string.IsNullOrWhiteSpace(resolvedMacroCondition)
                 ? "-"
                 : MacroConditionText.ToDisplayText(resolvedMacroCondition);
@@ -1301,7 +1322,7 @@ public static class ModuleConditionEvaluator
         GameState state,
         out bool matched,
         out string? error,
-        IReadOnlyDictionary<int, string>? failedSpells = null,
+        IReadOnlyDictionary<int, long>? failedSpells = null,
         IReadOnlyDictionary<long, int>? spellIndices = null)
     {
         matched = false;
@@ -1354,7 +1375,7 @@ public static class ModuleConditionEvaluator
         GameState state,
         out bool matched,
         out string? error,
-        IReadOnlyDictionary<int, string>? failedSpells = null,
+        IReadOnlyDictionary<int, long>? failedSpells = null,
         IReadOnlyDictionary<long, int>? spellIndices = null)
     {
         if (!TryEvaluate(rule.Condition, state, out matched, out error, failedSpells, spellIndices))
@@ -1411,7 +1432,7 @@ public static class ModuleConditionEvaluator
         GameState state,
         out bool matched,
         out string? error,
-        IReadOnlyDictionary<int, string>? failedSpells,
+        IReadOnlyDictionary<int, long>? failedSpells,
         IReadOnlyDictionary<long, int>? spellIndices)
     {
         matched = false;
@@ -1434,6 +1455,11 @@ public static class ModuleConditionEvaluator
             }
 
             var inLeft = ResolveValue(state, inField, failedSpells);
+            if (inLeft is null && IsStructuredSpellReference(inField))
+            {
+                matched = false;
+                return true;
+            }
             var inOp = NormalizeOperator(inMatch.Groups["op"].Value);
             var values = ParseListLiterals(inMatch.Groups["value"].Value);
             return TryCompareIn(inLeft, inOp, values, out matched, out error);
@@ -1445,12 +1471,22 @@ public static class ModuleConditionEvaluator
             var invert = trimmed.StartsWith('!');
             var fieldName = invert ? trimmed[1..].Trim() : trimmed;
             var value = ResolveValue(state, fieldName, failedSpells);
+            if (value is null && IsStructuredSpellReference(fieldName))
+            {
+                matched = false;
+                return true;
+            }
             matched = invert ? !IsTruthy(value) : IsTruthy(value);
             return true;
         }
 
         var comparisonField = comparison.Groups["field"].Value.Trim();
         var left = ResolveValue(state, comparisonField, failedSpells);
+        if (left is null && IsStructuredSpellReference(comparisonField))
+        {
+            matched = false;
+            return true;
+        }
         var op = comparison.Groups["op"].Value;
         var right = ParseLiteral(comparison.Groups["value"].Value.Trim());
         if (SpellIdConditionFields.Contains(comparisonField))
@@ -1473,6 +1509,18 @@ public static class ModuleConditionEvaluator
         }
 
         return TryCompare(left, op, right, out matched, out error);
+    }
+
+    private static bool IsStructuredSpellReference(string fieldName)
+    {
+        if (SpellFieldKey.TryParseSpell(fieldName, out _, out _)
+            || SpellFieldKey.TryParseAura(fieldName, out _, out _, out _))
+        {
+            return true;
+        }
+
+        var key = SpellFieldKey.StripRoot(fieldName);
+        return Regex.IsMatch(key, @"(?:^|\.)auras\.\d+\.(?:value|apps)$", RegexOptions.IgnoreCase);
     }
 
     private static bool TryToInt64(object? value, out long number)
@@ -1502,7 +1550,7 @@ public static class ModuleConditionEvaluator
     private static object? ResolveValue(
         GameState state,
         string fieldName,
-        IReadOnlyDictionary<int, string>? failedSpells = null)
+        IReadOnlyDictionary<int, long>? failedSpells = null)
     {
         var key = fieldName.Trim();
         if (key.StartsWith("state.", StringComparison.OrdinalIgnoreCase))

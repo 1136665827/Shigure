@@ -66,7 +66,7 @@ public enum UnitRoleFilterKind
 
 /// <summary>
 /// 模块内定义的命名动态单位。运行时由 <see cref="UnitSelector"/> 解析为 group 槽位("1".."30")。
-/// 单光环类用 AuraNames[0]; WithAnyAura 用整个列表。
+/// 单光环类用 AuraSpellIds[0]; WithAnyAura 用整个列表。
 /// </summary>
 public sealed class ModuleUnit
 {
@@ -84,6 +84,8 @@ public sealed class ModuleUnit
     public UnitRoleFilterKind? RoleFilter { get; set; }
     public int? Role { get; set; }
     public bool Reverse { get; set; }
+    public List<long>? AuraSpellIds { get; set; }
+    // 仅用于读取并迁移旧模块；当前版本保存前必须转换并清空。
     public List<string>? AuraNames { get; set; }
     public int? AuraCount { get; set; }
     public int? DispelType { get; set; }
@@ -100,6 +102,7 @@ public sealed class ModuleUnit
             RoleFilter = RoleFilter,
             Role = Role,
             Reverse = Reverse,
+            AuraSpellIds = AuraSpellIds is null ? null : new List<long>(AuraSpellIds),
             AuraNames = AuraNames is null ? null : new List<string>(AuraNames),
             AuraCount = AuraCount,
             DispelType = DispelType
@@ -143,6 +146,8 @@ public sealed class ModuleCountField
     public CountKind Kind { get; set; } = CountKind.UnitsBelowHealth;
     public int? HealthThreshold { get; set; }
     public string? HealthThresholdField { get; set; }
+    public long? AuraSpellId { get; set; }
+    // 仅用于读取并迁移旧模块；当前版本保存前必须转换并清空。
     public string? AuraName { get; set; }
 
     public ModuleCountField Clone()
@@ -153,6 +158,7 @@ public sealed class ModuleCountField
             Kind = Kind,
             HealthThreshold = HealthThreshold,
             HealthThresholdField = HealthThresholdField,
+            AuraSpellId = AuraSpellId,
             AuraName = AuraName
         };
     }

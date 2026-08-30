@@ -166,9 +166,9 @@ internal static class FuyutsuiConfigConverter
         List<string> warnings,
         string label)
     {
-        var oneKeySpells = new SortedDictionary<int, string>();
+        var oneKeySpells = new SortedDictionary<int, long>();
 
-        foreach (var (_, value) in spellsList.Entries)
+        foreach (var (key, value) in spellsList.Entries)
         {
             if (value is not TableValue spell)
             {
@@ -176,51 +176,60 @@ internal static class FuyutsuiConfigConverter
             }
 
             var indexValue = spell.GetNumber("index");
-            var name = spell.GetString("name")?.Trim();
+            var spellIdValue = key switch
+            {
+                long number => (double)number,
+                int number => number,
+                double number => number,
+                NumberValue number => (double)number.AsInt(),
+                _ => spell.GetNumber("spellId")
+            };
             if (indexValue is null
                 || indexValue.Value <= 0
                 || indexValue.Value > int.MaxValue
                 || indexValue.Value != Math.Truncate(indexValue.Value)
-                || string.IsNullOrWhiteSpace(name))
+                || spellIdValue is null
+                || spellIdValue.Value <= 0
+                || spellIdValue.Value != Math.Truncate(spellIdValue.Value))
             {
-                warnings.Add($"{label}: spellsList 条目缺少有效 index/name，已跳过");
+                warnings.Add($"{label}: spellsList 条目缺少有效 index/spellId，已跳过");
                 continue;
             }
 
             var index = (int)indexValue.Value;
-            AddSpellMapEntry(oneKeySpells, index, name, "一键法术", warnings, label);
+            AddSpellMapEntry(oneKeySpells, index, (long)spellIdValue.Value, "一键法术", warnings, label);
         }
 
         target[ModuleSpecialActions.OneKeySpell] = ToSpellMap(oneKeySpells);
     }
 
     private static void AddSpellMapEntry(
-        IDictionary<int, string> target,
+        IDictionary<int, long> target,
         int index,
-        string name,
+        long spellId,
         string mapName,
         List<string> warnings,
         string label)
     {
         if (!target.TryGetValue(index, out var existingName))
         {
-            target[index] = name;
+            target[index] = spellId;
             return;
         }
 
-        if (!string.Equals(existingName, name, StringComparison.Ordinal))
+        if (existingName != spellId)
         {
             warnings.Add(
-                $"{label}: {mapName} index {index} 同时对应“{existingName}”和“{name}”，已保留前者");
+                $"{label}: {mapName} index {index} 同时对应 spellId {existingName} 和 {spellId}，已保留前者");
         }
     }
 
-    private static JsonObject ToSpellMap(IEnumerable<KeyValuePair<int, string>> spells)
+    private static JsonObject ToSpellMap(IEnumerable<KeyValuePair<int, long>> spells)
     {
         var result = new JsonObject();
-        foreach (var (index, name) in spells)
+        foreach (var (index, spellId) in spells)
         {
-            result[index.ToString()] = name;
+            result[index.ToString()] = spellId;
         }
 
         return result;
@@ -342,33 +351,48 @@ internal static class FuyutsuiConfigConverter
 
                 // 主色块顺序与 LoadPlayerBlocks 一致：
                 // 所有法术先占一个冷却格；充能法术再紧接着占一个充能冷却格。
-                spellsObject[name] = Field(index, "int");
+                var id = (long)spellId.Value;
+                spellsObject[$"{id}.{SpellFieldKey.SpellCooldown}"] = SpellField(
+                    index,
+                    name,
+                    id,
+                    SpellFieldKey.SpellCooldown);
                 index++;
 
                 var charge = spell.GetBool("charge") == true;
                 if (charge)
                 {
-                    spellsObject[EnsureSuffix(name, "充能")] = Field(index, "int");
+                    spellsObject[$"{id}.{SpellFieldKey.SpellChargeCooldown}"] = SpellField(
+                        index,
+                        EnsureSuffix(name, "充能"),
+                        id,
+                        SpellFieldKey.SpellChargeCooldown);
                     index++;
                 }
 
                 var maxCharge = spell.GetNumber("maxCharge");
                 if (charge && maxCharge is not null)
                 {
-                    var id = (long)spellId.Value;
                     if (barSpellIds.Add(id))
                     {
-                        spellsObject[EnsureSuffix(name, "层数")] = BarField(barIndex++);
+                        spellsObject[$"{id}.{SpellFieldKey.SpellCount}"] = SpellBarField(
+                            barIndex++,
+                            EnsureSuffix(name, "层数"),
+                            id,
+                            SpellFieldKey.SpellCount);
                     }
                 }
 
                 var castCount = spell.GetNumber("castCount");
                 if (castCount is not null && castCount.Value > 0)
                 {
-                    var id = (long)spellId.Value;
                     if (barSpellIds.Add(id))
                     {
-                        spellsObject[EnsureSuffix(name, "层数")] = BarField(barIndex++);
+                        spellsObject[$"{id}.{SpellFieldKey.SpellCount}"] = SpellBarField(
+                            barIndex++,
+                            EnsureSuffix(name, "层数"),
+                            id,
+                            SpellFieldKey.SpellCount);
                     }
                 }
             }
@@ -376,7 +400,11 @@ internal static class FuyutsuiConfigConverter
 
         foreach (var barName in playerAuraBarNames)
         {
-            aurasObject[barName] = BarField(barIndex++);
+            if (aurasObject[barName] is JsonObject metadata)
+            {
+                metadata["step"] = "bar";
+                metadata["bar"] = barIndex++;
+            }
         }
 
         if (aurasObject.Count > 0)
@@ -425,7 +453,23 @@ internal static class FuyutsuiConfigConverter
                         auraName = $"光环{offset}";
                     }
 
-                    groupJson[auraName] = Field((int)offset.Value, "int");
+                    var ids = ReadAuraIds(auraInfo);
+                    var canonicalId = SpellFieldKey.CanonicalAuraId(
+                        auraInfo.GetNumber("spellId") is { } primary ? (long)primary : null,
+                        ids);
+                    if (canonicalId is null)
+                    {
+                        warnings.Add($"{label}: group aura“{auraName}”缺少有效 spellId，已跳过");
+                        continue;
+                    }
+
+                    groupJson[$"auras.{canonicalId}.{SpellFieldKey.AuraValue}"] = AuraField(
+                        (int)offset.Value,
+                        auraName,
+                        canonicalId.Value,
+                        "group",
+                        SpellFieldKey.AuraValue,
+                        ids);
                 }
             }
 
@@ -470,21 +514,76 @@ internal static class FuyutsuiConfigConverter
                 name = "未命名光环";
             }
 
-            var fieldName = unit switch
+            var ids = ReadAuraIds(aura);
+            var canonicalId = SpellFieldKey.CanonicalAuraId(
+                aura.GetNumber("spellId") is { } primary ? (long)primary : null,
+                ids);
+            if (canonicalId is null)
             {
-                "target" => "目标" + name,
-                "focus" => "焦点" + name,
-                _ => name
-            };
+                warnings.Add($"{label}: aura“{name}”缺少有效 spellId，已跳过");
+                continue;
+            }
 
-            aurasObject[fieldName] = Field(index, "int", classification);
+            var scope = classification switch
+            {
+                "目标减益" => "target.harmful",
+                "目标增益" => "target.helpful",
+                "焦点减益" => "focus.harmful",
+                "焦点增益" => "focus.helpful",
+                _ => "player"
+            };
+            var valueKey = $"{scope}.{canonicalId}.{SpellFieldKey.AuraValue}";
+            aurasObject[valueKey] = AuraField(
+                index,
+                name,
+                canonicalId.Value,
+                scope,
+                SpellFieldKey.AuraValue,
+                ids,
+                classification);
             index++;
 
             if (aura.GetNumber("maxApps") is not null && includeApplicationBars)
             {
-                playerAuraBarNames.Add(EnsureSuffix(fieldName, "层数"));
+                var appsKey = $"{scope}.{canonicalId}.{SpellFieldKey.AuraApplications}";
+                aurasObject[appsKey] = AuraField(
+                    0,
+                    EnsureSuffix(name, "层数"),
+                    canonicalId.Value,
+                    scope,
+                    SpellFieldKey.AuraApplications,
+                    ids,
+                    classification);
+                playerAuraBarNames.Add(appsKey);
             }
         }
+    }
+
+    private static List<long> ReadAuraIds(TableValue aura)
+    {
+        var result = new List<long>();
+        if (aura.GetNumber("spellId") is { } spellId && spellId > 0)
+        {
+            result.Add((long)spellId);
+        }
+
+        if (aura.GetTable("spellIds") is { } spellIds)
+        {
+            foreach (var item in spellIds.IPairs())
+            {
+                var id = item switch
+                {
+                    NumberValue number => number.AsInt(),
+                    _ => (long?)null
+                };
+                if (id is > 0 && !result.Contains(id.Value))
+                {
+                    result.Add(id.Value);
+                }
+            }
+        }
+
+        return result;
     }
 
     private static void AddStateField(
@@ -533,6 +632,45 @@ internal static class FuyutsuiConfigConverter
         ["bar"] = bar,
         ["type"] = "int"
     };
+
+    private static JsonObject SpellField(int step, string displayName, long spellId, string metric)
+    {
+        var field = Field(step, "int");
+        AddSpellMetadata(field, displayName, spellId, metric);
+        return field;
+    }
+
+    private static JsonObject SpellBarField(int bar, string displayName, long spellId, string metric)
+    {
+        var field = BarField(bar);
+        AddSpellMetadata(field, displayName, spellId, metric);
+        return field;
+    }
+
+    private static void AddSpellMetadata(JsonObject field, string displayName, long spellId, string metric)
+    {
+        field["displayName"] = displayName;
+        field["spellId"] = spellId;
+        field["metric"] = metric;
+    }
+
+    private static JsonObject AuraField(
+        int step,
+        string displayName,
+        long spellId,
+        string scope,
+        string metric,
+        IEnumerable<long> aliases,
+        string? classification = null)
+    {
+        var field = Field(step, "int", classification);
+        field["displayName"] = displayName;
+        field["spellId"] = spellId;
+        field["scope"] = scope;
+        field["metric"] = metric;
+        field["spellIds"] = new JsonArray(aliases.Where(id => id > 0).Distinct().Select(id => JsonValue.Create(id)).ToArray());
+        return field;
+    }
 
     private static string EnsureSuffix(string name, string suffix)
         => name.EndsWith(suffix, StringComparison.Ordinal) ? name : name + suffix;

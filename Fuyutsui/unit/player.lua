@@ -519,3 +519,9 @@ function Fuyutsui:UpdatePlayerForbearance() -- 25771 自律
         end
     end, 30)
 end
+
+function Fuyutsui:PreviousSkill(spellId)
+    local spellIndex = spellsList[spellId] and spellsList[spellId].index or 0
+    state.PreviousSkill = spellIndex / 255 or 0
+    self:UpdateStateBlock("状态", "上个技能")
+end

@@ -1194,7 +1194,7 @@ public sealed class StatusForm : Form
                 "队伍类型", "队伍人数", "首领战", "难度", "英雄天赋", "施法目标",
                 "施法技能", "敌人数量", "敌人数-无仇恨", "敌人数-有仇恨",
                 "施法(正计时)", "施法(倒计时)", "引导", "蓄力", "蓄力层数",
-                "酒池", "符文", "姿态", "神圣军备", "自律", "英勇打击", "吸血鬼打击", "收割者战刃"
+                "酒池", "符文", "姿态", "神圣军备", "自律", "上个技能", "英勇打击", "吸血鬼打击", "收割者战刃"
             ],
             150), 0, 0);
         fields.Controls.Add(CreateCommonFieldCard(
@@ -1536,7 +1536,7 @@ public sealed class StatusForm : Form
                 items.Add(new ListViewItem(new[]
                 {
                     index.ToString(),
-                    key,
+                    DisplaySpellStateKey("auras", key),
                     UiTheme.FormatValue(value)
                 }));
             }
@@ -1585,11 +1585,36 @@ public sealed class StatusForm : Form
             foreach (var (key, value) in snapshot.State.Spells)
             {
                 index++;
-                items.Add(new ListViewItem(new[] { index.ToString(), key, UiTheme.FormatValue(value) }));
+                items.Add(new ListViewItem(new[]
+                {
+                    index.ToString(),
+                    DisplaySpellStateKey("spells", key),
+                    UiTheme.FormatValue(value)
+                }));
             }
         }
 
         ReplaceItems(_spellList, items);
+    }
+
+    private static string DisplaySpellStateKey(string root, string key)
+    {
+        long spellId;
+        string metric;
+        if (root == "spells")
+        {
+            if (!SpellFieldKey.TryParseSpell($"spells.{key}", out spellId, out metric))
+            {
+                return key;
+            }
+        }
+        else if (!SpellFieldKey.TryParseAura($"auras.{key}", out _, out spellId, out metric))
+        {
+            return key;
+        }
+
+        var name = SpellIconCatalog.ResolveSuggestionName(spellId, null) ?? "未知法术";
+        return $"{name} / {spellId} / {metric}";
     }
 
     private void UpdatePartyList(RenderSnapshot snapshot)

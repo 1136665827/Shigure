@@ -1,96 +1,96 @@
 ﻿{
   "keymap": "warlock.json",
   "一键法术": {
-    "1": "恐惧",
-    "2": "死亡缠绕",
-    "3": "暗影之怒",
-    "4": "内爆",
-    "5": "召唤恶魔暴君",
-    "6": "魔典：邪能破坏者",
-    "7": "召唤末日守卫",
-    "8": "古尔丹之手",
-    "9": "召唤恐惧猎犬",
-    "10": "召唤恶魔卫士",
-    "11": "恶魔之箭",
-    "12": "暗影箭",
-    "13": "召唤地狱猎犬",
-    "14": "召唤小鬼",
-    "15": "虚弱灾厄",
-    "16": "语言灾厄",
-    "17": "陨灭",
-    "18": "狱火箭",
-    "19": "灵魂石",
-    "20": "邪能统御",
-    "21": "黑暗契约",
-    "22": "恶魔之箭",
-    "23": "魔典：小鬼领主",
-    "24": "法术封锁",
-    "25": "吞噬魔法",
-    "26": "爆燃冲刺",
-    "27": "放逐术",
-    "28": "疲劳诅咒",
-    "29": "语言诅咒",
-    "30": "恶魔传送门",
-    "31": "灵魂燃烧",
-    "32": "恐惧嚎叫",
-    "33": "恶魔法阵",
-    "34": "恶魔法阵：传送",
-    "35": "制造灵魂之井",
-    "36": "召唤仪式",
-    "37": "腐蚀术",
-    "38": "吸取生命",
-    "39": "召唤黑眼",
-    "40": "痛苦无常",
-    "41": "幽冥收割",
-    "42": "腐蚀之种",
-    "43": "痛楚",
-    "44": "鬼影缠身",
-    "45": "枯萎",
-    "46": "怨毒",
-    "47": "召唤地狱火",
-    "48": "暗影灼烧",
-    "49": "混乱之箭",
-    "50": "火焰之雨",
-    "51": "灵魂之火",
-    "52": "烧尽",
-    "53": "燃烧",
-    "54": "献祭",
-    "55": "引导恶魔之火",
-    "56": "浩劫",
-    "57": "火焰之雨",
-    "58": "大灾变",
-    "59": "吸取灵魂",
-    "60": "召唤虚空行者",
-    "61": "召唤萨亚德",
-    "101": "奥术洪流",
-    "102": "石像形态",
-    "103": "影遁",
-    "104": "狂暴",
-    "105": "血性狂怒",
-    "106": "战争践踏",
-    "107": "生存意志",
-    "108": "亡灵意志",
-    "109": "逃命专家",
-    "110": "黑暗飞行",
-    "111": "火箭跳",
-    "112": "火箭弹幕",
-    "113": "空间裂隙",
-    "114": "圣光裁决",
-    "115": "先祖召唤",
-    "116": "烈焰之血",
-    "117": "蛮牛冲撞",
-    "118": "奥术脉冲",
-    "119": "袋里乾坤",
-    "120": "再生",
-    "121": "震山掌",
-    "122": "纳鲁的赐福",
-    "123": "重拳出击",
-    "124": "超有机光发起源",
-    "125": "扫尾",
-    "126": "翼击",
-    "127": "艾泽里特涌动",
-    "151": "切换天赋",
-    "152": "切换专精"
+    "1": 5782,
+    "2": 6789,
+    "3": 30283,
+    "4": 196277,
+    "5": 265187,
+    "6": 1276467,
+    "7": 1276672,
+    "8": 105174,
+    "9": 104316,
+    "10": 30146,
+    "11": 264178,
+    "12": 686,
+    "13": 691,
+    "14": 688,
+    "15": 1271748,
+    "16": 1271802,
+    "17": 434635,
+    "18": 434506,
+    "19": 20707,
+    "20": 333889,
+    "21": 108416,
+    "22": 264187,
+    "23": 1276452,
+    "24": 132409,
+    "25": 388215,
+    "26": 111400,
+    "27": 710,
+    "28": 334275,
+    "29": 1714,
+    "30": 111771,
+    "31": 385899,
+    "32": 5484,
+    "33": 48018,
+    "34": 48020,
+    "35": 29893,
+    "36": 698,
+    "37": 172,
+    "38": 234153,
+    "39": 205180,
+    "40": 1259790,
+    "41": 1257052,
+    "42": 27243,
+    "43": 980,
+    "44": 48181,
+    "45": 445468,
+    "46": 442726,
+    "47": 1122,
+    "48": 17877,
+    "49": 116858,
+    "50": 5740,
+    "51": 6353,
+    "52": 29722,
+    "53": 17962,
+    "54": 348,
+    "55": 196447,
+    "56": 80240,
+    "57": 1214467,
+    "58": 152108,
+    "59": 198590,
+    "60": 697,
+    "61": 366222,
+    "101": 28730,
+    "102": 20594,
+    "103": 58984,
+    "104": 26297,
+    "105": 20572,
+    "106": 20549,
+    "107": 59752,
+    "108": 7744,
+    "109": 20589,
+    "110": 68992,
+    "111": 69070,
+    "112": 69041,
+    "113": 256948,
+    "114": 255647,
+    "115": 274738,
+    "116": 265221,
+    "117": 255654,
+    "118": 260364,
+    "119": 312411,
+    "120": 291944,
+    "121": 107079,
+    "122": 28880,
+    "123": 287712,
+    "124": 312924,
+    "125": 368970,
+    "126": 357214,
+    "127": 436344,
+    "151": 384255,
+    "152": 200749
   },
   "1": {
     "队伍类型": {
@@ -289,65 +289,110 @@
       "category": "鼠标"
     },
     "spells": {
-      "恐惧": {
+      "5782.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "恐惧",
+        "spellId": 5782,
+        "metric": "cooldown"
       },
-      "死亡缠绕": {
+      "6789.cooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "死亡缠绕",
+        "spellId": 6789,
+        "metric": "cooldown"
       },
-      "灵魂石": {
+      "20707.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "灵魂石",
+        "spellId": 20707,
+        "metric": "cooldown"
       },
-      "暗影之怒": {
+      "30283.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影之怒",
+        "spellId": 30283,
+        "metric": "cooldown"
       },
-      "邪能统御": {
+      "333889.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "邪能统御",
+        "spellId": 333889,
+        "metric": "cooldown"
       },
-      "黑暗契约": {
+      "108416.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑暗契约",
+        "spellId": 108416,
+        "metric": "cooldown"
       },
-      "恶魔传送门": {
+      "111771.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔传送门",
+        "spellId": 111771,
+        "metric": "cooldown"
       },
-      "虚弱灾厄": {
+      "127174.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "虚弱灾厄",
+        "spellId": 127174,
+        "metric": "cooldown"
       },
-      "语言灾厄": {
+      "1271802.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "语言灾厄",
+        "spellId": 1271802,
+        "metric": "cooldown"
       },
-      "恶魔法阵": {
+      "48018.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔法阵",
+        "spellId": 48018,
+        "metric": "cooldown"
       },
-      "恶魔法阵：传送": {
+      "48020.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔法阵：传送",
+        "spellId": 48020,
+        "metric": "cooldown"
       },
-      "召唤黑眼": {
+      "205180.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "召唤黑眼",
+        "spellId": 205180,
+        "metric": "cooldown"
       },
-      "鬼影缠身": {
+      "48181.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "鬼影缠身",
+        "spellId": 48181,
+        "metric": "cooldown"
       },
-      "幽冥收割": {
+      "1257052.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "幽冥收割",
+        "spellId": 1257052,
+        "metric": "cooldown"
       },
-      "怨毒": {
+      "442726.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "怨毒",
+        "spellId": 442726,
+        "metric": "cooldown"
       }
     }
   },
@@ -558,94 +603,160 @@
       "category": "鼠标"
     },
     "spells": {
-      "恐惧": {
+      "5782.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "恐惧",
+        "spellId": 5782,
+        "metric": "cooldown"
       },
-      "死亡缠绕": {
+      "6789.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "死亡缠绕",
+        "spellId": 6789,
+        "metric": "cooldown"
       },
-      "灵魂石": {
+      "20707.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "灵魂石",
+        "spellId": 20707,
+        "metric": "cooldown"
       },
-      "暗影之怒": {
+      "30283.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影之怒",
+        "spellId": 30283,
+        "metric": "cooldown"
       },
-      "邪能统御": {
+      "333889.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "邪能统御",
+        "spellId": 333889,
+        "metric": "cooldown"
       },
-      "黑暗契约": {
+      "108416.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑暗契约",
+        "spellId": 108416,
+        "metric": "cooldown"
       },
-      "恶魔传送门": {
+      "111771.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔传送门",
+        "spellId": 111771,
+        "metric": "cooldown"
       },
-      "虚弱灾厄": {
+      "127174.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "虚弱灾厄",
+        "spellId": 127174,
+        "metric": "cooldown"
       },
-      "语言灾厄": {
+      "1271802.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "语言灾厄",
+        "spellId": 1271802,
+        "metric": "cooldown"
       },
-      "恶魔法阵": {
+      "48018.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔法阵",
+        "spellId": 48018,
+        "metric": "cooldown"
       },
-      "恶魔法阵：传送": {
+      "48020.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔法阵：传送",
+        "spellId": 48020,
+        "metric": "cooldown"
       },
-      "内爆": {
+      "196277.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "内爆",
+        "spellId": 196277,
+        "metric": "cooldown"
       },
-      "内爆层数": {
+      "196277.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "内爆层数",
+        "spellId": 196277,
+        "metric": "count"
       },
-      "召唤恶魔暴君": {
+      "265187.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "召唤恶魔暴君",
+        "spellId": 265187,
+        "metric": "cooldown"
       },
-      "魔典：邪能破坏者": {
+      "1276467.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "魔典：邪能破坏者",
+        "spellId": 1276467,
+        "metric": "cooldown"
       },
-      "古尔丹之手": {
+      "105174.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "古尔丹之手",
+        "spellId": 105174,
+        "metric": "cooldown"
       },
-      "召唤末日守卫": {
+      "1276672.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "召唤末日守卫",
+        "spellId": 1276672,
+        "metric": "cooldown"
       },
-      "召唤恐惧猎犬": {
+      "104316.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "召唤恐惧猎犬",
+        "spellId": 104316,
+        "metric": "cooldown"
       },
-      "恶魔之箭": {
+      "264187.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔之箭",
+        "spellId": 264187,
+        "metric": "cooldown"
       },
-      "魔典：小鬼领主": {
+      "1276452.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "魔典：小鬼领主",
+        "spellId": 1276452,
+        "metric": "cooldown"
       },
-      "吞噬魔法": {
+      "388215.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "吞噬魔法",
+        "spellId": 388215,
+        "metric": "cooldown"
       },
-      "召唤恶魔卫士": {
+      "30146.cooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "召唤恶魔卫士",
+        "spellId": 30146,
+        "metric": "cooldown"
       }
     }
   },
@@ -846,65 +957,110 @@
       "category": "鼠标"
     },
     "spells": {
-      "恐惧": {
+      "5782.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "恐惧",
+        "spellId": 5782,
+        "metric": "cooldown"
       },
-      "死亡缠绕": {
+      "6789.cooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "死亡缠绕",
+        "spellId": 6789,
+        "metric": "cooldown"
       },
-      "灵魂石": {
+      "20707.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "灵魂石",
+        "spellId": 20707,
+        "metric": "cooldown"
       },
-      "暗影之怒": {
+      "30283.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影之怒",
+        "spellId": 30283,
+        "metric": "cooldown"
       },
-      "邪能统御": {
+      "333889.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "邪能统御",
+        "spellId": 333889,
+        "metric": "cooldown"
       },
-      "黑暗契约": {
+      "108416.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑暗契约",
+        "spellId": 108416,
+        "metric": "cooldown"
       },
-      "恶魔传送门": {
+      "111771.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔传送门",
+        "spellId": 111771,
+        "metric": "cooldown"
       },
-      "虚弱灾厄": {
+      "127174.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "虚弱灾厄",
+        "spellId": 127174,
+        "metric": "cooldown"
       },
-      "语言灾厄": {
+      "1271802.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "语言灾厄",
+        "spellId": 1271802,
+        "metric": "cooldown"
       },
-      "恶魔法阵": {
+      "48018.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔法阵",
+        "spellId": 48018,
+        "metric": "cooldown"
       },
-      "恶魔法阵：传送": {
+      "48020.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "恶魔法阵：传送",
+        "spellId": 48020,
+        "metric": "cooldown"
       },
-      "召唤地狱火": {
+      "1122.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "召唤地狱火",
+        "spellId": 1122,
+        "metric": "cooldown"
       },
-      "灵魂之火": {
+      "6353.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "灵魂之火",
+        "spellId": 6353,
+        "metric": "cooldown"
       },
-      "燃烧": {
+      "17962.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "燃烧",
+        "spellId": 17962,
+        "metric": "cooldown"
       },
-      "燃烧充能": {
+      "17962.chargeCooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "燃烧充能",
+        "spellId": 17962,
+        "metric": "chargeCooldown"
       }
     }
   }

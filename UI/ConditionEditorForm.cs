@@ -662,6 +662,7 @@ public sealed class ConditionEditorForm : Form
                 "一键辅助" => "一键辅助，条件保存技能列表中的 spellId",
                 "插入法术" => "插入法术，条件保存技能列表中的 spellId",
                 "施法技能" => "施法技能，条件保存技能列表中的 spellId",
+                "上个技能" => "上个技能，条件保存技能列表中的 spellId",
                 _ => e.Value?.ToString() ?? string.Empty
             };
             return;
@@ -772,11 +773,15 @@ public sealed class ConditionEditorForm : Form
         var items = sourceItems
             .Select(item => item switch
             {
-                FieldItem field => new UiDropDownOption(field.Name, field.Display),
+                FieldItem field => new UiDropDownOption(
+                    field.Name,
+                    field.Display,
+                    ResolveFieldIcon(field)),
                 SpellValueItem spell => new UiDropDownOption(
                     spell.Value,
                     spell.Display,
-                    spell.Missing ? null : SpellIconCatalog.Get(spell.SpellId)),
+                    spell.Missing ? null : SpellIconCatalog.Get(spell.SpellId),
+                    spell.Index?.ToString(CultureInfo.InvariantCulture)),
                 _ => new UiDropDownOption(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty)
             })
             .DistinctBy(item => item.Value?.ToString(), StringComparer.Ordinal)
@@ -816,6 +821,24 @@ public sealed class ConditionEditorForm : Form
                 }
             });
         _conditionComboDropDown = dropDown;
+    }
+
+    private static Image? ResolveFieldIcon(FieldItem field)
+    {
+        if (field.IsCustom
+            || field.Category is not (ConditionFieldCategory.Spell or ConditionFieldCategory.Aura))
+        {
+            return null;
+        }
+
+        if (SpellFieldKey.TryParseSpell(field.Name, out var spellId, out _)
+            || SpellFieldKey.TryParseAura(field.Name, out _, out spellId, out _)
+            || SpellFieldKey.TryParseAuraMember(field.Name, out spellId, out _))
+        {
+            return SpellIconCatalog.Get(spellId);
+        }
+
+        return null;
     }
 
     private void CloseConditionComboDropDown()
@@ -1345,7 +1368,8 @@ public sealed class ConditionEditorForm : Form
             combo.Items.Add(new SpellValueItem(
                 spell.SpellId.ToString(CultureInfo.InvariantCulture),
                 spell.DisplayName,
-                spell.SpellId));
+                spell.SpellId,
+                spell.Index));
         }
 
         var value = preserveRaw ? rawValue?.Trim() ?? string.Empty : string.Empty;
@@ -1663,6 +1687,7 @@ public sealed class ConditionEditorForm : Form
         string Value,
         string Display,
         long SpellId,
+        int? Index = null,
         bool Missing = false)
     {
         public override string ToString() => Display;

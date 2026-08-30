@@ -33,25 +33,25 @@ internal static class ModuleSpecialActions
         return string.Equals(spell?.Trim(), OneKeySpell, StringComparison.Ordinal);
     }
 
-    public static string? GetFailedSpell(GameState state, IReadOnlyDictionary<int, string>? failedSpellMap)
+    public static long? GetFailedSpell(GameState state, IReadOnlyDictionary<int, long>? failedSpellMap)
     {
         var failedSpellId = state.GetInt(InsertSpellState);
-        if (failedSpellMap is null || !failedSpellMap.TryGetValue(failedSpellId, out var spellName))
+        if (failedSpellMap is null || !failedSpellMap.TryGetValue(failedSpellId, out var spellId))
         {
             return null;
         }
 
-        return state.Spells.TryGetValue(spellName, out var cooldown)
+        return state.Spells.TryGetValue($"{spellId}.{SpellFieldKey.SpellCooldown}", out var cooldown)
             && IsZero(cooldown)
-                ? spellName
+                ? spellId
                 : null;
     }
 
-    public static string? GetOneKeySpell(GameState state, IReadOnlyDictionary<int, string>? oneKeySpellMap)
+    public static long? GetOneKeySpell(GameState state, IReadOnlyDictionary<int, long>? oneKeySpellMap)
     {
         var oneKeyAssist = state.GetInt("一键辅助");
-        return oneKeySpellMap is not null && oneKeySpellMap.TryGetValue(oneKeyAssist, out var spellName)
-            ? spellName
+        return oneKeySpellMap is not null && oneKeySpellMap.TryGetValue(oneKeyAssist, out var spellId)
+            ? spellId
             : null;
     }
 

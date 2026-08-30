@@ -1,87 +1,87 @@
 ﻿{
   "keymap": "evoker.json",
   "一键法术": {
-    "1": "净除",
-    "2": "火焰吐息",
-    "3": "青铜龙的祝福",
-    "4": "灼烧之焰",
-    "5": "黑曜鳞片",
-    "6": "山崩",
-    "7": "悬空",
-    "8": "碧蓝打击",
-    "9": "扫尾",
-    "10": "翡翠之花",
-    "11": "扭转天平",
-    "12": "活化烈焰",
-    "13": "裂解",
-    "14": "深呼吸",
-    "15": "青翠之拥",
-    "16": "永恒之涌",
-    "17": "葬火",
-    "18": "狂龙之怒",
-    "19": "镇压",
-    "20": "梦游",
-    "21": "微风",
-    "22": "时间螺旋",
-    "23": "空间悖论",
-    "24": "营救",
-    "25": "碧蓝横扫",
-    "26": "火焰吐息",
-    "27": "永恒之涌",
-    "28": "时间膨胀",
-    "29": "回溯",
-    "30": "时空畸体",
-    "31": "梦境吐息",
-    "32": "梦境飞行",
-    "33": "孪生烈焰",
-    "34": "时光屏障",
-    "35": "孪生烈焰",
-    "36": "深呼吸",
-    "37": "静滞",
-    "38": "静滞",
-    "39": "麦琳瑟拉的祝福",
-    "40": "回响",
-    "41": "青翠之拥",
-    "42": "自然平衡",
-    "43": "梦境吐息",
-    "44": "聚能冲击",
-    "45": "黑龙协调",
-    "46": "青铜协调",
-    "47": "黑檀之力",
-    "48": "亘古吐息",
-    "49": "先知先觉",
-    "50": "喷发",
-    "51": "地壳激变",
-    "52": "威力感知",
-    "53": "炽火龙鳞",
-    "101": "奥术洪流",
-    "102": "石像形态",
-    "103": "影遁",
-    "104": "狂暴",
-    "105": "血性狂怒",
-    "106": "战争践踏",
-    "107": "生存意志",
-    "108": "亡灵意志",
-    "109": "逃命专家",
-    "110": "黑暗飞行",
-    "111": "火箭跳",
-    "112": "火箭弹幕",
-    "113": "空间裂隙",
-    "114": "圣光裁决",
-    "115": "先祖召唤",
-    "116": "烈焰之血",
-    "117": "蛮牛冲撞",
-    "118": "奥术脉冲",
-    "119": "袋里乾坤",
-    "120": "再生",
-    "121": "震山掌",
-    "122": "纳鲁的赐福",
-    "123": "重拳出击",
-    "124": "超有机光发起源",
-    "126": "翼击",
-    "127": "艾泽里特涌动",
-    "151": "切换天赋",
-    "152": "切换专精"
+    "1": 365585,
+    "2": 382266,
+    "3": 364342,
+    "4": 374251,
+    "5": 363916,
+    "6": 358385,
+    "7": 358267,
+    "8": 362969,
+    "9": 368970,
+    "10": 355913,
+    "11": 370553,
+    "12": 361469,
+    "13": 356995,
+    "14": 357210,
+    "15": 360995,
+    "16": 382411,
+    "17": 357211,
+    "18": 375087,
+    "19": 351338,
+    "20": 360806,
+    "21": 374227,
+    "22": 374968,
+    "23": 406732,
+    "24": 370665,
+    "25": 1265872,
+    "26": 357208,
+    "27": 359073,
+    "28": 357170,
+    "29": 363534,
+    "30": 373861,
+    "31": 355936,
+    "32": 359618,
+    "33": 1265991,
+    "34": 1291636,
+    "35": 1265980,
+    "36": 362019,
+    "37": 370537,
+    "38": 370564,
+    "39": 1256581,
+    "40": 364343,
+    "41": 361195,
+    "42": 360823,
+    "43": 363922,
+    "44": 370454,
+    "45": 403264,
+    "46": 403265,
+    "47": 395152,
+    "48": 442204,
+    "49": 409311,
+    "50": 395160,
+    "51": 396286,
+    "52": 361021,
+    "53": 360827,
+    "101": 28730,
+    "102": 20594,
+    "103": 58984,
+    "104": 26297,
+    "105": 20572,
+    "106": 20549,
+    "107": 59752,
+    "108": 7744,
+    "109": 20589,
+    "110": 68992,
+    "111": 69070,
+    "112": 69041,
+    "113": 256948,
+    "114": 255647,
+    "115": 274738,
+    "116": 265221,
+    "117": 255654,
+    "118": 260364,
+    "119": 312411,
+    "120": 291944,
+    "121": 107079,
+    "122": 28880,
+    "123": 287712,
+    "124": 312924,
+    "126": 357214,
+    "127": 436344,
+    "151": 384255,
+    "152": 200749
   },
   "1": {
     "队伍类型": {
@@ -275,77 +275,131 @@
       "category": "鼠标"
     },
     "spells": {
-      "净除": {
+      "365585.cooldown": {
         "step": 42,
-        "type": "int"
+        "type": "int",
+        "displayName": "净除",
+        "spellId": 365585,
+        "metric": "cooldown"
       },
-      "黑曜鳞片": {
+      "363916.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片",
+        "spellId": 363916,
+        "metric": "cooldown"
       },
-      "黑曜鳞片充能": {
+      "363916.chargeCooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片充能",
+        "spellId": 363916,
+        "metric": "chargeCooldown"
       },
-      "山崩": {
+      "358385.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "山崩",
+        "spellId": 358385,
+        "metric": "cooldown"
       },
-      "青翠之拥": {
+      "360995.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "青翠之拥",
+        "spellId": 360995,
+        "metric": "cooldown"
       },
-      "深呼吸": {
+      "357210.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "深呼吸",
+        "spellId": 357210,
+        "metric": "cooldown"
       },
-      "微风": {
+      "374227.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "微风",
+        "spellId": 374227,
+        "metric": "cooldown"
       },
-      "悬空": {
+      "358267.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空",
+        "spellId": 358267,
+        "metric": "cooldown"
       },
-      "悬空充能": {
+      "358267.chargeCooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空充能",
+        "spellId": 358267,
+        "metric": "chargeCooldown"
       },
-      "扫尾": {
+      "368970.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "扫尾",
+        "spellId": 368970,
+        "metric": "cooldown"
       },
-      "扭转天平": {
+      "370553.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "扭转天平",
+        "spellId": 370553,
+        "metric": "cooldown"
       },
-      "营救": {
+      "370665.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "营救",
+        "spellId": 370665,
+        "metric": "cooldown"
       },
-      "时间螺旋": {
+      "374968.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "时间螺旋",
+        "spellId": 374968,
+        "metric": "cooldown"
       },
-      "空间悖论": {
+      "406732.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "空间悖论",
+        "spellId": 406732,
+        "metric": "cooldown"
       },
-      "永恒之涌": {
+      "359073.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "永恒之涌",
+        "spellId": 359073,
+        "metric": "cooldown"
       },
-      "镇压": {
+      "351338.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "镇压",
+        "spellId": 351338,
+        "metric": "cooldown"
       },
-      "狂龙之怒": {
+      "375087.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "狂龙之怒",
+        "spellId": 375087,
+        "metric": "cooldown"
       },
-      "火焰吐息": {
+      "357208.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "火焰吐息",
+        "spellId": 357208,
+        "metric": "cooldown"
       }
     }
   },
@@ -546,265 +600,533 @@
       "category": "鼠标"
     },
     "auras": {
-      "扭转天平": {
+      "player.370553.value": {
         "step": 43,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "扭转天平",
+        "spellId": 370553,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          370553
+        ]
       },
-      "麦琳瑟拉的祝福": {
+      "player.1256579.value": {
         "step": 44,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "麦琳瑟拉的祝福",
+        "spellId": 1256579,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1256579
+        ]
       },
-      "生命火花": {
+      "player.443176.value": {
         "step": 45,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "生命火花",
+        "spellId": 443176,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          443176
+        ]
       },
-      "上古之火": {
+      "player.375583.value": {
         "step": 46,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "上古之火",
+        "spellId": 375583,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          375583
+        ]
       },
-      "悬空": {
+      "player.358267.value": {
         "step": 47,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "悬空",
+        "spellId": 358267,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          358267
+        ]
       },
-      "黑曜鳞片": {
+      "player.363916.value": {
         "step": 48,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "黑曜鳞片",
+        "spellId": 363916,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          363916
+        ]
       },
-      "静滞-释放": {
+      "player.370562.value": {
         "step": 49,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "静滞-释放",
+        "spellId": 370562,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          370562
+        ]
       },
-      "静滞-存入": {
+      "player.370537.value": {
         "step": 50,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "静滞-存入",
+        "spellId": 370537,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          370537
+        ]
       },
-      "精华迸发": {
+      "player.370537.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "静滞-存入层数",
+        "spellId": 370537,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          370537
+        ],
+        "bar": 6
+      },
+      "player.369299.value": {
         "step": 51,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "精华迸发",
+        "spellId": 369299,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          369299
+        ]
       },
-      "飞扑烈焰": {
+      "player.369299.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "精华迸发层数",
+        "spellId": 369299,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          369299
+        ],
+        "bar": 7
+      },
+      "player.370901.value": {
         "step": 52,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "飞扑烈焰",
+        "spellId": 370901,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          370901
+        ]
       },
-      "压缩时光": {
+      "player.370901.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "飞扑烈焰层数",
+        "spellId": 370901,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          370901
+        ],
+        "bar": 8
+      },
+      "player.362877.value": {
         "step": 53,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "压缩时光",
+        "spellId": 362877,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          362877
+        ]
       },
-      "目标火焰吐息": {
+      "player.362877.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "压缩时光层数",
+        "spellId": 362877,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          362877
+        ],
+        "bar": 9
+      },
+      "target.harmful.357209.value": {
         "step": 54,
         "type": "int",
-        "category": "目标减益"
+        "category": "目标减益",
+        "displayName": "火焰吐息",
+        "spellId": 357209,
+        "scope": "target.harmful",
+        "metric": "value",
+        "spellIds": [
+          357209
+        ]
       },
-      "目标时间膨胀": {
+      "target.helpful.357170.value": {
         "step": 55,
         "type": "int",
-        "category": "目标增益"
+        "category": "目标增益",
+        "displayName": "时间膨胀",
+        "spellId": 357170,
+        "scope": "target.helpful",
+        "metric": "value",
+        "spellIds": [
+          357170
+        ]
       },
-      "目标逆转": {
+      "target.helpful.366155.value": {
         "step": 56,
         "type": "int",
-        "category": "目标增益"
+        "category": "目标增益",
+        "displayName": "逆转",
+        "spellId": 366155,
+        "scope": "target.helpful",
+        "metric": "value",
+        "spellIds": [
+          366155
+        ]
       },
-      "目标回响": {
+      "target.helpful.364343.value": {
         "step": 57,
         "type": "int",
-        "category": "目标增益"
+        "category": "目标增益",
+        "displayName": "回响",
+        "spellId": 364343,
+        "scope": "target.helpful",
+        "metric": "value",
+        "spellIds": [
+          364343
+        ]
       },
-      "目标梦境吐息": {
+      "target.helpful.355941.value": {
         "step": 58,
         "type": "int",
-        "category": "目标增益"
+        "category": "目标增益",
+        "displayName": "梦境吐息",
+        "spellId": 355941,
+        "scope": "target.helpful",
+        "metric": "value",
+        "spellIds": [
+          355941
+        ]
       },
-      "焦点火焰吐息": {
+      "focus.harmful.357209.value": {
         "step": 59,
         "type": "int",
-        "category": "焦点减益"
+        "category": "焦点减益",
+        "displayName": "火焰吐息",
+        "spellId": 357209,
+        "scope": "focus.harmful",
+        "metric": "value",
+        "spellIds": [
+          357209
+        ]
       },
-      "焦点时间膨胀": {
+      "focus.helpful.357170.value": {
         "step": 60,
         "type": "int",
-        "category": "焦点增益"
+        "category": "焦点增益",
+        "displayName": "时间膨胀",
+        "spellId": 357170,
+        "scope": "focus.helpful",
+        "metric": "value",
+        "spellIds": [
+          357170
+        ]
       },
-      "焦点逆转": {
+      "focus.helpful.366155.value": {
         "step": 61,
         "type": "int",
-        "category": "焦点增益"
+        "category": "焦点增益",
+        "displayName": "逆转",
+        "spellId": 366155,
+        "scope": "focus.helpful",
+        "metric": "value",
+        "spellIds": [
+          366155
+        ]
       },
-      "焦点回响": {
+      "focus.helpful.364343.value": {
         "step": 62,
         "type": "int",
-        "category": "焦点增益"
+        "category": "焦点增益",
+        "displayName": "回响",
+        "spellId": 364343,
+        "scope": "focus.helpful",
+        "metric": "value",
+        "spellIds": [
+          364343
+        ]
       },
-      "焦点梦境吐息": {
+      "focus.helpful.355941.value": {
         "step": 63,
         "type": "int",
-        "category": "焦点增益"
-      },
-      "静滞-存入层数": {
-        "step": "bar",
-        "bar": 6,
-        "type": "int"
-      },
-      "精华迸发层数": {
-        "step": "bar",
-        "bar": 7,
-        "type": "int"
-      },
-      "飞扑烈焰层数": {
-        "step": "bar",
-        "bar": 8,
-        "type": "int"
-      },
-      "压缩时光层数": {
-        "step": "bar",
-        "bar": 9,
-        "type": "int"
+        "category": "焦点增益",
+        "displayName": "梦境吐息",
+        "spellId": 355941,
+        "scope": "focus.helpful",
+        "metric": "value",
+        "spellIds": [
+          355941
+        ]
       }
     },
     "spells": {
-      "净除": {
+      "365585.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "净除",
+        "spellId": 365585,
+        "metric": "cooldown"
       },
-      "山崩": {
+      "358385.cooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "山崩",
+        "spellId": 358385,
+        "metric": "cooldown"
       },
-      "梦境飞行": {
+      "359816.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "梦境飞行",
+        "spellId": 359816,
+        "metric": "cooldown"
       },
-      "深呼吸": {
+      "357210.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "深呼吸",
+        "spellId": 357210,
+        "metric": "cooldown"
       },
-      "微风": {
+      "374227.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "微风",
+        "spellId": 374227,
+        "metric": "cooldown"
       },
-      "扫尾": {
+      "368970.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "扫尾",
+        "spellId": 368970,
+        "metric": "cooldown"
       },
-      "扭转天平": {
+      "370553.cooldown": {
         "step": 70,
-        "type": "int"
+        "type": "int",
+        "displayName": "扭转天平",
+        "spellId": 370553,
+        "metric": "cooldown"
       },
-      "营救": {
+      "370665.cooldown": {
         "step": 71,
-        "type": "int"
+        "type": "int",
+        "displayName": "营救",
+        "spellId": 370665,
+        "metric": "cooldown"
       },
-      "时间螺旋": {
+      "374968.cooldown": {
         "step": 72,
-        "type": "int"
+        "type": "int",
+        "displayName": "时间螺旋",
+        "spellId": 374968,
+        "metric": "cooldown"
       },
-      "空间悖论": {
+      "406732.cooldown": {
         "step": 73,
-        "type": "int"
+        "type": "int",
+        "displayName": "空间悖论",
+        "spellId": 406732,
+        "metric": "cooldown"
       },
-      "灼烧之焰": {
-        "step": 74,
-        "type": "int"
-      },
-      "翡翠之拥": {
+      "374251.cooldown": {
         "step": 75,
-        "type": "int"
+        "type": "int",
+        "displayName": "翡翠之拥",
+        "spellId": 374251,
+        "metric": "cooldown"
       },
-      "青翠之拥": {
+      "360995.cooldown": {
         "step": 76,
-        "type": "int"
+        "type": "int",
+        "displayName": "青翠之拥",
+        "spellId": 360995,
+        "metric": "cooldown"
       },
-      "时光屏障": {
+      "1291636.cooldown": {
         "step": 77,
-        "type": "int"
+        "type": "int",
+        "displayName": "时光屏障",
+        "spellId": 1291636,
+        "metric": "cooldown"
       },
-      "时空畸体": {
+      "373861.cooldown": {
         "step": 78,
-        "type": "int"
+        "type": "int",
+        "displayName": "时空畸体",
+        "spellId": 373861,
+        "metric": "cooldown"
       },
-      "时间膨胀": {
+      "357170.cooldown": {
         "step": 79,
-        "type": "int"
+        "type": "int",
+        "displayName": "时间膨胀",
+        "spellId": 357170,
+        "metric": "cooldown"
       },
-      "静滞": {
+      "370537.cooldown": {
         "step": 80,
-        "type": "int"
+        "type": "int",
+        "displayName": "静滞",
+        "spellId": 370537,
+        "metric": "cooldown"
       },
-      "回溯": {
+      "363534.cooldown": {
         "step": 81,
-        "type": "int"
+        "type": "int",
+        "displayName": "回溯",
+        "spellId": 363534,
+        "metric": "cooldown"
       },
-      "回溯充能": {
+      "363534.chargeCooldown": {
         "step": 82,
-        "type": "int"
+        "type": "int",
+        "displayName": "回溯充能",
+        "spellId": 363534,
+        "metric": "chargeCooldown"
       },
-      "回溯层数": {
+      "363534.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "回溯层数",
+        "spellId": 363534,
+        "metric": "count"
       },
-      "火焰吐息": {
+      "357208.cooldown": {
         "step": 83,
-        "type": "int"
+        "type": "int",
+        "displayName": "火焰吐息",
+        "spellId": 357208,
+        "metric": "cooldown"
       },
-      "火焰吐息充能": {
+      "357208.chargeCooldown": {
         "step": 84,
-        "type": "int"
+        "type": "int",
+        "displayName": "火焰吐息充能",
+        "spellId": 357208,
+        "metric": "chargeCooldown"
       },
-      "火焰吐息层数": {
+      "357208.count": {
         "step": "bar",
         "bar": 2,
-        "type": "int"
+        "type": "int",
+        "displayName": "火焰吐息层数",
+        "spellId": 357208,
+        "metric": "count"
       },
-      "逆转": {
+      "366155.cooldown": {
         "step": 85,
-        "type": "int"
+        "type": "int",
+        "displayName": "逆转",
+        "spellId": 366155,
+        "metric": "cooldown"
       },
-      "逆转充能": {
+      "366155.chargeCooldown": {
         "step": 86,
-        "type": "int"
+        "type": "int",
+        "displayName": "逆转充能",
+        "spellId": 366155,
+        "metric": "chargeCooldown"
       },
-      "逆转层数": {
+      "366155.count": {
         "step": "bar",
         "bar": 3,
-        "type": "int"
+        "type": "int",
+        "displayName": "逆转层数",
+        "spellId": 366155,
+        "metric": "count"
       },
-      "悬空": {
+      "358267.cooldown": {
         "step": 87,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空",
+        "spellId": 358267,
+        "metric": "cooldown"
       },
-      "悬空充能": {
+      "358267.chargeCooldown": {
         "step": 88,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空充能",
+        "spellId": 358267,
+        "metric": "chargeCooldown"
       },
-      "悬空层数": {
+      "358267.count": {
         "step": "bar",
         "bar": 4,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空层数",
+        "spellId": 358267,
+        "metric": "count"
       },
-      "黑曜鳞片": {
+      "363916.cooldown": {
         "step": 89,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片",
+        "spellId": 363916,
+        "metric": "cooldown"
       },
-      "黑曜鳞片充能": {
+      "363916.chargeCooldown": {
         "step": 90,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片充能",
+        "spellId": 363916,
+        "metric": "chargeCooldown"
       },
-      "黑曜鳞片层数": {
+      "363916.count": {
         "step": "bar",
         "bar": 5,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片层数",
+        "spellId": 363916,
+        "metric": "count"
       }
     },
     "group": {
@@ -822,17 +1144,38 @@
         "step": 3,
         "type": "int"
       },
-      "逆转": {
+      "auras.366155.value": {
         "step": 4,
-        "type": "int"
+        "type": "int",
+        "displayName": "逆转",
+        "spellId": 366155,
+        "scope": "group",
+        "metric": "value",
+        "spellIds": [
+          366155
+        ]
       },
-      "回响": {
+      "auras.364343.value": {
         "step": 5,
-        "type": "int"
+        "type": "int",
+        "displayName": "回响",
+        "spellId": 364343,
+        "scope": "group",
+        "metric": "value",
+        "spellIds": [
+          364343
+        ]
       },
-      "梦境吐息": {
+      "auras.355941.value": {
         "step": 6,
-        "type": "int"
+        "type": "int",
+        "displayName": "梦境吐息",
+        "spellId": 355941,
+        "scope": "group",
+        "metric": "value",
+        "spellIds": [
+          355941
+        ]
       }
     }
   },
@@ -1033,136 +1376,232 @@
       "category": "鼠标"
     },
     "spells": {
-      "净除": {
+      "365585.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "净除",
+        "spellId": 365585,
+        "metric": "cooldown"
       },
-      "黑曜鳞片": {
+      "363916.cooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片",
+        "spellId": 363916,
+        "metric": "cooldown"
       },
-      "黑曜鳞片充能": {
+      "363916.chargeCooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片充能",
+        "spellId": 363916,
+        "metric": "chargeCooldown"
       },
-      "黑曜鳞片层数": {
+      "363916.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑曜鳞片层数",
+        "spellId": 363916,
+        "metric": "count"
       },
-      "山崩": {
+      "358385.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "山崩",
+        "spellId": 358385,
+        "metric": "cooldown"
       },
-      "青翠之拥": {
+      "360995.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "青翠之拥",
+        "spellId": 360995,
+        "metric": "cooldown"
       },
-      "深呼吸": {
+      "357210.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "深呼吸",
+        "spellId": 357210,
+        "metric": "cooldown"
       },
-      "微风": {
+      "374227.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "微风",
+        "spellId": 374227,
+        "metric": "cooldown"
       },
-      "悬空": {
+      "358267.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空",
+        "spellId": 358267,
+        "metric": "cooldown"
       },
-      "悬空充能": {
+      "358267.chargeCooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空充能",
+        "spellId": 358267,
+        "metric": "chargeCooldown"
       },
-      "悬空层数": {
+      "358267.count": {
         "step": "bar",
         "bar": 2,
-        "type": "int"
+        "type": "int",
+        "displayName": "悬空层数",
+        "spellId": 358267,
+        "metric": "count"
       },
-      "扫尾": {
+      "368970.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "扫尾",
+        "spellId": 368970,
+        "metric": "cooldown"
       },
-      "扭转天平": {
+      "370553.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "扭转天平",
+        "spellId": 370553,
+        "metric": "cooldown"
       },
-      "营救": {
+      "370665.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "营救",
+        "spellId": 370665,
+        "metric": "cooldown"
       },
-      "时间螺旋": {
+      "374968.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "时间螺旋",
+        "spellId": 374968,
+        "metric": "cooldown"
       },
-      "空间悖论": {
+      "406732.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "空间悖论",
+        "spellId": 406732,
+        "metric": "cooldown"
       },
-      "火焰吐息": {
+      "357208.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "火焰吐息",
+        "spellId": 357208,
+        "metric": "cooldown"
       },
-      "地壳激变": {
+      "396286.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "地壳激变",
+        "spellId": 396286,
+        "metric": "cooldown"
       },
-      "黑檀之力": {
+      "395152.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑檀之力",
+        "spellId": 395152,
+        "metric": "cooldown"
       },
-      "亘古吐息": {
+      "442204.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "亘古吐息",
+        "spellId": 442204,
+        "metric": "cooldown"
       },
-      "先知先觉": {
+      "409311.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "先知先觉",
+        "spellId": 409311,
+        "metric": "cooldown"
       },
-      "先知先觉充能": {
+      "409311.chargeCooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "先知先觉充能",
+        "spellId": 409311,
+        "metric": "chargeCooldown"
       },
-      "先知先觉层数": {
+      "409311.count": {
         "step": "bar",
         "bar": 3,
-        "type": "int"
+        "type": "int",
+        "displayName": "先知先觉层数",
+        "spellId": 409311,
+        "metric": "count"
       },
-      "喷发": {
+      "395160.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "喷发",
+        "spellId": 395160,
+        "metric": "cooldown"
       },
-      "炽火龙鳞": {
+      "360827.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "炽火龙鳞",
+        "spellId": 360827,
+        "metric": "cooldown"
       },
-      "活化烈焰": {
+      "361469.cooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "活化烈焰",
+        "spellId": 361469,
+        "metric": "cooldown"
       },
-      "威力感知": {
+      "361021.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "威力感知",
+        "spellId": 361021,
+        "metric": "cooldown"
       },
-      "镇压": {
+      "351338.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "镇压",
+        "spellId": 351338,
+        "metric": "cooldown"
       },
-      "灼烧之焰": {
+      "374251.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "灼烧之焰",
+        "spellId": 374251,
+        "metric": "cooldown"
       },
-      "翡翠之花": {
+      "355913.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "翡翠之花",
+        "spellId": 355913,
+        "metric": "cooldown"
       },
-      "青铜协调": {
+      "403265.cooldown": {
         "step": 70,
-        "type": "int"
+        "type": "int",
+        "displayName": "青铜协调",
+        "spellId": 403265,
+        "metric": "cooldown"
       },
-      "黑龙协调": {
+      "403264.cooldown": {
         "step": 71,
-        "type": "int"
+        "type": "int",
+        "displayName": "黑龙协调",
+        "spellId": 403264,
+        "metric": "cooldown"
       }
     },
     "group": {

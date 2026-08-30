@@ -1532,7 +1532,6 @@ public sealed class MainForm : Form, IMessageFilter
         {
             try
             {
-                module.Version = AppInfo.Version;
                 var warning = _moduleDependencyService.Capture(module);
                 _moduleStore.SaveDependenciesInPlace(module);
                 savedCount++;

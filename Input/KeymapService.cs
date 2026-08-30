@@ -10,6 +10,7 @@ public sealed class KeymapService : IKeymapResolver
     private readonly Dictionary<(int Unit, string Spell, string MacroCondition), string> _hotkeys = new();
     private readonly Dictionary<(int Unit, string Spell), string> _fallbackHotkeys = new();
     private readonly Dictionary<long, int> _spellIndices = new();
+    private readonly Dictionary<long, string> _spellNames = new();
     private int? _currentClassId;
     private int? _currentSpecId;
 
@@ -36,6 +37,7 @@ public sealed class KeymapService : IKeymapResolver
         _hotkeys.Clear();
         _fallbackHotkeys.Clear();
         _spellIndices.Clear();
+        _spellNames.Clear();
 
         LoadSpellIndices(classId);
 
@@ -111,12 +113,17 @@ public sealed class KeymapService : IKeymapResolver
         return null;
     }
 
-    public IReadOnlyDictionary<int, string> GetCurrentFailedSpells()
+    public string? GetHotkey(int? unit, long spellId, string? macroCondition = null)
+        => _spellNames.TryGetValue(spellId, out var spell)
+            ? GetHotkey(unit, spell, macroCondition)
+            : null;
+
+    public IReadOnlyDictionary<int, long> GetCurrentFailedSpells()
     {
         return _config.GetFailedSpells(_currentClassId);
     }
 
-    public IReadOnlyDictionary<int, string> GetCurrentOneKeySpells()
+    public IReadOnlyDictionary<int, long> GetCurrentOneKeySpells()
     {
         return _config.GetOneKeySpells(_currentClassId);
     }
@@ -124,6 +131,11 @@ public sealed class KeymapService : IKeymapResolver
     public IReadOnlyDictionary<long, int> GetCurrentSpellIndices()
     {
         return _spellIndices;
+    }
+
+    public IReadOnlyDictionary<long, string> GetCurrentSpellNames()
+    {
+        return _spellNames;
     }
 
     private void LoadSpellIndices(int? classId)
@@ -144,6 +156,10 @@ public sealed class KeymapService : IKeymapResolver
             foreach (var spell in document.SpellsList.Where(spell => spell.SpellId > 0))
             {
                 _spellIndices.TryAdd(spell.SpellId, spell.Index);
+                if (!string.IsNullOrWhiteSpace(spell.Name))
+                {
+                    _spellNames.TryAdd(spell.SpellId, spell.Name.Trim());
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException

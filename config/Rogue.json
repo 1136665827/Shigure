@@ -1,95 +1,95 @@
 ﻿{
   "keymap": "rogue.json",
   "一键法术": {
-    "1": "毒刃",
-    "2": "致盲",
-    "3": "暗影斗篷",
-    "4": "凿击",
-    "5": "嫁祸诀窍",
-    "6": "闪避",
-    "7": "迟钝药膏",
-    "8": "萎缩药膏",
-    "9": "菊花茶",
-    "10": "肾击",
-    "11": "佯攻",
-    "12": "偷袭",
-    "13": "消失",
-    "14": "切割",
-    "15": "潜伏帷幕",
-    "16": "扰乱",
-    "17": "猩红之瓶",
-    "18": "疾跑",
-    "19": "闷棍",
-    "20": "速效药膏",
-    "21": "致伤药膏",
-    "22": "夺命药膏",
-    "23": "增效药膏",
-    "24": "减速药膏",
-    "25": "刀扇",
-    "26": "死亡印记",
-    "27": "死亡印记",
-    "28": "锁喉",
-    "29": "剧毒之刃",
-    "30": "割裂",
-    "31": "毁伤",
-    "32": "君王之灾",
-    "33": "毒伤",
-    "34": "暗影步",
-    "35": "猩红风暴",
-    "36": "伏击",
-    "37": "脚踢",
-    "38": "冲动",
-    "39": "影舞步",
-    "40": "正中眉心",
-    "41": "刀锋冲刺",
-    "42": "手枪射击",
-    "43": "剑刃乱舞",
-    "44": "抓钩",
-    "45": "命运骨骰",
-    "46": "斩击",
-    "47": "时运继延",
-    "48": "伺机待发",
-    "49": "黑火药",
-    "50": "影分身",
-    "51": "暗影之刃",
-    "52": "背刺",
-    "53": "暗影之舞",
-    "54": "袖剑风暴",
-    "55": "暗影打击",
-    "56": "飞镖投掷",
-    "57": "幽暗之刃",
-    "58": "赤喉之咬",
-    "59": "影袭",
-    "60": "致命一击",
-    "101": "奥术洪流",
-    "102": "石像形态",
-    "103": "影遁",
-    "104": "狂暴",
-    "105": "血性狂怒",
-    "106": "战争践踏",
-    "107": "生存意志",
-    "108": "亡灵意志",
-    "109": "逃命专家",
-    "110": "黑暗飞行",
-    "111": "火箭跳",
-    "112": "火箭弹幕",
-    "113": "空间裂隙",
-    "114": "圣光裁决",
-    "115": "先祖召唤",
-    "116": "烈焰之血",
-    "117": "蛮牛冲撞",
-    "118": "奥术脉冲",
-    "119": "袋里乾坤",
-    "120": "再生",
-    "121": "震山掌",
-    "122": "纳鲁的赐福",
-    "123": "重拳出击",
-    "124": "超有机光发起源",
-    "125": "扫尾",
-    "126": "翼击",
-    "127": "艾泽里特涌动",
-    "151": "切换天赋",
-    "152": "切换专精"
+    "1": 5938,
+    "2": 2094,
+    "3": 31224,
+    "4": 1776,
+    "5": 57934,
+    "6": 5277,
+    "7": 5761,
+    "8": 381637,
+    "9": 381623,
+    "10": 408,
+    "11": 1966,
+    "12": 1833,
+    "13": 1856,
+    "14": 315496,
+    "15": 114018,
+    "16": 1725,
+    "17": 185311,
+    "18": 2983,
+    "19": 6770,
+    "20": 315584,
+    "21": 8679,
+    "22": 2823,
+    "23": 381664,
+    "24": 3408,
+    "25": 51723,
+    "26": 360194,
+    "27": 1293340,
+    "28": 703,
+    "29": 185565,
+    "30": 1943,
+    "31": 1329,
+    "32": 385627,
+    "33": 32645,
+    "34": 36554,
+    "35": 1247227,
+    "36": 8676,
+    "37": 1766,
+    "38": 13750,
+    "39": 51690,
+    "40": 315341,
+    "41": 271877,
+    "42": 185763,
+    "43": 13877,
+    "44": 195475,
+    "45": 1214909,
+    "46": 2098,
+    "47": 381989,
+    "48": 1277933,
+    "49": 319175,
+    "50": 280719,
+    "51": 121471,
+    "52": 53,
+    "53": 185313,
+    "54": 197835,
+    "55": 185438,
+    "56": 114014,
+    "57": 200758,
+    "58": 426591,
+    "59": 193315,
+    "60": 441776,
+    "101": 28730,
+    "102": 20594,
+    "103": 58984,
+    "104": 26297,
+    "105": 20572,
+    "106": 20549,
+    "107": 59752,
+    "108": 7744,
+    "109": 20589,
+    "110": 68992,
+    "111": 69070,
+    "112": 69041,
+    "113": 256948,
+    "114": 255647,
+    "115": 274738,
+    "116": 265221,
+    "117": 255654,
+    "118": 260364,
+    "119": 312411,
+    "120": 291944,
+    "121": 107079,
+    "122": 28880,
+    "123": 287712,
+    "124": 312924,
+    "125": 368970,
+    "126": 357214,
+    "127": 436344,
+    "151": 384255,
+    "152": 200749
   },
   "1": {
     "队伍类型": {
@@ -278,81 +278,145 @@
       "category": "鼠标"
     },
     "spells": {
-      "毒刃": {
+      "5938.cooldown": {
         "step": 41,
-        "type": "int"
+        "type": "int",
+        "displayName": "毒刃",
+        "spellId": 5938,
+        "metric": "cooldown"
       },
-      "致盲": {
+      "2094.cooldown": {
         "step": 42,
-        "type": "int"
+        "type": "int",
+        "displayName": "致盲",
+        "spellId": 2094,
+        "metric": "cooldown"
       },
-      "佯攻": {
+      "1966.cooldown": {
         "step": 43,
-        "type": "int"
+        "type": "int",
+        "displayName": "佯攻",
+        "spellId": 1966,
+        "metric": "cooldown"
       },
-      "消失": {
+      "1856.cooldown": {
         "step": 44,
-        "type": "int"
+        "type": "int",
+        "displayName": "消失",
+        "spellId": 1856,
+        "metric": "cooldown"
       },
-      "偷袭": {
+      "1833.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "偷袭",
+        "spellId": 1833,
+        "metric": "cooldown"
       },
-      "潜伏帷幕": {
+      "114018.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "潜伏帷幕",
+        "spellId": 114018,
+        "metric": "cooldown"
       },
-      "菊花茶": {
+      "381623.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "菊花茶",
+        "spellId": 381623,
+        "metric": "cooldown"
       },
-      "闪避": {
+      "5277.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "闪避",
+        "spellId": 5277,
+        "metric": "cooldown"
       },
-      "猩红之瓶": {
+      "185311.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "猩红之瓶",
+        "spellId": 185311,
+        "metric": "cooldown"
       },
-      "扰乱": {
+      "1725.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "扰乱",
+        "spellId": 1725,
+        "metric": "cooldown"
       },
-      "疾跑": {
+      "2983.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "疾跑",
+        "spellId": 2983,
+        "metric": "cooldown"
       },
-      "凿击": {
+      "1776.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "凿击",
+        "spellId": 1776,
+        "metric": "cooldown"
       },
-      "肾击": {
+      "408.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "肾击",
+        "spellId": 408,
+        "metric": "cooldown"
       },
-      "暗影斗篷": {
+      "31224.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影斗篷",
+        "spellId": 31224,
+        "metric": "cooldown"
       },
-      "脚踢": {
+      "1766.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "脚踢",
+        "spellId": 1766,
+        "metric": "cooldown"
       },
-      "死亡印记": {
+      "360194.cooldown": {
+        "step": 56,
+        "type": "int",
+        "displayName": "死亡印记",
+        "spellId": 360194,
+        "metric": "cooldown"
+      },
+      "1293340.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "死亡印记",
+        "spellId": 1293340,
+        "metric": "cooldown"
       },
-      "锁喉": {
+      "703.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "锁喉",
+        "spellId": 703,
+        "metric": "cooldown"
       },
-      "君王之灾": {
+      "385627.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "君王之灾",
+        "spellId": 385627,
+        "metric": "cooldown"
       },
-      "暗影步": {
+      "36554.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影步",
+        "spellId": 36554,
+        "metric": "cooldown"
       }
     }
   },
@@ -573,157 +637,303 @@
       "category": "鼠标"
     },
     "auras": {
-      "切割": {
+      "player.315496.value": {
         "step": 47,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "切割",
+        "spellId": 315496,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          315496
+        ]
       },
-      "剑刃乱舞": {
+      "player.13877.value": {
         "step": 48,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "剑刃乱舞",
+        "spellId": 13877,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          13877
+        ]
       },
-      "冲动": {
+      "player.13750.value": {
         "step": 49,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "冲动",
+        "spellId": 13750,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          13750
+        ]
       },
-      "灌铅骰子": {
+      "player.256171.value": {
         "step": 50,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "灌铅骰子",
+        "spellId": 256171,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          256171
+        ]
       },
-      "可乘之机": {
+      "player.195627.value": {
         "step": 51,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "可乘之机",
+        "spellId": 195627,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          195627
+        ]
       },
-      "独一无二": {
+      "player.195627.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "可乘之机层数",
+        "spellId": 195627,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          195627
+        ],
+        "bar": 1
+      },
+      "player.1214933.value": {
         "step": 52,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "独一无二",
+        "spellId": 1214933,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1214933
+        ]
       },
-      "双重麻烦": {
+      "player.1214934.value": {
         "step": 53,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "双重麻烦",
+        "spellId": 1214934,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1214934
+        ]
       },
-      "三重威胁": {
+      "player.1214935.value": {
         "step": 54,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "三重威胁",
+        "spellId": 1214935,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1214935
+        ]
       },
-      "头奖": {
+      "player.1214937.value": {
         "step": 55,
         "type": "int",
-        "category": "玩家"
-      },
-      "可乘之机层数": {
-        "step": "bar",
-        "bar": 1,
-        "type": "int"
+        "category": "玩家",
+        "displayName": "头奖",
+        "spellId": 1214937,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1214937
+        ]
       }
     },
     "spells": {
-      "毒刃": {
+      "5938.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "毒刃",
+        "spellId": 5938,
+        "metric": "cooldown"
       },
-      "致盲": {
+      "2094.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "致盲",
+        "spellId": 2094,
+        "metric": "cooldown"
       },
-      "佯攻": {
+      "1966.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "佯攻",
+        "spellId": 1966,
+        "metric": "cooldown"
       },
-      "消失": {
+      "1856.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "消失",
+        "spellId": 1856,
+        "metric": "cooldown"
       },
-      "偷袭": {
+      "1833.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "偷袭",
+        "spellId": 1833,
+        "metric": "cooldown"
       },
-      "潜伏帷幕": {
+      "114018.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "潜伏帷幕",
+        "spellId": 114018,
+        "metric": "cooldown"
       },
-      "菊花茶": {
+      "381623.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "菊花茶",
+        "spellId": 381623,
+        "metric": "cooldown"
       },
-      "闪避": {
+      "5277.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "闪避",
+        "spellId": 5277,
+        "metric": "cooldown"
       },
-      "猩红之瓶": {
+      "185311.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "猩红之瓶",
+        "spellId": 185311,
+        "metric": "cooldown"
       },
-      "扰乱": {
+      "1725.cooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "扰乱",
+        "spellId": 1725,
+        "metric": "cooldown"
       },
-      "疾跑": {
+      "2983.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "疾跑",
+        "spellId": 2983,
+        "metric": "cooldown"
       },
-      "凿击": {
+      "1776.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "凿击",
+        "spellId": 1776,
+        "metric": "cooldown"
       },
-      "肾击": {
+      "408.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "肾击",
+        "spellId": 408,
+        "metric": "cooldown"
       },
-      "暗影斗篷": {
+      "31224.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影斗篷",
+        "spellId": 31224,
+        "metric": "cooldown"
       },
-      "脚踢": {
+      "1766.cooldown": {
         "step": 70,
-        "type": "int"
+        "type": "int",
+        "displayName": "脚踢",
+        "spellId": 1766,
+        "metric": "cooldown"
       },
-      "冲动": {
+      "13750.cooldown": {
         "step": 71,
-        "type": "int"
+        "type": "int",
+        "displayName": "冲动",
+        "spellId": 13750,
+        "metric": "cooldown"
       },
-      "影舞步": {
+      "51690.cooldown": {
         "step": 72,
-        "type": "int"
+        "type": "int",
+        "displayName": "影舞步",
+        "spellId": 51690,
+        "metric": "cooldown"
       },
-      "刀锋冲刺": {
+      "271877.cooldown": {
         "step": 73,
-        "type": "int"
+        "type": "int",
+        "displayName": "刀锋冲刺",
+        "spellId": 271877,
+        "metric": "cooldown"
       },
-      "正中眉心": {
+      "315341.cooldown": {
         "step": 74,
-        "type": "int"
+        "type": "int",
+        "displayName": "正中眉心",
+        "spellId": 315341,
+        "metric": "cooldown"
       },
-      "剑刃乱舞": {
+      "13877.cooldown": {
         "step": 75,
-        "type": "int"
+        "type": "int",
+        "displayName": "剑刃乱舞",
+        "spellId": 13877,
+        "metric": "cooldown"
       },
-      "抓钩": {
+      "195475.cooldown": {
         "step": 76,
-        "type": "int"
+        "type": "int",
+        "displayName": "抓钩",
+        "spellId": 195475,
+        "metric": "cooldown"
       },
-      "抓钩充能": {
+      "195475.chargeCooldown": {
         "step": 77,
-        "type": "int"
+        "type": "int",
+        "displayName": "抓钩充能",
+        "spellId": 195475,
+        "metric": "chargeCooldown"
       },
-      "命运骨骰": {
+      "1214909.cooldown": {
         "step": 78,
-        "type": "int"
+        "type": "int",
+        "displayName": "命运骨骰",
+        "spellId": 1214909,
+        "metric": "cooldown"
       },
-      "时运继延": {
+      "381989.cooldown": {
         "step": 79,
-        "type": "int"
+        "type": "int",
+        "displayName": "时运继延",
+        "spellId": 381989,
+        "metric": "cooldown"
       },
-      "伺机待发": {
+      "1277933.cooldown": {
         "step": 80,
-        "type": "int"
+        "type": "int",
+        "displayName": "伺机待发",
+        "spellId": 1277933,
+        "metric": "cooldown"
       }
     }
   },
@@ -934,85 +1144,145 @@
       "category": "鼠标"
     },
     "spells": {
-      "毒刃": {
+      "5938.cooldown": {
         "step": 45,
-        "type": "int"
+        "type": "int",
+        "displayName": "毒刃",
+        "spellId": 5938,
+        "metric": "cooldown"
       },
-      "致盲": {
+      "2094.cooldown": {
         "step": 46,
-        "type": "int"
+        "type": "int",
+        "displayName": "致盲",
+        "spellId": 2094,
+        "metric": "cooldown"
       },
-      "佯攻": {
+      "1966.cooldown": {
         "step": 47,
-        "type": "int"
+        "type": "int",
+        "displayName": "佯攻",
+        "spellId": 1966,
+        "metric": "cooldown"
       },
-      "消失": {
+      "1856.cooldown": {
         "step": 48,
-        "type": "int"
+        "type": "int",
+        "displayName": "消失",
+        "spellId": 1856,
+        "metric": "cooldown"
       },
-      "偷袭": {
+      "1833.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "偷袭",
+        "spellId": 1833,
+        "metric": "cooldown"
       },
-      "潜伏帷幕": {
+      "114018.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "潜伏帷幕",
+        "spellId": 114018,
+        "metric": "cooldown"
       },
-      "菊花茶": {
+      "381623.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "菊花茶",
+        "spellId": 381623,
+        "metric": "cooldown"
       },
-      "闪避": {
+      "5277.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "闪避",
+        "spellId": 5277,
+        "metric": "cooldown"
       },
-      "猩红之瓶": {
+      "185311.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "猩红之瓶",
+        "spellId": 185311,
+        "metric": "cooldown"
       },
-      "扰乱": {
+      "1725.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "扰乱",
+        "spellId": 1725,
+        "metric": "cooldown"
       },
-      "疾跑": {
+      "2983.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "疾跑",
+        "spellId": 2983,
+        "metric": "cooldown"
       },
-      "凿击": {
+      "1776.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "凿击",
+        "spellId": 1776,
+        "metric": "cooldown"
       },
-      "肾击": {
+      "408.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "肾击",
+        "spellId": 408,
+        "metric": "cooldown"
       },
-      "暗影斗篷": {
+      "31224.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影斗篷",
+        "spellId": 31224,
+        "metric": "cooldown"
       },
-      "脚踢": {
+      "1766.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "脚踢",
+        "spellId": 1766,
+        "metric": "cooldown"
       },
-      "暗影步": {
+      "36554.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影步",
+        "spellId": 36554,
+        "metric": "cooldown"
       },
-      "影分身": {
+      "280719.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "影分身",
+        "spellId": 280719,
+        "metric": "cooldown"
       },
-      "暗影之刃": {
+      "121471.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影之刃",
+        "spellId": 121471,
+        "metric": "cooldown"
       },
-      "暗影之舞": {
+      "185313.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影之舞",
+        "spellId": 185313,
+        "metric": "cooldown"
       },
-      "暗影之舞充能": {
+      "185313.chargeCooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "暗影之舞充能",
+        "spellId": 185313,
+        "metric": "chargeCooldown"
       }
     }
   }

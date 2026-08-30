@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Shigure;
 
@@ -1299,6 +1301,132 @@ public sealed class ModuleEditorControl : UserControl
 
         // 动态数值也是可用于条件的字段；新增、改名或删除后立即刷新规则行的缺失字段提示。
         InvalidateConditionFieldValidation();
+        RefreshAdjustmentValidation();
+    }
+
+    private void RefreshAdjustmentValidation()
+    {
+        var structuredFields = BuildStructuredFieldSet();
+        foreach (DataGridViewRow row in _adjustmentsGrid.Rows)
+        {
+            if (row.IsNewRow)
+            {
+                continue;
+            }
+
+            var messages = new List<string>();
+            AddMissingStructuredField(CellText(row, "Field"), "调整目标", structuredFields, messages);
+            AddMissingConditionReferences(CellText(row, "Condition"), structuredFields, messages);
+            ApplyAdjustmentValidationStyle(row, messages);
+        }
+
+        foreach (DataGridViewRow row in _formulaAdjustmentsGrid.Rows)
+        {
+            if (row.IsNewRow)
+            {
+                continue;
+            }
+
+            var messages = new List<string>();
+            foreach (Match match in Regex.Matches(
+                         FormulaEvaluator.NormalizeExpression(CellText(row, "Formula")),
+                         @"\b(?:auras|aura|spells|spell)\.[_$\p{L}\p{N}.]+",
+                         RegexOptions.IgnoreCase))
+            {
+                AddMissingStructuredField(match.Value, "公式字段", structuredFields, messages);
+            }
+            ApplyAdjustmentValidationStyle(row, messages);
+        }
+    }
+
+    private HashSet<string> BuildStructuredFieldSet()
+    {
+        var classId = ReadMatchCombo(_classBox);
+        var specId = ReadMatchCombo(_specBox);
+        var fields = new HashSet<string>(
+            _fieldCatalog.GetFields(classId, specId)
+                .Where(field => field.Category is ConditionFieldCategory.Aura or ConditionFieldCategory.Spell)
+                .Select(field => NormalizeConditionFieldName(field.Name)),
+            StringComparer.Ordinal);
+        fields.UnionWith(_fieldCatalog.GetAuraAliasFieldNames(classId, specId, groupOnly: false));
+        var groupFields = _fieldCatalog.GetGroupFields(classId, specId)
+            .Where(field => SpellFieldKey.TryParseAuraMember(field.Name, out _, out _))
+            .Select(field => field.Name)
+            .ToList();
+        groupFields.AddRange(_fieldCatalog.GetAuraAliasFieldNames(classId, specId, groupOnly: true));
+        fields.UnionWith(groupFields);
+        foreach (var unit in _units.Where(unit => !string.IsNullOrWhiteSpace(unit.Name)))
+        {
+            fields.UnionWith(groupFields.Select(field => $"{unit.Name}.{field}"));
+        }
+        return fields;
+    }
+
+    private void AddMissingConditionReferences(
+        string expression,
+        IReadOnlySet<string> structuredFields,
+        ICollection<string> messages)
+    {
+        var availableSpellIds = _currentClassConditionSpells.Select(spell => spell.SpellId).ToHashSet();
+        foreach (var term in ConditionExpression.Parse(expression))
+        {
+            if (SpellIdConditionFields.Contains(term.Field))
+            {
+                if (!long.TryParse(term.Value.Trim(), out var spellId)
+                    || spellId <= 0
+                    || !availableSpellIds.Contains(spellId))
+                {
+                    AddUnique(messages, $"{term.Field}不存在 spellId 为 {term.Value.Trim()} 的法术");
+                }
+                continue;
+            }
+
+            AddMissingStructuredField(term.Field, "条件字段", structuredFields, messages);
+        }
+    }
+
+    private static void AddMissingStructuredField(
+        string field,
+        string source,
+        IReadOnlySet<string> available,
+        ICollection<string> messages)
+    {
+        var normalized = NormalizeConditionFieldName(field);
+        var isStructured = normalized.StartsWith("auras.", StringComparison.Ordinal)
+            || normalized.StartsWith("spells.", StringComparison.Ordinal)
+            || normalized.Contains(".auras.", StringComparison.Ordinal);
+        if (!isStructured || available.Contains(normalized))
+        {
+            return;
+        }
+
+        var spellId = normalized.Split('.', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(part => long.TryParse(part, out var id) && id > 0);
+        AddUnique(messages, spellId is null
+            ? $"{source}不存在：{field}"
+            : $"{source}不存在 spellId 为 {spellId} 的字段：{field}");
+    }
+
+    private static void AddUnique(ICollection<string> values, string value)
+    {
+        if (!values.Contains(value))
+        {
+            values.Add(value);
+        }
+    }
+
+    private static void ApplyAdjustmentValidationStyle(DataGridViewRow row, IReadOnlyCollection<string> messages)
+    {
+        var text = string.Join('\n', messages);
+        row.ErrorText = text;
+        row.DefaultCellStyle.BackColor = messages.Count == 0 ? Color.Empty : UiTheme.DangerSoft;
+        row.DefaultCellStyle.ForeColor = messages.Count == 0 ? Color.Empty : UiTheme.Danger;
+        row.DefaultCellStyle.SelectionBackColor = messages.Count == 0 ? Color.Empty : UiTheme.Danger;
+        row.DefaultCellStyle.SelectionForeColor = messages.Count == 0 ? Color.Empty : UiTheme.Background;
+        foreach (DataGridViewCell cell in row.Cells)
+        {
+            cell.ToolTipText = text;
+        }
     }
 
     // 按该行选中的"类型"重建"数值"单元格的可选项 = 该类别下的字段。
@@ -1419,6 +1547,8 @@ public sealed class ModuleEditorControl : UserControl
         {
             InvalidateConditionFieldValidation();
         }
+
+        RefreshAdjustmentValidation();
     }
 
     private IReadOnlyList<ConditionField> BuildAdjustmentFields()
@@ -1628,19 +1758,51 @@ public sealed class ModuleEditorControl : UserControl
 
     private void RefreshUnitsList()
     {
+        var availableAuraIds = GetAuraFields()
+            .SelectMany(field => field.Name.Split('.', StringSplitOptions.RemoveEmptyEntries))
+            .Where(part => long.TryParse(part, out _))
+            .Select(long.Parse)
+            .ToHashSet();
         _unitsList.BeginUpdate();
         _unitsList.Items.Clear();
         foreach (var unit in _units)
         {
             var name = string.IsNullOrWhiteSpace(unit.HealthName) ? unit.Name : $"{unit.Name} / {unit.HealthName}";
-            var summary = UnitSummary.Describe(unit);
-            _unitsList.Items.Add(new ListViewItem([name, "单位", summary]) { ToolTipText = $"{name}\n{summary}" });
+            var summary = UnitSummary.Describe(unit, ResolveGroupAuraName);
+            var item = new ListViewItem([name, "单位", summary]) { ToolTipText = $"{name}\n{summary}" };
+            var missing = (unit.AuraSpellIds ?? []).Where(id => !availableAuraIds.Contains(id)).ToArray();
+            if (unit.AuraNames is { Count: > 0 })
+            {
+                item.BackColor = UiTheme.DangerSoft;
+                item.ForeColor = UiTheme.Danger;
+                item.ToolTipText += $"\n旧名称光环引用尚未转换：{string.Join("、", unit.AuraNames)}";
+            }
+            else if (missing.Length > 0)
+            {
+                item.BackColor = UiTheme.DangerSoft;
+                item.ForeColor = UiTheme.Danger;
+                item.ToolTipText += $"\n队伍不存在 spellId 为 {string.Join("、", missing)} 的光环";
+            }
+            _unitsList.Items.Add(item);
         }
 
         foreach (var count in _counts)
         {
-            var summary = UnitSummary.Describe(count);
-            _unitsList.Items.Add(new ListViewItem([count.Name, "数量", summary]) { ToolTipText = $"{count.Name}\n{summary}" });
+            var summary = UnitSummary.Describe(count, ResolveGroupAuraName);
+            var item = new ListViewItem([count.Name, "数量", summary]) { ToolTipText = $"{count.Name}\n{summary}" };
+            if (!string.IsNullOrWhiteSpace(count.AuraName))
+            {
+                item.BackColor = UiTheme.DangerSoft;
+                item.ForeColor = UiTheme.Danger;
+                item.ToolTipText += $"\n旧名称光环引用尚未转换：{count.AuraName}";
+            }
+            else if (count.AuraSpellId is { } id && !availableAuraIds.Contains(id))
+            {
+                item.BackColor = UiTheme.DangerSoft;
+                item.ForeColor = UiTheme.Danger;
+                item.ToolTipText += $"\n队伍不存在 spellId 为 {id} 的光环";
+            }
+            _unitsList.Items.Add(item);
         }
 
         _unitsList.EndUpdate();
@@ -1662,13 +1824,26 @@ public sealed class ModuleEditorControl : UserControl
         InvalidateConditionFieldValidation();
     }
 
-    private IReadOnlyList<string> GetAuraFields()
+    private IReadOnlyList<ConditionField> GetAuraFields()
     {
         return _fieldCatalog
             .GetGroupFields(ReadMatchCombo(_classBox), ReadMatchCombo(_specBox))
-            .Select(field => field.Name)
-            .Where(name => !NonAuraGroupFields.Contains(name))
+            .Where(field => !NonAuraGroupFields.Contains(field.Name))
             .ToList();
+    }
+
+    private string? ResolveGroupAuraName(long spellId)
+    {
+        foreach (var field in GetAuraFields())
+        {
+            if (field.Name.Split('.', StringSplitOptions.RemoveEmptyEntries)
+                .Any(part => long.TryParse(part, out var id) && id == spellId))
+            {
+                return field.DisplayName.Split(" / ", 2, StringSplitOptions.TrimEntries)[0];
+            }
+        }
+
+        return null;
     }
 
     private IReadOnlyList<string> GetThresholdFields()
@@ -2032,6 +2207,10 @@ public sealed class ModuleEditorControl : UserControl
         _availableGroupConditionFields = new HashSet<string>(
             _fieldCatalog.GetGroupFields(classId, specId).Select(field => field.Name),
             StringComparer.Ordinal);
+        _availableConditionFields.UnionWith(
+            _fieldCatalog.GetAuraAliasFieldNames(classId, specId, groupOnly: false));
+        _availableGroupConditionFields.UnionWith(
+            _fieldCatalog.GetAuraAliasFieldNames(classId, specId, groupOnly: true));
 
         // 运行时也支持“动态单位名.队伍字段”；编辑器目录未展开这些组合，这里仍应判定为有效。
         foreach (var unit in _units.Where(unit => !string.IsNullOrWhiteSpace(unit.Name)))
@@ -2629,12 +2808,14 @@ public sealed class ModuleEditorControl : UserControl
             if (!string.IsNullOrWhiteSpace(editor.ConditionText))
             {
                 _adjustmentsGrid.Rows.Add(true, string.Empty, 0, editor.ConditionText);
+                RefreshAdjustmentFieldColumn();
             }
 
             return;
         }
 
         row.Cells["Condition"].Value = editor.ConditionText;
+        RefreshAdjustmentValidation();
     }
 
     private void OpenFormulaEditor(int rowIndex)
@@ -3289,11 +3470,11 @@ public sealed class ModuleEditorControl : UserControl
         _counts.AddRange(module.Counts.Select(count => count.Clone()));
         _valueAdjustments.Clear();
         _valueAdjustments.AddRange(module.ValueAdjustments.Select(adjustment => adjustment.Clone()));
-        RefreshUnitsList();
         SelectClass(module.Match.ClassId);
         SelectSpec(module.Match.SpecId);
         SelectPartyType(module.Match.PartyType);
         SelectHeroTalent(module.Match.HeroTalent);
+        RefreshUnitsList();
         _pathLabel.Text = module.FilePath ?? "尚未保存";
         _versionLabel.Text = string.IsNullOrWhiteSpace(module.Version) ? "版本 未知" : $"版本 {module.Version}";
         _adjustmentsGrid.Rows.Clear();
@@ -3323,16 +3504,17 @@ public sealed class ModuleEditorControl : UserControl
 
         foreach (var rule in module.Rules)
         {
+            var ruleSpellDisplay = DisplayRuleSpell(rule.Spell);
             // 动态目标优先显示单位名；保留单位显示中文，其余团队槽位显示数字。
             var unitText = !string.IsNullOrWhiteSpace(rule.UnitName)
                 ? rule.UnitName!
                 : rule.Unit is { } unit ? ReservedUnit.ToDisplayText(unit) : string.Empty;
-            EnsureComboItem(_spellColumn, rule.Spell);
+            EnsureComboItem(_spellColumn, ruleSpellDisplay);
             // 先加行(目标先留空), 再按技能重建目标选项并写回目标值, 避免值不在选项内被吞掉。
             var index = _rulesGrid.Rows.Add(
                 rule.Enabled,
-                GetRuleSpellIcon(rule.Spell)!,
-                rule.Spell,
+                GetRuleSpellIcon(ruleSpellDisplay)!,
+                ruleSpellDisplay,
                 string.Empty,
                 string.Empty,
                 rule.Condition,
@@ -3524,8 +3706,274 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         module.ValueAdjustments = valueAdjustments;
-        module.Rules = ReadRules();
+        if (!TryReadRules(out var rules, out var rulesError))
+        {
+            MessageBox.Show(rulesError, "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        module.Rules = rules;
+        if (!TryUpgradeLegacySpellReferences(module, out var upgradeError))
+        {
+            MessageBox.Show(upgradeError, "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
         return true;
+    }
+
+    private bool TryUpgradeLegacySpellReferences(ModuleDefinition module, out string error)
+    {
+        error = string.Empty;
+        var failure = string.Empty;
+        var candidates = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        void Add(string legacy, string current)
+        {
+            if (string.IsNullOrWhiteSpace(legacy) || string.IsNullOrWhiteSpace(current))
+            {
+                return;
+            }
+
+            if (!candidates.TryGetValue(legacy, out var values))
+            {
+                values = new HashSet<string>(StringComparer.Ordinal);
+                candidates[legacy] = values;
+            }
+            values.Add(current);
+        }
+
+        var spec = module.Dependencies?.Config?.Spec;
+        if (spec is not null)
+        {
+            AddAuraEntries(spec.PlayerAuras, "player", string.Empty);
+            AddAuraEntries(spec.TargetHarmfulAuras, "target.harmful", "目标");
+            AddAuraEntries(spec.TargetHelpfulAuras, "target.helpful", "目标");
+            AddAuraEntries(spec.FocusHarmfulAuras, "focus.harmful", "焦点");
+            AddAuraEntries(spec.FocusHelpfulAuras, "focus.helpful", "焦点");
+            foreach (var spell in spec.Spells ?? [])
+            {
+                if (spell.SpellId <= 0 || string.IsNullOrWhiteSpace(spell.Name))
+                {
+                    continue;
+                }
+                Add($"spells.{spell.Name}", SpellFieldKey.Spell(spell.SpellId));
+                if (spell.Charge)
+                {
+                    Add($"spells.{spell.Name}充能", SpellFieldKey.Spell(spell.SpellId, SpellFieldKey.SpellChargeCooldown));
+                }
+                if (spell.MaxCharge is not null || spell.CastCount is not null)
+                {
+                    Add($"spells.{spell.Name}层数", SpellFieldKey.Spell(spell.SpellId, SpellFieldKey.SpellCount));
+                }
+            }
+        }
+
+        foreach (var field in _fieldCatalog.GetGroupFields(module.Match.ClassId, module.Match.SpecId)
+                     .Where(field => field.Name.StartsWith("auras.", StringComparison.Ordinal)))
+        {
+            var display = field.DisplayName.Split(" / ", 2, StringSplitOptions.TrimEntries)[0];
+            Add(display, field.Name);
+        }
+
+        var ambiguous = candidates.Where(pair => pair.Value.Count != 1).Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal);
+        var replacements = candidates
+            .Where(pair => pair.Value.Count == 1)
+            .ToDictionary(pair => pair.Key, pair => pair.Value.Single(), StringComparer.Ordinal);
+        var dynamicFieldNames = module.Units
+            .SelectMany(unit => new[] { unit.Name, unit.HealthName })
+            .Concat(module.Counts.Select(count => count.Name))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        for (var ruleIndex = 0; ruleIndex < module.Rules.Count; ruleIndex++)
+        {
+            var rule = module.Rules[ruleIndex];
+            var rowLabel = $"规则第 {ruleIndex + 1} 行";
+            if (!TryReplace(rule.Condition, $"{rowLabel}主条件", out var condition)
+                || rule.SubConditions is not null
+                && !TryReplaceList(rule.SubConditions, index => $"{rowLabel}子条件第 {index + 1} 行"))
+            {
+                error = failure;
+                return false;
+            }
+            rule.Condition = condition;
+        }
+        for (var adjustmentIndex = 0; adjustmentIndex < module.ValueAdjustments.Count; adjustmentIndex++)
+        {
+            var adjustment = module.ValueAdjustments[adjustmentIndex];
+            var rowLabel = $"动态数值第 {adjustmentIndex + 1} 行";
+            if (!TryReplace(adjustment.Condition, $"{rowLabel}条件", out var condition)
+                || !TryReplace(adjustment.Field, $"{rowLabel}调整目标", out var field)
+                || !TryReplace(adjustment.Formula, $"{rowLabel}公式", out var formula))
+            {
+                error = failure;
+                return false;
+            }
+            adjustment.Condition = condition;
+            adjustment.Field = field;
+            adjustment.Formula = formula;
+        }
+
+        for (var unitIndex = 0; unitIndex < module.Units.Count; unitIndex++)
+        {
+            var unit = module.Units[unitIndex];
+            if (unit.AuraNames is not { Count: > 0 })
+            {
+                continue;
+            }
+            var ids = new List<long>();
+            foreach (var name in unit.AuraNames)
+            {
+                if (!replacements.TryGetValue(name, out var key) || !TryExtractId(key, out var id))
+                {
+                    error = $"动态单位第 {unitIndex + 1} 行“{unit.Name}”引用的队伍光环“{name}”无法唯一转换为本地 spellId。";
+                    return false;
+                }
+                ids.Add(id);
+            }
+            unit.AuraSpellIds = ids.Distinct().ToList();
+            unit.AuraNames = null;
+        }
+        for (var countIndex = 0; countIndex < module.Counts.Count; countIndex++)
+        {
+            var count = module.Counts[countIndex];
+            if (string.IsNullOrWhiteSpace(count.AuraName))
+            {
+                continue;
+            }
+            if (!replacements.TryGetValue(count.AuraName, out var key) || !TryExtractId(key, out var id))
+            {
+                error = $"动态数量第 {countIndex + 1} 行“{count.Name}”引用的队伍光环“{count.AuraName}”无法唯一转换为本地 spellId。";
+                return false;
+            }
+            count.AuraSpellId = id;
+            count.AuraName = null;
+        }
+
+        return true;
+
+        void AddAuraEntries(IEnumerable<ModuleAuraSnapshot>? entries, string scope, string prefix)
+        {
+            foreach (var aura in entries ?? [])
+            {
+                var id = SpellFieldKey.CanonicalAuraId(aura.SpellId, aura.SpellIds);
+                if (id is null || string.IsNullOrWhiteSpace(aura.Name))
+                {
+                    continue;
+                }
+                Add($"auras.{prefix}{aura.Name}", SpellFieldKey.Aura(scope, id.Value));
+                if (aura.MaxApps is not null)
+                {
+                    Add($"auras.{prefix}{aura.Name}层数", SpellFieldKey.Aura(scope, id.Value, SpellFieldKey.AuraApplications));
+                }
+            }
+        }
+
+        bool TryReplace(string source, string location, out string result)
+        {
+            result = source ?? string.Empty;
+
+            // 兼容修复旧迁移逻辑曾经造成的子串污染，例如：
+            // “无救赎最低”被错误写成“无auras.194384.value最低”。
+            foreach (var dynamicName in dynamicFieldNames)
+            {
+                foreach (var pair in replacements)
+                {
+                    if (!dynamicName.Contains(pair.Key, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var corrupted = dynamicName.Replace(pair.Key, pair.Value, StringComparison.Ordinal);
+                    if (!string.Equals(corrupted, dynamicName, StringComparison.Ordinal))
+                    {
+                        result = ReplaceFieldReference(result, corrupted, dynamicName);
+                    }
+                }
+            }
+
+            // 动态单位/生命值/数量名称优先于旧光环显示名。先暂存完整引用，
+            // 防止名称恰好等于或包含旧光环名时被迁移逻辑改写。
+            var protectedReferences = new List<(string Placeholder, string Name)>();
+            for (var index = 0; index < dynamicFieldNames.Length; index++)
+            {
+                var name = dynamicFieldNames[index];
+                if (!ContainsFieldReference(result, name))
+                {
+                    continue;
+                }
+
+                var placeholder = $"__SHIGURE_DYNAMIC_FIELD_{index}__";
+                result = ReplaceFieldReference(result, name, placeholder);
+                protectedReferences.Add((placeholder, name));
+            }
+
+            foreach (var key in ambiguous)
+            {
+                if (ContainsFieldReference(result, key))
+                {
+                    failure = $"{location}：旧模块字段“{key}”对应多个 spellId，请重新选择后再保存。";
+                    return false;
+                }
+            }
+            foreach (var pair in replacements.OrderByDescending(pair => pair.Key.Length))
+            {
+                result = ReplaceFieldReference(result, pair.Key, pair.Value);
+            }
+            if (Regex.IsMatch(result, @"\b(?:auras|spells)\.[^\s&|<>=!+\-*/()]+"))
+            {
+                var unresolved = Regex.Match(result, @"\b(?:auras|spells)\.[^\s&|<>=!+\-*/()]+").Value;
+                if (!SpellFieldKey.TryParseAura(unresolved, out _, out _, out _)
+                    && !SpellFieldKey.TryParseAuraMember(unresolved, out _, out _)
+                    && !SpellFieldKey.TryParseSpell(unresolved, out _, out _))
+                {
+                    failure = $"{location}：旧模块字段“{unresolved}”无法转换为 spellId，请重新选择后再保存。";
+                    return false;
+                }
+            }
+            foreach (var (placeholder, name) in protectedReferences)
+            {
+                result = result.Replace(placeholder, name, StringComparison.Ordinal);
+            }
+            return true;
+        }
+
+        static bool ContainsFieldReference(string source, string field)
+            => Regex.IsMatch(source, FieldReferencePattern(field));
+
+        static string ReplaceFieldReference(string source, string field, string replacement)
+            => Regex.Replace(source, FieldReferencePattern(field), _ => replacement);
+
+        static string FieldReferencePattern(string field)
+            => $@"(?<![_$\p{{L}}\p{{N}}]){Regex.Escape(field)}(?![_$\p{{L}}\p{{N}}])";
+
+        bool TryReplaceList(List<string> values, Func<int, string> location)
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (!TryReplace(values[i], location(i), out var replaced))
+                {
+                    return false;
+                }
+                values[i] = replaced;
+            }
+            return true;
+        }
+
+        static bool TryExtractId(string key, out long id)
+        {
+            foreach (var part in key.Split('.', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (long.TryParse(part, out id) && id > 0)
+                {
+                    return true;
+                }
+            }
+            id = 0;
+            return false;
+        }
     }
 
     private bool TryReadValueAdjustments(out List<ModuleValueAdjustment> adjustments, out string error)
@@ -3612,12 +4060,13 @@ public sealed class ModuleEditorControl : UserControl
         return true;
     }
 
-    private List<ModuleRule> ReadRules()
+    private bool TryReadRules(out List<ModuleRule> rules, out string error)
     {
+        error = string.Empty;
         var unitNames = new HashSet<string>(
             _units.Where(unit => !string.IsNullOrWhiteSpace(unit.Name)).Select(unit => unit.Name),
             StringComparer.Ordinal);
-        var rules = new List<ModuleRule>();
+        rules = new List<ModuleRule>();
         foreach (DataGridViewRow row in _rulesGrid.Rows)
         {
             if (row.IsNewRow)
@@ -3666,7 +4115,24 @@ public sealed class ModuleEditorControl : UserControl
             });
         }
 
-        return rules;
+        return true;
+    }
+
+    private string DisplayRuleSpell(string? persisted)
+    {
+        var value = persisted?.Trim() ?? string.Empty;
+        if (value.Length == 0 || ModuleSpecialActions.IsPauseSpell(value)
+            || ModuleSpecialActions.IsFailedSpell(value) || ModuleSpecialActions.IsOneKeySpell(value))
+        {
+            return value;
+        }
+
+        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spellId))
+        {
+            return _currentClassConditionSpells.FirstOrDefault(spell => spell.SpellId == spellId)?.Name ?? value;
+        }
+
+        return value;
     }
 
     private static RuleRowMetadata GetRuleMetadata(DataGridViewRow row)

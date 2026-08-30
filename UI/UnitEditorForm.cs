@@ -71,7 +71,7 @@ public sealed class UnitEditorForm : Form
         new("动态阈值", true)
     ];
 
-    private readonly IReadOnlyList<string> _auraFields;
+    private readonly IReadOnlyList<ConditionField> _auraFields;
     private readonly IReadOnlyList<string> _thresholdFields;
     private readonly HashSet<string> _takenNames;
 
@@ -114,7 +114,7 @@ public sealed class UnitEditorForm : Form
     public ModuleCountField? ResultCount { get; private set; }
 
     public UnitEditorForm(
-        IReadOnlyList<string> auraFields,
+        IReadOnlyList<ConditionField> auraFields,
         IReadOnlyList<string> thresholdFields,
         IReadOnlyCollection<string> takenNames,
         ModuleUnit? existingUnit,
@@ -626,10 +626,10 @@ public sealed class UnitEditorForm : Form
             {
                 Name = _nameBox.Text.Trim(),
                 Kind = (_selectorBox.SelectedItem as CountItem)?.Kind ?? CountKind.UnitsBelowHealth,
-                AuraName = SelectedAura()
+                AuraSpellId = SelectedAura()
             };
             ApplyPreviewThreshold(v => count.HealthThreshold = v, f => count.HealthThresholdField = f);
-            return UnitSummary.Describe(count);
+            return UnitSummary.Describe(count, ResolveAuraName);
         }
 
         var unit = new ModuleUnit
@@ -642,14 +642,14 @@ public sealed class UnitEditorForm : Form
             AuraCount = (int)_auraCountBox.Value,
             DispelType = SelectedDispelType()
         };
-        unit.AuraNames = unit.Kind is UnitSelectorKind.LowestHealthWithAnyAura
+        unit.AuraSpellIds = unit.Kind is UnitSelectorKind.LowestHealthWithAnyAura
             or UnitSelectorKind.LowestHealthWithoutAnyAura
             or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
             or UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
             ? CheckedAuras()
             : SingleAuraList();
         ApplyPreviewThreshold(v => unit.HealthThreshold = v, f => unit.HealthThresholdField = f);
-        return UnitSummary.Describe(unit);
+        return UnitSummary.Describe(unit, ResolveAuraName);
     }
 
     // "生命值最低"/"治疗吸收最高" 的具体子类型取决于光环筛选下拉, 与 OnConfirm 的分支保持一致。
@@ -709,7 +709,7 @@ public sealed class UnitEditorForm : Form
             }
 
             SeedThresholdField(count.HealthThresholdField);
-            SelectAura(_auraBox, count.AuraName);
+            SelectAura(_auraBox, count.AuraSpellId ?? ResolveLegacyAura(count.AuraName));
             return;
         }
 
@@ -734,8 +734,11 @@ public sealed class UnitEditorForm : Form
             }
 
             _reverseBox.Checked = unit.Reverse;
-            SelectAura(_auraBox, unit.AuraNames is { Count: > 0 } ? unit.AuraNames[0] : null);
-            CheckAuras(unit.AuraNames);
+            var auraSpellIds = unit.AuraSpellIds is { Count: > 0 }
+                ? unit.AuraSpellIds
+                : (unit.AuraNames ?? []).Select(ResolveLegacyAura).Where(id => id is not null).Select(id => id!.Value).ToList();
+            SelectAura(_auraBox, auraSpellIds is { Count: > 0 } ? auraSpellIds[0] : null);
+            CheckAuras(auraSpellIds);
             if (unit.AuraCount is { } ac)
             {
                 _auraCountBox.Value = Clamp(ac, _auraCountBox);
@@ -776,7 +779,7 @@ public sealed class UnitEditorForm : Form
                         return;
                     }
 
-                    count.AuraName = SelectedAura();
+                    count.AuraSpellId = SelectedAura();
                     break;
                 case CountKind.UnitsWithAuraBelowHealth:
                     if (!ApplyThreshold(count))
@@ -784,10 +787,10 @@ public sealed class UnitEditorForm : Form
                         return;
                     }
 
-                    count.AuraName = SelectedAura();
+                    count.AuraSpellId = SelectedAura();
                     break;
                 case CountKind.UnitsWithAura:
-                    count.AuraName = SelectedAura();
+                    count.AuraSpellId = SelectedAura();
                     break;
                 case CountKind.UnitsAboveHealingAbsorb:
                     if (!ApplyThreshold(count))
@@ -803,11 +806,11 @@ public sealed class UnitEditorForm : Form
                         return;
                     }
 
-                    count.AuraName = SelectedAura();
+                    count.AuraSpellId = SelectedAura();
                     break;
             }
 
-            if (RequiresAura(kind) && string.IsNullOrEmpty(count.AuraName))
+            if (RequiresAura(kind) && count.AuraSpellId is null)
             {
                 MessageBox.Show("请选择光环。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -842,8 +845,8 @@ public sealed class UnitEditorForm : Form
                         moduleUnit.Kind = healingAbsorb
                             ? UnitSelectorKind.HighestHealingAbsorbWithAnyAura
                             : UnitSelectorKind.LowestHealthWithAnyAura;
-                        moduleUnit.AuraNames = CheckedAuras();
-                        if (moduleUnit.AuraNames.Count == 0)
+                        moduleUnit.AuraSpellIds = CheckedAuras();
+                        if (moduleUnit.AuraSpellIds.Count == 0)
                         {
                             MessageBox.Show("请至少勾选一个光环。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
@@ -854,8 +857,8 @@ public sealed class UnitEditorForm : Form
                         moduleUnit.Kind = healingAbsorb
                             ? UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
                             : UnitSelectorKind.LowestHealthWithoutAnyAura;
-                        moduleUnit.AuraNames = CheckedAuras();
-                        if (moduleUnit.AuraNames.Count == 0)
+                        moduleUnit.AuraSpellIds = CheckedAuras();
+                        if (moduleUnit.AuraSpellIds.Count == 0)
                         {
                             MessageBox.Show("请至少勾选一个光环。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
@@ -866,19 +869,19 @@ public sealed class UnitEditorForm : Form
                         moduleUnit.Kind = healingAbsorb
                             ? UnitSelectorKind.HighestHealingAbsorbWithoutAura
                             : UnitSelectorKind.LowestHealthWithoutAura;
-                        moduleUnit.AuraNames = SingleAuraList();
+                        moduleUnit.AuraSpellIds = SingleAuraList();
                         break;
                     case LowestHealthAuraFilterKind.WithAura:
                         moduleUnit.Kind = healingAbsorb
                             ? UnitSelectorKind.HighestHealingAbsorbWithAura
                             : UnitSelectorKind.LowestHealthWithAura;
-                        moduleUnit.AuraNames = SingleAuraList();
+                        moduleUnit.AuraSpellIds = SingleAuraList();
                         break;
                     case LowestHealthAuraFilterKind.WithAuraCount:
                         moduleUnit.Kind = healingAbsorb
                             ? UnitSelectorKind.HighestHealingAbsorbWithAuraCount
                             : UnitSelectorKind.LowestHealthWithAuraCount;
-                        moduleUnit.AuraNames = SingleAuraList();
+                        moduleUnit.AuraSpellIds = SingleAuraList();
                         moduleUnit.AuraCount = (int)_auraCountBox.Value;
                         break;
                 }
@@ -893,8 +896,8 @@ public sealed class UnitEditorForm : Form
                     return;
                 }
 
-                moduleUnit.AuraNames = CheckedAuras();
-                if (moduleUnit.AuraNames.Count == 0)
+                moduleUnit.AuraSpellIds = CheckedAuras();
+                if (moduleUnit.AuraSpellIds.Count == 0)
                 {
                     MessageBox.Show("请至少勾选一个光环。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
@@ -910,7 +913,7 @@ public sealed class UnitEditorForm : Form
                     return;
                 }
 
-                moduleUnit.AuraNames = SingleAuraList();
+                moduleUnit.AuraSpellIds = SingleAuraList();
                 break;
             case UnitSelectorKind.LowestHealthWithAuraCount:
             case UnitSelectorKind.HighestHealingAbsorbWithAuraCount:
@@ -919,7 +922,7 @@ public sealed class UnitEditorForm : Form
                     return;
                 }
 
-                moduleUnit.AuraNames = SingleAuraList();
+                moduleUnit.AuraSpellIds = SingleAuraList();
                 moduleUnit.AuraCount = (int)_auraCountBox.Value;
                 break;
             case UnitSelectorKind.UnitWithRole:
@@ -929,17 +932,17 @@ public sealed class UnitEditorForm : Form
             case UnitSelectorKind.UnitWithRoleWithoutAura:
                 moduleUnit.Role = SelectedRole();
                 moduleUnit.Reverse = _reverseBox.Checked;
-                moduleUnit.AuraNames = SingleAuraList();
+                moduleUnit.AuraSpellIds = SingleAuraList();
                 break;
             case UnitSelectorKind.UnitWithAura:
-                moduleUnit.AuraNames = SingleAuraList();
+                moduleUnit.AuraSpellIds = SingleAuraList();
                 break;
             case UnitSelectorKind.UnitWithDispelType:
                 moduleUnit.DispelType = SelectedDispelType();
                 break;
         }
 
-        if (UnitRequiresAura(moduleUnit.Kind) && (moduleUnit.AuraNames is null || moduleUnit.AuraNames.Count == 0))
+        if (UnitRequiresAura(moduleUnit.Kind) && (moduleUnit.AuraSpellIds is null || moduleUnit.AuraSpellIds.Count == 0))
         {
             MessageBox.Show("请选择光环。", "Shigure", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
@@ -1107,7 +1110,8 @@ public sealed class UnitEditorForm : Form
             or UnitSelectorKind.UnitWithRoleWithoutAura
             or UnitSelectorKind.UnitWithAura;
 
-    private string? SelectedAura() => _auraBox.SelectedItem?.ToString();
+    private long? SelectedAura()
+        => TryReadAuraSpellId(_auraBox.SelectedItem, out var spellId) ? spellId : null;
 
     private LowestHealthAuraFilterKind SelectedLowestHealthAuraFilter()
         => (_lowestHealthAuraFilterBox.SelectedItem as LowestHealthAuraFilterItem)?.Kind
@@ -1116,20 +1120,20 @@ public sealed class UnitEditorForm : Form
     private UnitRoleFilterKind? SelectedLowestHealthRoleFilter()
         => (_lowestHealthRoleFilterBox.SelectedItem as LowestHealthRoleFilterItem)?.Kind;
 
-    private List<string> SingleAuraList()
+    private List<long> SingleAuraList()
     {
         var aura = SelectedAura();
-        return string.IsNullOrEmpty(aura) ? new List<string>() : new List<string> { aura };
+        return aura is null ? new List<long>() : new List<long> { aura.Value };
     }
 
-    private List<string> CheckedAuras()
+    private List<long> CheckedAuras()
     {
-        var list = new List<string>();
+        var list = new List<long>();
         foreach (var item in _aurasBox.CheckedItems)
         {
-            if (item?.ToString() is { Length: > 0 } name)
+            if (TryReadAuraSpellId(item, out var spellId) && !list.Contains(spellId))
             {
-                list.Add(name);
+                list.Add(spellId);
             }
         }
 
@@ -1286,40 +1290,102 @@ public sealed class UnitEditorForm : Form
         _dispelTypeBox.SelectedIndex = 0;
     }
 
-    private static void SelectAura(UiDropDown box, string? aura)
+    private static void SelectAura(UiDropDown box, long? auraSpellId)
     {
-        if (string.IsNullOrEmpty(aura))
+        if (auraSpellId is null)
         {
             return;
         }
 
-        var index = box.Items.IndexOf(aura);
+        var index = -1;
+        for (var i = 0; i < box.Items.Count; i++)
+        {
+            if (TryReadAuraSpellId(box.Items[i], out var existing) && existing == auraSpellId)
+            {
+                index = i;
+                break;
+            }
+        }
         if (index < 0)
         {
-            box.Items.Add(aura);
+            box.Items.Add(UnknownAura(auraSpellId.Value));
             index = box.Items.Count - 1;
         }
 
         box.SelectedIndex = index;
     }
 
-    private void CheckAuras(List<string>? auras)
+    private void CheckAuras(List<long>? auraSpellIds)
     {
-        if (auras is null)
+        if (auraSpellIds is null)
         {
             return;
         }
 
-        foreach (var aura in auras)
+        foreach (var auraSpellId in auraSpellIds)
         {
-            var index = _aurasBox.Items.IndexOf(aura);
+            var index = -1;
+            for (var i = 0; i < _aurasBox.Items.Count; i++)
+            {
+                if (TryReadAuraSpellId(_aurasBox.Items[i], out var existing) && existing == auraSpellId)
+                {
+                    index = i;
+                    break;
+                }
+            }
             if (index < 0)
             {
-                index = _aurasBox.Items.Add(aura);
+                index = _aurasBox.Items.Add(UnknownAura(auraSpellId));
             }
 
             _aurasBox.SetItemChecked(index, true);
         }
+    }
+
+    private static ConditionField UnknownAura(long spellId)
+        => new(
+            SpellFieldKey.AuraMember(spellId),
+            $"未知光环 / {spellId}",
+            ConditionFieldType.Int,
+            ConditionFieldCategory.Aura);
+
+    private static bool TryReadAuraSpellId(object? item, out long spellId)
+    {
+        var value = item is ConditionField field ? field.Name : item?.ToString();
+        foreach (var part in value?.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [])
+        {
+            if (long.TryParse(part, out spellId) && spellId > 0)
+            {
+                return true;
+            }
+        }
+
+        spellId = 0;
+        return false;
+    }
+
+    private string? ResolveAuraName(long spellId)
+        => _auraFields.FirstOrDefault(field => TryReadAuraSpellId(field, out var id) && id == spellId)
+            ?.DisplayName.Split(" / ", 2, StringSplitOptions.TrimEntries)[0];
+
+    private long? ResolveLegacyAura(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
+
+        var matches = _auraFields
+            .Where(field => string.Equals(
+                field.DisplayName.Split(" / ", 2, StringSplitOptions.TrimEntries)[0],
+                name.Trim(),
+                StringComparison.Ordinal))
+            .Select(field => TryReadAuraSpellId(field, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .Distinct()
+            .Take(2)
+            .ToArray();
+        return matches.Length == 1 ? matches[0] : null;
     }
 
     private static decimal Clamp(int value, NumericUpDown box)
