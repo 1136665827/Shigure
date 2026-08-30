@@ -43,7 +43,7 @@ verified_at: 2026-08-10
 - 上级：[[00-导航/00-Shigure-知识库首页]]、[[10-系统/00-Shigure-双项目系统全景]]
 - 跨项目入口：[[40-跨项目/00-Shigure-跨项目契约-MOC]]
 - 插件入口：[[20-Fuyutsui/00-Fuyutsui-MOC]]
-- 项目原始说明：`README.md`、`CLAUDE.md`、`打包说明.md`
+- 项目原始说明：`README.md`、`CLAUDE.md`
 
 ## 一条完整执行链
 

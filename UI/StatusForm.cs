@@ -35,6 +35,8 @@ internal enum SettingsNavIcon
     About
 }
 
+internal sealed record BossNumberOption(int Number, string Dungeon, string Name);
+
 public sealed class StatusForm : Form
 {
     private const string AboutWatermarkResourcePath = "Assets.arasaka-icon-transparent.png";
@@ -1596,6 +1598,17 @@ public sealed class StatusForm : Form
 
         ReplaceItems(_spellList, items);
     }
+
+    internal static IReadOnlyList<BossNumberOption> GetBossNumberOptions()
+        => BossNumberGroups
+            .SelectMany(group => group.Dungeons)
+            .SelectMany(dungeon => dungeon.Bosses.Select(boss => new BossNumberOption(
+                boss.Number,
+                dungeon.Name,
+                boss.Name)))
+            .DistinctBy(option => option.Number)
+            .OrderBy(option => option.Number)
+            .ToArray();
 
     private static string DisplaySpellStateKey(string root, string key)
     {
