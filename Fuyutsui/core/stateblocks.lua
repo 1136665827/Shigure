@@ -140,6 +140,7 @@ local stateBlockGetters = {
         ["姿态"] = function() return state.shapeshiftFormID or 0 end,
         ["天启骑士数量"] = function() return state.knightCount or 0 end,
         ["自律"] = function() return state.forbearance or 0 end,
+        ["上个技能"] = function() return state.PreviousSkill or 0 end,
 
         ["爆发开关"] = function(self) return GetConfigPixel(self, "cooldowns") end,
         ["AOE开关"] = function(self) return GetConfigPixel(self, "aoeMode") end,

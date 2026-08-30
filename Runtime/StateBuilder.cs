@@ -35,6 +35,7 @@ public sealed class StateBuilder : IRuntimeStateBuilder
         if (JsonHelpers.Get(stateConfig, "spells") is JsonObject spellsConfig)
         {
             result["spells"] = BuildFieldMap(spellsConfig, rowData, barData);
+            result["$spellDisplayTypes"] = BuildSpellDisplayTypes(spellsConfig);
         }
 
         if (JsonHelpers.Get(stateConfig, "auras") is JsonObject aurasConfig)
@@ -64,7 +65,29 @@ public sealed class StateBuilder : IRuntimeStateBuilder
                 continue;
             }
 
-            values[fieldName] = ConvertRawValue(ResolveRaw(field, rowData, barData), JsonHelpers.GetString(JsonHelpers.Get(field, "type")));
+            var value = ConvertRawValue(ResolveRaw(field, rowData, barData), JsonHelpers.GetString(JsonHelpers.Get(field, "type")));
+            values[fieldName] = value;
+            AddAuraAliases(values, field, value, includeScope: true);
+        }
+
+        return values;
+    }
+
+    private static Dictionary<string, string> BuildSpellDisplayTypes(JsonObject fieldsConfig)
+    {
+        var values = new Dictionary<string, string>();
+        foreach (var (fieldName, node) in fieldsConfig)
+        {
+            if (node is not JsonObject field)
+            {
+                continue;
+            }
+
+            var displayType = JsonHelpers.GetString(JsonHelpers.Get(field, "displayType"));
+            if (!string.IsNullOrWhiteSpace(displayType))
+            {
+                values[fieldName] = displayType;
+            }
         }
 
         return values;
@@ -105,7 +128,9 @@ public sealed class StateBuilder : IRuntimeStateBuilder
                         : rowData.TryGetValue(baseStep + relStep.Value, out var rawValue) ? rawValue : null;
                 }
 
-                sub[fieldName] = ConvertRawValue(raw, JsonHelpers.GetString(JsonHelpers.Get(field, "type")));
+                var value = ConvertRawValue(raw, JsonHelpers.GetString(JsonHelpers.Get(field, "type")));
+                sub[fieldName] = value;
+                AddAuraAliases(sub, field, value, includeScope: false);
             }
 
             // 治疗吸收来自网格扫描：白块右侧像素的 B=单位编号，G-1=吸收值。
@@ -122,6 +147,36 @@ public sealed class StateBuilder : IRuntimeStateBuilder
         }
 
         return group;
+    }
+
+    private static void AddAuraAliases(
+        IDictionary<string, object?> target,
+        JsonObject field,
+        object? value,
+        bool includeScope)
+    {
+        var canonicalId = JsonHelpers.GetLong(JsonHelpers.Get(field, "spellId"));
+        var metric = JsonHelpers.GetString(JsonHelpers.Get(field, "metric"));
+        var scope = JsonHelpers.GetString(JsonHelpers.Get(field, "scope"));
+        if (canonicalId is null || string.IsNullOrWhiteSpace(metric)
+            || JsonHelpers.Get(field, "spellIds") is not JsonArray aliases)
+        {
+            return;
+        }
+
+        foreach (var node in aliases)
+        {
+            var alias = JsonHelpers.GetLong(node);
+            if (alias is null || alias == canonicalId)
+            {
+                continue;
+            }
+
+            var key = includeScope
+                ? $"{scope}.{alias}.{metric}"
+                : $"auras.{alias}.{metric}";
+            target[key] = value;
+        }
     }
 
     private static int? ResolveRaw(JsonObject field, IReadOnlyDictionary<int, int> rowData, IReadOnlyDictionary<int, int> barData)

@@ -76,8 +76,8 @@ function Fuyutsui:ClearInsertSpell()
     self:UpdateStateBlock("状态", "插入法术")
 end
 
---- index: spellsList 中的宏序号；spellName/unit 仅用于提示
-function Fuyutsui:SetInsertSpell(index, spellName, unit)
+--- index: spellsList 中的宏序号；spellName/spellId 仅用于提示
+function Fuyutsui:SetInsertSpell(index, spellName, spellId)
     if insertSpellTimer then
         insertSpellTimer:Cancel()
         insertSpellTimer = nil
@@ -86,9 +86,7 @@ function Fuyutsui:SetInsertSpell(index, spellName, unit)
     state.insertSpell = index / 255
     self:UpdateStateBlock("状态", "插入法术")
     local msg = "|cff00ff00[Fuyutsui]|r 插入法术: |cff00ff00" .. (spellName or "?") .. "|r"
-    if unit and unit ~= "" then
-        msg = msg .. " @" .. unit
-    end
+        .. "（spellId: " .. (spellId or "?") .. "，序号: " .. index .. "）"
     print(msg)
     insertSpellTimer = C_Timer.NewTimer(1.5, function()
         insertSpellTimer = nil

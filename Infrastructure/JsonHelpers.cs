@@ -39,6 +39,35 @@ public static class JsonHelpers
         return null;
     }
 
+    public static long? GetLong(JsonNode? node)
+    {
+        if (node is not JsonValue valueNode)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (valueNode.TryGetValue<long>(out var longValue))
+            {
+                return longValue;
+            }
+
+            if (valueNode.TryGetValue<int>(out var intValue))
+            {
+                return intValue;
+            }
+
+            return valueNode.TryGetValue<string>(out var text) && long.TryParse(text, out var parsed)
+                ? parsed
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static string? GetString(JsonNode? node)
     {
         if (node is null)

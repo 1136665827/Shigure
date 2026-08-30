@@ -21,7 +21,13 @@ public static class UnitSelector
             unit.HealthThresholdField,
             state,
             IsHealingAbsorbKind(unit.Kind) ? 0 : DefaultThreshold);
-        var aura = FirstAura(unit.AuraNames);
+        var aura = FirstAura(unit.AuraSpellIds);
+        if (RequiresAura(unit.Kind)
+            && (unit.AuraSpellIds is not { Count: > 0 }
+                || unit.AuraSpellIds.Any(id => !GroupContainsAuraField(group, id))))
+        {
+            return null;
+        }
 
         return unit.Kind switch
         {
@@ -29,13 +35,13 @@ public static class UnitSelector
                 group,
                 threshold,
                 data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role)),
-            UnitSelectorKind.LowestHealthWithAnyAura => unit.AuraNames is { Count: > 0 } names
+            UnitSelectorKind.LowestHealthWithAnyAura => unit.AuraSpellIds is { Count: > 0 } names
                 ? LowestHealth(
                     group,
                     threshold,
                     data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && HasAnyAura(data, names))
                 : null,
-            UnitSelectorKind.LowestHealthWithoutAnyAura => unit.AuraNames is { Count: > 0 } names
+            UnitSelectorKind.LowestHealthWithoutAnyAura => unit.AuraSpellIds is { Count: > 0 } names
                 ? LowestHealth(
                     group,
                     threshold,
@@ -46,46 +52,46 @@ public static class UnitSelector
                 : LowestHealth(
                     group,
                     threshold,
-                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && !HasAura(data, aura)),
+                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && !HasAura(data, aura.Value)),
             UnitSelectorKind.LowestHealthWithAura => aura is null
                 ? null
                 : LowestHealth(
                     group,
                     threshold,
-                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && HasAura(data, aura)),
+                    data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role) && HasAura(data, aura.Value)),
             UnitSelectorKind.LowestHealthWithAuraCount => aura is null || unit.AuraCount is null
                 ? null
                 : LowestHealth(
                     group,
                     threshold,
                     data => MatchesRoleFilter(data, unit.RoleFilter, unit.Role)
-                        && AuraEquals(data, aura, unit.AuraCount.Value)),
+                        && AuraEquals(data, aura.Value, unit.AuraCount.Value)),
             UnitSelectorKind.UnitWithRole => unit.Role is null
                 ? null
                 : UnitWithRole(group, unit.Role.Value, unit.Reverse, _ => true),
             UnitSelectorKind.UnitWithRoleWithoutAura => unit.Role is null || aura is null
                 ? null
-                : UnitWithRole(group, unit.Role.Value, unit.Reverse, data => !HasAura(data, aura)),
-            UnitSelectorKind.UnitWithAura => aura is null ? null : UnitWithAura(group, aura),
+                : UnitWithRole(group, unit.Role.Value, unit.Reverse, data => !HasAura(data, aura.Value)),
+            UnitSelectorKind.UnitWithAura => aura is null ? null : UnitWithAura(group, aura.Value),
             UnitSelectorKind.UnitWithDispelType => unit.DispelType is null
                 ? null
                 : UnitWithDispelType(group, unit.DispelType.Value),
             UnitSelectorKind.HighestHealingAbsorb => HighestHealingAbsorb(group, threshold, _ => true),
-            UnitSelectorKind.HighestHealingAbsorbWithAnyAura => unit.AuraNames is { Count: > 0 } names
+            UnitSelectorKind.HighestHealingAbsorbWithAnyAura => unit.AuraSpellIds is { Count: > 0 } names
                 ? HighestHealingAbsorb(group, threshold, data => HasAnyAura(data, names))
                 : null,
-            UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura => unit.AuraNames is { Count: > 0 } names
+            UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura => unit.AuraSpellIds is { Count: > 0 } names
                 ? HighestHealingAbsorb(group, threshold, data => !HasAnyAura(data, names))
                 : null,
             UnitSelectorKind.HighestHealingAbsorbWithoutAura => aura is null
                 ? null
-                : HighestHealingAbsorb(group, threshold, data => !HasAura(data, aura)),
+                : HighestHealingAbsorb(group, threshold, data => !HasAura(data, aura.Value)),
             UnitSelectorKind.HighestHealingAbsorbWithAura => aura is null
                 ? null
-                : HighestHealingAbsorb(group, threshold, data => HasAura(data, aura)),
+                : HighestHealingAbsorb(group, threshold, data => HasAura(data, aura.Value)),
             UnitSelectorKind.HighestHealingAbsorbWithAuraCount => aura is null || unit.AuraCount is null
                 ? null
-                : HighestHealingAbsorb(group, threshold, data => AuraEquals(data, aura, unit.AuraCount.Value)),
+                : HighestHealingAbsorb(group, threshold, data => AuraEquals(data, aura.Value, unit.AuraCount.Value)),
             _ => null
         };
     }
@@ -99,36 +105,41 @@ public static class UnitSelector
             count.HealthThresholdField,
             state,
             IsHealingAbsorbKind(count.Kind) ? 0 : DefaultThreshold);
+        if (RequiresAura(count.Kind)
+            && (count.AuraSpellId is null || !GroupContainsAuraField(group, count.AuraSpellId.Value)))
+        {
+            return 0;
+        }
 
         return count.Kind switch
         {
             CountKind.UnitsBelowHealth => CountUnits(group, data => BelowThreshold(data, threshold)),
-            CountKind.UnitsWithoutAuraBelowHealth => count.AuraName is null
+            CountKind.UnitsWithoutAuraBelowHealth => count.AuraSpellId is null
                 ? 0
-                : CountUnits(group, data => !HasAura(data, count.AuraName) && BelowThreshold(data, threshold)),
-            CountKind.UnitsWithAura => count.AuraName is null
+                : CountUnits(group, data => !HasAura(data, count.AuraSpellId.Value) && BelowThreshold(data, threshold)),
+            CountKind.UnitsWithAura => count.AuraSpellId is null
                 ? 0
-                : CountUnits(group, data => HasAura(data, count.AuraName)),
-            CountKind.UnitsWithAuraBelowHealth => count.AuraName is null
+                : CountUnits(group, data => HasAura(data, count.AuraSpellId.Value)),
+            CountKind.UnitsWithAuraBelowHealth => count.AuraSpellId is null
                 ? 0
                 : CountUnits(
                     group,
-                    data => HasAura(data, count.AuraName)
+                    data => HasAura(data, count.AuraSpellId.Value)
                         && BelowThreshold(data, threshold)),
             CountKind.UnitsAboveHealingAbsorb => CountUnits(
                 group,
                 data => AboveHealingAbsorbThreshold(data, threshold)),
-            CountKind.UnitsWithoutAuraAboveHealingAbsorb => count.AuraName is null
+            CountKind.UnitsWithoutAuraAboveHealingAbsorb => count.AuraSpellId is null
                 ? 0
                 : CountUnits(
                     group,
-                    data => !HasAura(data, count.AuraName)
+                    data => !HasAura(data, count.AuraSpellId.Value)
                         && AboveHealingAbsorbThreshold(data, threshold)),
-            CountKind.UnitsWithAuraAboveHealingAbsorb => count.AuraName is null
+            CountKind.UnitsWithAuraAboveHealingAbsorb => count.AuraSpellId is null
                 ? 0
                 : CountUnits(
                     group,
-                    data => HasAura(data, count.AuraName)
+                    data => HasAura(data, count.AuraSpellId.Value)
                         && AboveHealingAbsorbThreshold(data, threshold)),
             _ => 0
         };
@@ -197,7 +208,7 @@ public static class UnitSelector
     /// <summary>取拥有某光环(数值 &gt; 0)且持续时间最长的单位。</summary>
     private static string? UnitWithAura(
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> group,
-        string auraName)
+        long auraSpellId)
     {
         string? bestUnit = null;
         var bestDuration = 0;
@@ -209,7 +220,7 @@ public static class UnitSelector
                 continue;
             }
 
-            if (!TryInt(GetField(data, auraName), out var duration) || duration <= 0)
+            if (!TryInt(GetField(data, SpellFieldKey.AuraMember(auraSpellId)), out var duration) || duration <= 0)
             {
                 continue;
             }
@@ -335,9 +346,9 @@ public static class UnitSelector
             or CountKind.UnitsWithoutAuraAboveHealingAbsorb
             or CountKind.UnitsWithAuraAboveHealingAbsorb;
 
-    private static bool AuraEquals(IReadOnlyDictionary<string, object?> data, string auraName, int target)
+    private static bool AuraEquals(IReadOnlyDictionary<string, object?> data, long auraSpellId, int target)
     {
-        return TryInt(GetField(data, auraName), out var val) && val == target;
+        return TryInt(GetField(data, SpellFieldKey.AuraMember(auraSpellId)), out var val) && val == target;
     }
 
     private static bool MatchesRoleFilter(
@@ -372,16 +383,16 @@ public static class UnitSelector
         return !TryInt(role, out var r) || r != 0;
     }
 
-    private static bool HasAura(IReadOnlyDictionary<string, object?> data, string auraName)
+    private static bool HasAura(IReadOnlyDictionary<string, object?> data, long auraSpellId)
     {
-        return TryInt(GetField(data, auraName), out var n) && n != 0;
+        return TryInt(GetField(data, SpellFieldKey.AuraMember(auraSpellId)), out var n) && n != 0;
     }
 
-    private static bool HasAnyAura(IReadOnlyDictionary<string, object?> data, IEnumerable<string> auraNames)
+    private static bool HasAnyAura(IReadOnlyDictionary<string, object?> data, IEnumerable<long> auraSpellIds)
     {
-        foreach (var name in auraNames)
+        foreach (var spellId in auraSpellIds)
         {
-            if (HasAura(data, name))
+            if (HasAura(data, spellId))
             {
                 return true;
             }
@@ -390,9 +401,38 @@ public static class UnitSelector
         return false;
     }
 
-    private static string? FirstAura(List<string>? auraNames)
+    private static bool GroupContainsAuraField(
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> group,
+        long spellId)
     {
-        return auraNames is { Count: > 0 } ? auraNames[0] : null;
+        var key = SpellFieldKey.AuraMember(spellId);
+        return group.Values.Any(member => member.ContainsKey(key));
+    }
+
+    private static bool RequiresAura(UnitSelectorKind kind)
+        => kind is UnitSelectorKind.LowestHealthWithAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAnyAura
+            or UnitSelectorKind.LowestHealthWithoutAura
+            or UnitSelectorKind.LowestHealthWithAura
+            or UnitSelectorKind.LowestHealthWithAuraCount
+            or UnitSelectorKind.UnitWithRoleWithoutAura
+            or UnitSelectorKind.UnitWithAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAnyAura
+            or UnitSelectorKind.HighestHealingAbsorbWithoutAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAura
+            or UnitSelectorKind.HighestHealingAbsorbWithAuraCount;
+
+    private static bool RequiresAura(CountKind kind)
+        => kind is CountKind.UnitsWithoutAuraBelowHealth
+            or CountKind.UnitsWithAura
+            or CountKind.UnitsWithAuraBelowHealth
+            or CountKind.UnitsWithoutAuraAboveHealingAbsorb
+            or CountKind.UnitsWithAuraAboveHealingAbsorb;
+
+    private static long? FirstAura(List<long>? auraSpellIds)
+    {
+        return auraSpellIds is { Count: > 0 } ? auraSpellIds[0] : null;
     }
 
     private static object? GetField(IReadOnlyDictionary<string, object?> data, string field)

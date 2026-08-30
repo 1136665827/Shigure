@@ -35,6 +35,10 @@ internal enum SettingsNavIcon
     About
 }
 
+internal sealed record BossNumberOption(int Number, string Dungeon, string Name);
+
+internal sealed record StateFieldDisplay(string Name, string SpellId, string Type);
+
 public sealed class StatusForm : Form
 {
     private const string AboutWatermarkResourcePath = "Assets.arasaka-icon-transparent.png";
@@ -311,18 +315,22 @@ public sealed class StatusForm : Form
             new UiTheme.ListColumn("#", 28, 28, FixedWidth: true),
             new UiTheme.ListColumn("名称", 40, 220),
             new UiTheme.ListColumn("值", 40, 900, FillRemaining: true));
-        _auraList = UiTheme.CreateListView(Font, "status-aura-v2",
+        _auraList = UiTheme.CreateListView(Font, "status-aura-v3",
             new UiTheme.ListColumn("#", 28, 28, FixedWidth: true),
-            new UiTheme.ListColumn("光环", 40, 260),
-            new UiTheme.ListColumn("值", 40, 900, FillRemaining: true));
+            new UiTheme.ListColumn("名称", 70, 240, FillRemaining: true),
+            new UiTheme.ListColumn("spellId", 64, 100),
+            new UiTheme.ListColumn("类型", 48, 80),
+            new UiTheme.ListColumn("值", 44, 100));
         _dynamicUnitList = UiTheme.CreateListView(Font, "status-dynamic-unit-v2",
             new UiTheme.ListColumn("类型", 40, 140),
             new UiTheme.ListColumn("名称", 40, 240),
             new UiTheme.ListColumn("值", 40, 900, FillRemaining: true));
-        _spellList = UiTheme.CreateListView(Font, "status-spell-v2",
+        _spellList = UiTheme.CreateListView(Font, "status-spell-v3",
             new UiTheme.ListColumn("#", 28, 28, FixedWidth: true),
-            new UiTheme.ListColumn("技能", 40, 260),
-            new UiTheme.ListColumn("状态", 40, 900, FillRemaining: true));
+            new UiTheme.ListColumn("名称", 70, 240, FillRemaining: true),
+            new UiTheme.ListColumn("spellId", 64, 100),
+            new UiTheme.ListColumn("类型", 58, 100),
+            new UiTheme.ListColumn("值", 44, 100));
 
         _partyList = UiTheme.CreateListView(Font, "status-party",
             new UiTheme.ListColumn("单位", 120, 180, FixedWidth: true),
@@ -381,8 +389,8 @@ public sealed class StatusForm : Form
     private void InitializeEmptyLists()
     {
         ReplaceItems(_stateList, [new ListViewItem(["-", "状态", "等待游戏状态"])]);
-        ReplaceItems(_auraList, [new ListViewItem(["-", "光环", "无数据"])]);
-        ReplaceItems(_spellList, [new ListViewItem(["-", "技能", "无数据"])]);
+        ReplaceItems(_auraList, [new ListViewItem(["-", "光环", "-", "-", "无数据"])]);
+        ReplaceItems(_spellList, [new ListViewItem(["-", "技能", "-", "-", "无数据"])]);
         ReplaceItems(_dynamicUnitList, [new ListViewItem(["-", "动态单位", "等待游戏状态"])]);
         ReplaceItems(_partyList, [new ListViewItem(["队伍", "无队伍数据"])]);
         ReplaceItems(_unitInfoList, [new ListViewItem(["逻辑信息", "无推荐目标"])]);
@@ -545,15 +553,15 @@ public sealed class StatusForm : Form
         var sections = new[]
         {
             BuildSection("状态", _stateList, "基础字段与当前模块"),
-            BuildSection("光环", _auraList, "光环数值状态"),
-            BuildSection("技能", _spellList, "冷却与可用状态"),
+            BuildSection("光环", _auraList, "时间与层数"),
+            BuildSection("技能", _spellList, "冷却、充能与次数"),
             BuildSection("动态单位", _dynamicUnitList, "模块运行时计算值")
         };
         bool? usingCompactLayout = null;
 
         void ApplyLayout()
         {
-            // 四张卡片需要为三列表头保留可读宽度；不足时切成 2×2，避免原生横向滚动条。
+            // 四张卡片需要为五列表头保留可读宽度；不足时切成 2×2，避免原生横向滚动条。
             // ClientSize 已是当前 WinForms 布局坐标，不再二次按 DPI 放大断点。
             var compact = statusSplit.ClientSize.Width < 1100;
             if (usingCompactLayout == compact)
@@ -1194,7 +1202,7 @@ public sealed class StatusForm : Form
                 "队伍类型", "队伍人数", "首领战", "难度", "英雄天赋", "施法目标",
                 "施法技能", "敌人数量", "敌人数-无仇恨", "敌人数-有仇恨",
                 "施法(正计时)", "施法(倒计时)", "引导", "蓄力", "蓄力层数",
-                "酒池", "符文", "姿态", "神圣军备", "自律", "英勇打击", "吸血鬼打击", "收割者战刃"
+                "酒池", "符文", "姿态", "神圣军备", "自律", "上个技能", "英勇打击", "吸血鬼打击", "收割者战刃"
             ],
             150), 0, 0);
         fields.Controls.Add(CreateCommonFieldCard(
@@ -1533,10 +1541,13 @@ public sealed class StatusForm : Form
             foreach (var (key, value) in snapshot.State.Auras)
             {
                 index++;
+                var display = DescribeAuraState(key);
                 items.Add(new ListViewItem(new[]
                 {
                     index.ToString(),
-                    key,
+                    display.Name,
+                    display.SpellId,
+                    display.Type,
                     UiTheme.FormatValue(value)
                 }));
             }
@@ -1544,7 +1555,7 @@ public sealed class StatusForm : Form
 
         if (items.Count == 0)
         {
-            items.Add(new ListViewItem(new[] { "-", "光环", "无数据" }));
+            items.Add(new ListViewItem(new[] { "-", "光环", "-", "-", "无数据" }));
         }
 
         ReplaceItems(_auraList, items);
@@ -1577,7 +1588,7 @@ public sealed class StatusForm : Form
         var items = new List<ListViewItem>();
         if (snapshot.State is null || snapshot.State.Spells.Count == 0)
         {
-            items.Add(new ListViewItem(new[] { "-", "技能", "无数据" }));
+            items.Add(new ListViewItem(new[] { "-", "技能", "-", "-", "无数据" }));
         }
         else
         {
@@ -1585,11 +1596,80 @@ public sealed class StatusForm : Form
             foreach (var (key, value) in snapshot.State.Spells)
             {
                 index++;
-                items.Add(new ListViewItem(new[] { index.ToString(), key, UiTheme.FormatValue(value) }));
+                var display = DescribeSpellState(snapshot.State, key);
+                items.Add(new ListViewItem(new[]
+                {
+                    index.ToString(),
+                    display.Name,
+                    display.SpellId,
+                    display.Type,
+                    UiTheme.FormatValue(value)
+                }));
             }
         }
 
         ReplaceItems(_spellList, items);
+    }
+
+    internal static IReadOnlyList<BossNumberOption> GetBossNumberOptions()
+        => BossNumberGroups
+            .SelectMany(group => group.Dungeons)
+            .SelectMany(dungeon => dungeon.Bosses.Select(boss => new BossNumberOption(
+                boss.Number,
+                dungeon.Name,
+                boss.Name)))
+            .DistinctBy(option => option.Number)
+            .OrderBy(option => option.Number)
+            .ToArray();
+
+    private static StateFieldDisplay DescribeAuraState(string key)
+    {
+        if (!SpellFieldKey.TryParseAura($"auras.{key}", out _, out var spellId, out var metric))
+        {
+            return new StateFieldDisplay(key, "-", "-");
+        }
+
+        var type = metric switch
+        {
+            SpellFieldKey.AuraValue => "时间",
+            SpellFieldKey.AuraApplications => "层数",
+            _ => metric
+        };
+        return CreateStateFieldDisplay(spellId, type);
+    }
+
+    private static StateFieldDisplay DescribeSpellState(GameState state, string key)
+    {
+        if (!SpellFieldKey.TryParseSpell($"spells.{key}", out var spellId, out var metric))
+        {
+            return new StateFieldDisplay(key, "-", "-");
+        }
+
+        string type;
+        if (!state.SpellDisplayTypes.TryGetValue(key, out var configuredType)
+            || string.IsNullOrWhiteSpace(configuredType))
+        {
+            type = metric switch
+            {
+                SpellFieldKey.SpellCooldown => "冷却",
+                SpellFieldKey.SpellChargeCooldown => "充能",
+                SpellFieldKey.SpellCount when state.Spells.ContainsKey($"{spellId}.{SpellFieldKey.SpellChargeCooldown}") => "充能层数",
+                SpellFieldKey.SpellCount => "施法次数",
+                _ => metric
+            };
+        }
+        else
+        {
+            type = configuredType;
+        }
+
+        return CreateStateFieldDisplay(spellId, type);
+    }
+
+    private static StateFieldDisplay CreateStateFieldDisplay(long spellId, string type)
+    {
+        var name = SpellIconCatalog.ResolveSuggestionName(spellId, null) ?? "未知法术";
+        return new StateFieldDisplay(name, spellId.ToString(), type);
     }
 
     private void UpdatePartyList(RenderSnapshot snapshot)

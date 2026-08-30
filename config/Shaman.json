@@ -1,90 +1,107 @@
 ﻿{
   "keymap": "shaman.json",
   "一键法术": {
-    "1": "唤潮者的护卫",
-    "2": "大地生命武器",
-    "3": "天怒",
-    "4": "水之护盾",
-    "5": "烈焰震击",
-    "6": "熔岩爆裂",
-    "7": "闪电箭",
-    "8": "闪电链",
-    "9": "治疗之泉图腾",
-    "10": "风剪",
-    "11": "先祖迅捷",
-    "12": "自然迅捷",
-    "13": "涌动图腾",
-    "14": "电能图腾",
-    "15": "阵风",
-    "16": "灵魂链接图腾",
-    "17": "土元素",
-    "18": "战栗图腾",
-    "19": "清毒图腾",
-    "20": "图腾投射",
-    "21": "升腾",
-    "22": "治疗之潮图腾",
-    "23": "毁灭闪电",
-    "24": "流电炽焰",
-    "25": "火舌武器",
-    "26": "熔岩猛击",
-    "27": "裂地术",
-    "28": "始源风暴",
-    "29": "风切",
-    "30": "风怒武器",
-    "31": "风暴打击",
-    "32": "狂风怒号",
-    "33": "元素冲击",
-    "34": "地震术",
-    "35": "大地震击",
-    "36": "风暴守护者",
-    "37": "闪电之盾",
-    "38": "治疗波",
-    "39": "治疗链",
-    "40": "激流",
-    "41": "大地之盾",
-    "42": "净化灵魂",
-    "43": "生命释放",
-    "44": "风暴涌流图腾",
-    "45": "治疗之雨",
-    "46": "倾盆大雨",
-    "47": "狂风图腾",
-    "48": "治疗之雨",
-    "49": "灵魂行者的恩赐",
-    "50": "星界转移",
-    "51": "幽魂之狼",
-    "52": "净化术",
-    "53": "强效净化术",
-    "54": "升腾",
-    "55": "雷霆风暴",
-    "101": "奥术洪流",
-    "102": "石像形态",
-    "103": "影遁",
-    "104": "狂暴",
-    "105": "血性狂怒",
-    "106": "战争践踏",
-    "107": "生存意志",
-    "108": "亡灵意志",
-    "109": "逃命专家",
-    "110": "黑暗飞行",
-    "111": "火箭跳",
-    "112": "火箭弹幕",
-    "113": "空间裂隙",
-    "114": "圣光裁决",
-    "115": "先祖召唤",
-    "116": "烈焰之血",
-    "117": "蛮牛冲撞",
-    "118": "奥术脉冲",
-    "119": "袋里乾坤",
-    "120": "再生",
-    "121": "震山掌",
-    "122": "纳鲁的赐福",
-    "123": "重拳出击",
-    "124": "超有机光发起源",
-    "125": "扫尾",
-    "126": "翼击",
-    "127": "艾泽里特涌动",
-    "151": "切换天赋",
-    "152": "切换专精"
+    "1": 457481,
+    "2": 382021,
+    "3": 462854,
+    "4": 52127,
+    "5": 470411,
+    "6": 51505,
+    "7": 188196,
+    "8": 188443,
+    "9": 5394,
+    "10": 57994,
+    "11": 443454,
+    "12": 378081,
+    "13": 444995,
+    "14": 192058,
+    "15": 192063,
+    "16": 98008,
+    "17": 198103,
+    "18": 8143,
+    "19": 383013,
+    "20": 108287,
+    "21": 114052,
+    "22": 108280,
+    "23": 187874,
+    "24": 470057,
+    "25": 318038,
+    "26": 60103,
+    "27": 197214,
+    "28": 1218090,
+    "29": 115356,
+    "30": 33757,
+    "31": 17364,
+    "32": 452201,
+    "33": 117014,
+    "34": 462620,
+    "35": 8042,
+    "36": 191634,
+    "37": 192106,
+    "38": 77472,
+    "39": 1064,
+    "40": 61295,
+    "41": 974,
+    "42": 77130,
+    "43": 73685,
+    "44": 1267068,
+    "45": 73920,
+    "46": 462603,
+    "47": 192077,
+    "48": 456366,
+    "49": 79206,
+    "50": 108271,
+    "51": 2645,
+    "52": 370,
+    "53": 378773,
+    "54": 114050,
+    "55": 51490,
+    "210": 384255,
+    "211": 200749,
+    "212": 28730,
+    "213": 25046,
+    "214": 50613,
+    "215": 69179,
+    "216": 80483,
+    "217": 129597,
+    "218": 155145,
+    "219": 202719,
+    "220": 232633,
+    "221": 20594,
+    "222": 58984,
+    "223": 26297,
+    "224": 20572,
+    "225": 33697,
+    "226": 33702,
+    "227": 20549,
+    "228": 59752,
+    "229": 7744,
+    "230": 20589,
+    "231": 68992,
+    "232": 69070,
+    "233": 69041,
+    "234": 256948,
+    "235": 255647,
+    "236": 274738,
+    "237": 265221,
+    "238": 255654,
+    "239": 255723,
+    "240": 260364,
+    "241": 312411,
+    "242": 291944,
+    "243": 107079,
+    "244": 28880,
+    "245": 59542,
+    "246": 59543,
+    "247": 59544,
+    "248": 59545,
+    "249": 59547,
+    "250": 121093,
+    "251": 287712,
+    "252": 312924,
+    "253": 368970,
+    "254": 357214,
+    "255": 436344
   },
   "1": {
     "队伍类型": {
@@ -298,221 +315,488 @@
       "category": "鼠标"
     },
     "auras": {
-      "天怒": {
+      "player.462854.value": {
         "step": 46,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "天怒",
+        "spellId": 462854,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          462854
+        ]
       },
-      "熔岩奔腾": {
+      "player.77762.value": {
         "step": 47,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "熔岩奔腾",
+        "spellId": 77762,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          77762
+        ]
       },
-      "风暴守护者": {
+      "player.191634.value": {
         "step": 48,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "风暴守护者",
+        "spellId": 191634,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          191634
+        ]
       },
-      "暴风": {
+      "player.191634.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "风暴守护者层数",
+        "spellId": 191634,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          191634
+        ],
+        "bar": 2
+      },
+      "player.454015.value": {
         "step": 49,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "暴风",
+        "spellId": 454015,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          454015
+        ]
       },
-      "元素宗师": {
+      "player.454015.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "暴风层数",
+        "spellId": 454015,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          454015
+        ],
+        "bar": 3
+      },
+      "player.267344.value": {
         "step": 50,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "元素宗师",
+        "spellId": 267344,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          267344
+        ]
       },
-      "净化烈焰": {
+      "player.1259491.value": {
         "step": 51,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "净化烈焰",
+        "spellId": 1259491,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1259491
+        ]
       },
-      "风之爆发": {
+      "player.263806.value": {
         "step": 52,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "风之爆发",
+        "spellId": 263806,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          263806
+        ]
       },
-      "先祖召唤": {
+      "player.263806.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "风之爆发层数",
+        "spellId": 263806,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          263806
+        ],
+        "bar": 4
+      },
+      "player.447244.value": {
         "step": 53,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "先祖召唤",
+        "spellId": 447244,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          447244
+        ]
       },
-      "升腾": {
+      "player.1219480.value": {
         "step": 54,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "升腾",
+        "spellId": 1219480,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1219480
+        ]
       },
-      "火元素": {
+      "player.188592.value": {
         "step": 55,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "火元素",
+        "spellId": 188592,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          188592
+        ]
       },
-      "风暴元素": {
+      "player.157299.value": {
         "step": 56,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "风暴元素",
+        "spellId": 157299,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          157299
+        ]
       },
-      "漩涡之力": {
+      "player.191877.value": {
         "step": 57,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "漩涡之力",
+        "spellId": 191877,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          191877
+        ]
       },
-      "元素冲击暴击": {
+      "player.191877.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "漩涡之力层数",
+        "spellId": 191877,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          191877
+        ],
+        "bar": 5
+      },
+      "player.118522.value": {
         "step": 58,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "元素冲击暴击",
+        "spellId": 118522,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          118522
+        ]
       },
-      "元素冲击急速": {
+      "player.173183.value": {
         "step": 59,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "元素冲击急速",
+        "spellId": 173183,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          173183
+        ]
       },
-      "元素冲击精通": {
+      "player.173184.value": {
         "step": 60,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "元素冲击精通",
+        "spellId": 173184,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          173184
+        ]
       },
-      "闪电之盾": {
+      "player.192106.value": {
         "step": 61,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "闪电之盾",
+        "spellId": 192106,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          192106
+        ]
       },
-      "先祖迅捷": {
+      "player.443454.value": {
         "step": 62,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "先祖迅捷",
+        "spellId": 443454,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          443454
+        ]
       },
-      "元素奔涌": {
+      "player.1300219.value": {
         "step": 63,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "元素奔涌",
+        "spellId": 1300219,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1300219
+        ]
       },
-      "过载！": {
+      "player.1300222.value": {
         "step": 64,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "过载！",
+        "spellId": 1300222,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1300222
+        ]
       },
-      "目标烈焰震击": {
+      "target.harmful.188389.value": {
         "step": 65,
         "type": "int",
-        "category": "目标减益"
+        "category": "目标减益",
+        "displayName": "烈焰震击",
+        "spellId": 188389,
+        "scope": "target.harmful",
+        "metric": "value",
+        "spellIds": [
+          188389
+        ]
       },
-      "目标引雷针": {
+      "target.harmful.197209.value": {
         "step": 66,
         "type": "int",
-        "category": "目标减益"
-      },
-      "风暴守护者层数": {
-        "step": "bar",
-        "bar": 2,
-        "type": "int"
-      },
-      "暴风层数": {
-        "step": "bar",
-        "bar": 3,
-        "type": "int"
-      },
-      "风之爆发层数": {
-        "step": "bar",
-        "bar": 4,
-        "type": "int"
-      },
-      "漩涡之力层数": {
-        "step": "bar",
-        "bar": 5,
-        "type": "int"
+        "category": "目标减益",
+        "displayName": "引雷针",
+        "spellId": 197209,
+        "scope": "target.harmful",
+        "metric": "value",
+        "spellIds": [
+          197209
+        ]
       }
     },
     "spells": {
-      "风剪": {
+      "57994.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "风剪",
+        "spellId": 57994,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "土元素": {
+      "198103.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "土元素",
+        "spellId": 198103,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "电能图腾": {
+      "192058.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "电能图腾",
+        "spellId": 192058,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "自然迅捷": {
+      "378081.cooldown": {
         "step": 70,
-        "type": "int"
+        "type": "int",
+        "displayName": "自然迅捷",
+        "spellId": 378081,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "图腾投射": {
+      "108287.cooldown": {
         "step": 71,
-        "type": "int"
+        "type": "int",
+        "displayName": "图腾投射",
+        "spellId": 108287,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "妖术": {
+      "51514.cooldown": {
         "step": 72,
-        "type": "int"
+        "type": "int",
+        "displayName": "妖术",
+        "spellId": 51514,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "强化净化术": {
+      "378773.cooldown": {
         "step": 73,
-        "type": "int"
+        "type": "int",
+        "displayName": "强化净化术",
+        "spellId": 378773,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "战栗图腾": {
+      "8143.cooldown": {
         "step": 74,
-        "type": "int"
+        "type": "int",
+        "displayName": "战栗图腾",
+        "spellId": 8143,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "清毒图腾": {
+      "383013.cooldown": {
         "step": 75,
-        "type": "int"
+        "type": "int",
+        "displayName": "清毒图腾",
+        "spellId": 383013,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "阵风": {
+      "192063.cooldown": {
         "step": 76,
-        "type": "int"
+        "type": "int",
+        "displayName": "阵风",
+        "spellId": 192063,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "幽魂步": {
+      "58875.cooldown": {
         "step": 77,
-        "type": "int"
+        "type": "int",
+        "displayName": "幽魂步",
+        "spellId": 58875,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "治疗之雨": {
+      "73920.cooldown": {
         "step": 78,
-        "type": "int"
+        "type": "int",
+        "displayName": "治疗之雨",
+        "spellId": 73920,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "升腾": {
+      "114050.cooldown": {
         "step": 79,
-        "type": "int"
+        "type": "int",
+        "displayName": "升腾",
+        "spellId": 114050,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "雷霆风暴": {
+      "51490.cooldown": {
         "step": 80,
-        "type": "int"
+        "type": "int",
+        "displayName": "雷霆风暴",
+        "spellId": 51490,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "狂风图腾": {
+      "192077.cooldown": {
         "step": 81,
-        "type": "int"
+        "type": "int",
+        "displayName": "狂风图腾",
+        "spellId": 192077,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "净化灵魂": {
+      "77130.cooldown": {
         "step": 82,
-        "type": "int"
+        "type": "int",
+        "displayName": "净化灵魂",
+        "spellId": 77130,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "熔岩爆裂": {
+      "51505.cooldown": {
         "step": 83,
-        "type": "int"
+        "type": "int",
+        "displayName": "熔岩爆裂",
+        "spellId": 51505,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "熔岩爆裂充能": {
+      "51505.chargeCooldown": {
         "step": 84,
-        "type": "int"
+        "type": "int",
+        "displayName": "熔岩爆裂充能",
+        "spellId": 51505,
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
-      "熔岩爆裂层数": {
+      "51505.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "熔岩爆裂层数",
+        "spellId": 51505,
+        "metric": "count",
+        "displayType": "充能层数"
       },
-      "流电炽焰": {
+      "470057.cooldown": {
         "step": 85,
-        "type": "int"
+        "type": "int",
+        "displayName": "流电炽焰",
+        "spellId": 470057,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "风暴守护者": {
+      "191634.cooldown": {
         "step": 86,
-        "type": "int"
+        "type": "int",
+        "displayName": "风暴守护者",
+        "spellId": 191634,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "先祖迅捷": {
+      "443454.cooldown": {
         "step": 87,
-        "type": "int"
+        "type": "int",
+        "displayName": "先祖迅捷",
+        "spellId": 443454,
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -743,82 +1027,158 @@
       "category": "鼠标"
     },
     "spells": {
-      "风剪": {
+      "57994.cooldown": {
         "step": 49,
-        "type": "int"
+        "type": "int",
+        "displayName": "风剪",
+        "spellId": 57994,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "土元素": {
+      "198103.cooldown": {
         "step": 50,
-        "type": "int"
+        "type": "int",
+        "displayName": "土元素",
+        "spellId": 198103,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "电能图腾": {
+      "192058.cooldown": {
         "step": 51,
-        "type": "int"
+        "type": "int",
+        "displayName": "电能图腾",
+        "spellId": 192058,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "自然迅捷": {
+      "378081.cooldown": {
         "step": 52,
-        "type": "int"
+        "type": "int",
+        "displayName": "自然迅捷",
+        "spellId": 378081,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "图腾投射": {
+      "108287.cooldown": {
         "step": 53,
-        "type": "int"
+        "type": "int",
+        "displayName": "图腾投射",
+        "spellId": 108287,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "妖术": {
+      "51514.cooldown": {
         "step": 54,
-        "type": "int"
+        "type": "int",
+        "displayName": "妖术",
+        "spellId": 51514,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "强化净化术": {
+      "378773.cooldown": {
         "step": 55,
-        "type": "int"
+        "type": "int",
+        "displayName": "强化净化术",
+        "spellId": 378773,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "战栗图腾": {
+      "8143.cooldown": {
         "step": 56,
-        "type": "int"
+        "type": "int",
+        "displayName": "战栗图腾",
+        "spellId": 8143,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "清毒图腾": {
+      "383013.cooldown": {
         "step": 57,
-        "type": "int"
+        "type": "int",
+        "displayName": "清毒图腾",
+        "spellId": 383013,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "阵风": {
+      "192063.cooldown": {
         "step": 58,
-        "type": "int"
+        "type": "int",
+        "displayName": "阵风",
+        "spellId": 192063,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "幽魂步": {
+      "58875.cooldown": {
         "step": 59,
-        "type": "int"
+        "type": "int",
+        "displayName": "幽魂步",
+        "spellId": 58875,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "毁灭闪电": {
+      "187874.cooldown": {
         "step": 60,
-        "type": "int"
+        "type": "int",
+        "displayName": "毁灭闪电",
+        "spellId": 187874,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "熔岩猛击": {
+      "60103.cooldown": {
         "step": 61,
-        "type": "int"
+        "type": "int",
+        "displayName": "熔岩猛击",
+        "spellId": 60103,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "风暴打击": {
+      "17364.cooldown": {
         "step": 62,
-        "type": "int"
+        "type": "int",
+        "displayName": "风暴打击",
+        "spellId": 17364,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "流电炽焰": {
+      "470057.cooldown": {
         "step": 63,
-        "type": "int"
+        "type": "int",
+        "displayName": "流电炽焰",
+        "spellId": 470057,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "狂野扑击": {
+      "196884.cooldown": {
         "step": 64,
-        "type": "int"
+        "type": "int",
+        "displayName": "狂野扑击",
+        "spellId": 196884,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "星界转移": {
+      "108271.cooldown": {
         "step": 65,
-        "type": "int"
+        "type": "int",
+        "displayName": "星界转移",
+        "spellId": 108271,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "溢流漩涡": {
+      "8004.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "溢流漩涡",
+        "spellId": 8004,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "溢流漩涡层数": {
+      "8004.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "溢流漩涡层数",
+        "spellId": 8004,
+        "metric": "count",
+        "displayType": "施法次数"
       }
     }
   },
@@ -1059,219 +1419,460 @@
       "category": "首领2"
     },
     "auras": {
-      "大地之盾": {
+      "player.383648.value": {
         "step": 51,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "大地之盾",
+        "spellId": 383648,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          383648
+        ]
       },
-      "水之护盾": {
+      "player.52127.value": {
         "step": 52,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "水之护盾",
+        "spellId": 52127,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          52127
+        ]
       },
-      "治疗之雨": {
+      "player.1307888.value": {
         "step": 53,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "治疗之雨",
+        "spellId": 1307888,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1307888
+        ]
       },
-      "飞旋之土": {
+      "player.453406.value": {
         "step": 54,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "飞旋之土",
+        "spellId": 453406,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          453406
+        ]
       },
-      "飞旋之水": {
+      "player.453407.value": {
         "step": 55,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "飞旋之水",
+        "spellId": 453407,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          453407
+        ]
       },
-      "飞旋之风": {
+      "player.453409.value": {
         "step": 56,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "飞旋之风",
+        "spellId": 453409,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          453409
+        ]
       },
-      "潮汐奔涌": {
+      "player.53390.value": {
         "step": 57,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "潮汐奔涌",
+        "spellId": 53390,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          53390
+        ]
       },
-      "激流": {
+      "player.53390.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "潮汐奔涌层数",
+        "spellId": 53390,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          53390
+        ],
+        "bar": 3
+      },
+      "player.61295.value": {
         "step": 58,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "激流",
+        "spellId": 61295,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          61295
+        ]
       },
-      "聚合水流": {
+      "player.470077.value": {
         "step": 59,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "聚合水流",
+        "spellId": 470077,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          470077
+        ]
       },
-      "升腾": {
+      "player.114052.value": {
         "step": 60,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "升腾",
+        "spellId": 114052,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          114052
+        ]
       },
-      "生命释放": {
+      "player.73685.value": {
         "step": 61,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "生命释放",
+        "spellId": 73685,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          73685
+        ]
       },
-      "风暴涌流图腾": {
+      "player.1267089.value": {
         "step": 62,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "风暴涌流图腾",
+        "spellId": 1267089,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          1267089
+        ]
       },
-      "倾盆大雨": {
+      "player.1267089.apps": {
+        "step": "bar",
+        "type": "int",
+        "category": "玩家",
+        "displayName": "风暴涌流图腾层数",
+        "spellId": 1267089,
+        "scope": "player",
+        "metric": "apps",
+        "spellIds": [
+          1267089
+        ],
+        "bar": 4
+      },
+      "player.462603.value": {
         "step": 63,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "倾盆大雨",
+        "spellId": 462603,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          462603
+        ]
       },
-      "自然迅捷": {
+      "player.378081.value": {
         "step": 64,
         "type": "int",
-        "category": "玩家"
+        "category": "玩家",
+        "displayName": "自然迅捷",
+        "spellId": 378081,
+        "scope": "player",
+        "metric": "value",
+        "spellIds": [
+          378081
+        ]
       },
-      "目标激流": {
+      "target.helpful.61295.value": {
         "step": 65,
         "type": "int",
-        "category": "目标增益"
-      },
-      "潮汐奔涌层数": {
-        "step": "bar",
-        "bar": 3,
-        "type": "int"
-      },
-      "风暴涌流图腾层数": {
-        "step": "bar",
-        "bar": 4,
-        "type": "int"
+        "category": "目标增益",
+        "displayName": "激流",
+        "spellId": 61295,
+        "scope": "target.helpful",
+        "metric": "value",
+        "spellIds": [
+          61295
+        ]
       }
     },
     "spells": {
-      "风剪": {
+      "57994.cooldown": {
         "step": 66,
-        "type": "int"
+        "type": "int",
+        "displayName": "风剪",
+        "spellId": 57994,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "土元素": {
+      "198103.cooldown": {
         "step": 67,
-        "type": "int"
+        "type": "int",
+        "displayName": "土元素",
+        "spellId": 198103,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "电能图腾": {
+      "192058.cooldown": {
         "step": 68,
-        "type": "int"
+        "type": "int",
+        "displayName": "电能图腾",
+        "spellId": 192058,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "自然迅捷": {
+      "378081.cooldown": {
         "step": 69,
-        "type": "int"
+        "type": "int",
+        "displayName": "自然迅捷",
+        "spellId": 378081,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "图腾投射": {
+      "108287.cooldown": {
         "step": 70,
-        "type": "int"
+        "type": "int",
+        "displayName": "图腾投射",
+        "spellId": 108287,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "妖术": {
+      "51514.cooldown": {
         "step": 71,
-        "type": "int"
+        "type": "int",
+        "displayName": "妖术",
+        "spellId": 51514,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "强化净化术": {
+      "378773.cooldown": {
         "step": 72,
-        "type": "int"
+        "type": "int",
+        "displayName": "强化净化术",
+        "spellId": 378773,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "战栗图腾": {
+      "8143.cooldown": {
         "step": 73,
-        "type": "int"
+        "type": "int",
+        "displayName": "战栗图腾",
+        "spellId": 8143,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "清毒图腾": {
+      "383013.cooldown": {
         "step": 74,
-        "type": "int"
+        "type": "int",
+        "displayName": "清毒图腾",
+        "spellId": 383013,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "阵风": {
+      "192063.cooldown": {
         "step": 75,
-        "type": "int"
+        "type": "int",
+        "displayName": "阵风",
+        "spellId": 192063,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "幽魂步": {
+      "58875.cooldown": {
         "step": 76,
-        "type": "int"
+        "type": "int",
+        "displayName": "幽魂步",
+        "spellId": 58875,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "熔岩爆裂": {
+      "51505.cooldown": {
         "step": 77,
-        "type": "int"
+        "type": "int",
+        "displayName": "熔岩爆裂",
+        "spellId": 51505,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "熔岩爆裂充能": {
+      "51505.chargeCooldown": {
         "step": 78,
-        "type": "int"
+        "type": "int",
+        "displayName": "熔岩爆裂充能",
+        "spellId": 51505,
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
-      "激流": {
+      "61295.cooldown": {
         "step": 79,
-        "type": "int"
+        "type": "int",
+        "displayName": "激流",
+        "spellId": 61295,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "激流充能": {
+      "61295.chargeCooldown": {
         "step": 80,
-        "type": "int"
+        "type": "int",
+        "displayName": "激流充能",
+        "spellId": 61295,
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
-      "激流层数": {
+      "61295.count": {
         "step": "bar",
         "bar": 1,
-        "type": "int"
+        "type": "int",
+        "displayName": "激流层数",
+        "spellId": 61295,
+        "metric": "count",
+        "displayType": "充能层数"
       },
-      "治疗之泉图腾": {
+      "5394.cooldown": {
         "step": 81,
-        "type": "int"
+        "type": "int",
+        "displayName": "治疗之泉图腾",
+        "spellId": 5394,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "治疗之泉图腾充能": {
+      "5394.chargeCooldown": {
         "step": 82,
-        "type": "int"
+        "type": "int",
+        "displayName": "治疗之泉图腾充能",
+        "spellId": 5394,
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
-      "治疗之泉图腾层数": {
+      "5394.count": {
         "step": "bar",
         "bar": 2,
-        "type": "int"
+        "type": "int",
+        "displayName": "治疗之泉图腾层数",
+        "spellId": 5394,
+        "metric": "count",
+        "displayType": "充能层数"
       },
-      "烈焰震击": {
+      "470411.cooldown": {
         "step": 83,
-        "type": "int"
+        "type": "int",
+        "displayName": "烈焰震击",
+        "spellId": 470411,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "净化灵魂": {
+      "77130.cooldown": {
         "step": 84,
-        "type": "int"
+        "type": "int",
+        "displayName": "净化灵魂",
+        "spellId": 77130,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "生命释放": {
+      "73685.cooldown": {
         "step": 85,
-        "type": "int"
+        "type": "int",
+        "displayName": "生命释放",
+        "spellId": 73685,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "先祖迅捷": {
+      "443454.cooldown": {
         "step": 86,
-        "type": "int"
+        "type": "int",
+        "displayName": "先祖迅捷",
+        "spellId": 443454,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "涌动图腾": {
+      "444995.cooldown": {
         "step": 87,
-        "type": "int"
+        "type": "int",
+        "displayName": "涌动图腾",
+        "spellId": 444995,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "灵魂链接图腾": {
+      "98008.cooldown": {
         "step": 88,
-        "type": "int"
+        "type": "int",
+        "displayName": "灵魂链接图腾",
+        "spellId": 98008,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "升腾": {
+      "114052.cooldown": {
         "step": 89,
-        "type": "int"
+        "type": "int",
+        "displayName": "升腾",
+        "spellId": 114052,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "治疗之潮图腾": {
+      "108280.cooldown": {
         "step": 90,
-        "type": "int"
+        "type": "int",
+        "displayName": "治疗之潮图腾",
+        "spellId": 108280,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "治疗之雨": {
+      "73920.cooldown": {
         "step": 91,
-        "type": "int"
+        "type": "int",
+        "displayName": "治疗之雨",
+        "spellId": 73920,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "净化术": {
+      "370.cooldown": {
         "step": 92,
-        "type": "int"
+        "type": "int",
+        "displayName": "净化术",
+        "spellId": 370,
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
-      "狂风图腾": {
+      "192077.cooldown": {
         "step": 93,
-        "type": "int"
+        "type": "int",
+        "displayName": "狂风图腾",
+        "spellId": 192077,
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {
       "start": 94,
-      "num": 6,
+      "num": 5,
       "生命值": {
         "step": 1,
         "type": "int"
@@ -1284,17 +1885,28 @@
         "step": 3,
         "type": "int"
       },
-      "激流": {
+      "auras.61295.value": {
         "step": 4,
-        "type": "int"
+        "type": "int",
+        "displayName": "激流",
+        "spellId": 61295,
+        "scope": "group",
+        "metric": "value",
+        "spellIds": [
+          61295
+        ]
       },
-      "大地之盾": {
+      "auras.974.value": {
         "step": 5,
-        "type": "int"
-      },
-      "救赎之魂": {
-        "step": 6,
-        "type": "int"
+        "type": "int",
+        "displayName": "大地之盾",
+        "spellId": 974,
+        "scope": "group",
+        "metric": "value",
+        "spellIds": [
+          974,
+          383648
+        ]
       }
     }
   }

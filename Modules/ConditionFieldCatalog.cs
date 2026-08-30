@@ -46,12 +46,14 @@ public static class SpellIdConditionFields
     public const string OneKeyAssist = "一键辅助";
     public const string InsertSpell = "插入法术";
     public const string CastingSpell = "施法技能";
+    public const string PreviousSpell = "上个技能";
 
     private static readonly HashSet<string> Names = new(StringComparer.Ordinal)
     {
         OneKeyAssist,
         InsertSpell,
-        CastingSpell
+        CastingSpell,
+        PreviousSpell
     };
 
     public static bool Contains(string? fieldName)
@@ -151,11 +153,12 @@ public sealed class ConditionFieldCatalog
             {
                 if (node is JsonObject field && field.ContainsKey("step"))
                 {
+                    var displayName = ReadDisplayName(field) ?? auraName;
                     AddField(
                         fields,
                         seen,
                         $"auras.{auraName}",
-                        auraName,
+                        $"{displayName} / {ReadSpellId(field)?.ToString() ?? "?"}",
                         ReadType(field),
                         ConditionFieldCategory.Aura,
                         ReadClassification(field)
@@ -171,7 +174,14 @@ public sealed class ConditionFieldCatalog
             {
                 if (node is JsonObject field && field.ContainsKey("step"))
                 {
-                    AddField(fields, seen, $"spells.{spellName}", $"技能: {spellName}", ReadType(field), ConditionFieldCategory.Spell);
+                    var displayName = ReadDisplayName(field) ?? spellName;
+                    AddField(
+                        fields,
+                        seen,
+                        $"spells.{spellName}",
+                        $"技能: {displayName} / {ReadSpellId(field)?.ToString() ?? "?"}",
+                        ReadType(field),
+                        ConditionFieldCategory.Spell);
                 }
             }
         }
@@ -217,7 +227,12 @@ public sealed class ConditionFieldCatalog
 
             if (node is JsonObject field && field.ContainsKey("step") && seen.Add(key))
             {
-                fields.Add(new ConditionField(key, key, ReadType(field)));
+                var displayName = ReadDisplayName(field) ?? key;
+                var spellId = ReadSpellId(field);
+                fields.Add(new ConditionField(
+                    key,
+                    spellId is null ? displayName : $"{displayName} / {spellId}",
+                    ReadType(field)));
             }
         }
 
@@ -228,6 +243,68 @@ public sealed class ConditionFieldCatalog
         }
 
         return fields;
+    }
+
+    /// <summary>
+    /// 返回多 ID 光环除规范 ID 外仍可解析的字段名。别名不加入下拉，避免同一逻辑光环重复显示。
+    /// </summary>
+    public IReadOnlySet<string> GetAuraAliasFieldNames(int? classId, int? specId, bool groupOnly)
+    {
+        var aliases = new HashSet<string>(StringComparer.Ordinal);
+        if (_config is null)
+        {
+            return aliases;
+        }
+
+        var stateConfig = _config.BuildStateConfig(classId, specId);
+        if (!groupOnly && JsonHelpers.Get(stateConfig, "auras") is JsonObject auras)
+        {
+            foreach (var (fieldName, node) in auras)
+            {
+                if (node is JsonObject field)
+                {
+                    AddAliases(aliases, $"auras.{fieldName}", field, includeScope: true);
+                }
+            }
+        }
+
+        if (groupOnly && JsonHelpers.Get(stateConfig, "group") is JsonObject group)
+        {
+            foreach (var (fieldName, node) in group)
+            {
+                if (node is JsonObject field && fieldName.StartsWith("auras.", StringComparison.Ordinal))
+                {
+                    AddAliases(aliases, fieldName, field, includeScope: false);
+                }
+            }
+        }
+
+        return aliases;
+
+        static void AddAliases(ISet<string> target, string fieldName, JsonObject field, bool includeScope)
+        {
+            var canonicalId = ReadSpellId(field);
+            var metric = JsonHelpers.GetString(JsonHelpers.Get(field, "metric"));
+            var scope = JsonHelpers.GetString(JsonHelpers.Get(field, "scope"));
+            if (canonicalId is null || string.IsNullOrWhiteSpace(metric)
+                || JsonHelpers.Get(field, "spellIds") is not JsonArray spellIds)
+            {
+                return;
+            }
+
+            foreach (var node in spellIds)
+            {
+                var alias = JsonHelpers.GetLong(node);
+                if (alias is null || alias <= 0 || alias == canonicalId)
+                {
+                    continue;
+                }
+
+                target.Add(includeScope
+                    ? $"auras.{scope}.{alias}.{metric}"
+                    : $"auras.{alias}.{metric}");
+            }
+        }
     }
 
     private static void AddField(
@@ -324,6 +401,14 @@ public sealed class ConditionFieldCatalog
         => JsonHelpers.GetString(JsonHelpers.Get(field, "category"))?.Trim() is { Length: > 0 } value
             ? value
             : null;
+
+    private static string? ReadDisplayName(JsonObject field)
+        => JsonHelpers.GetString(JsonHelpers.Get(field, "displayName"))?.Trim() is { Length: > 0 } value
+            ? value
+            : null;
+
+    private static long? ReadSpellId(JsonObject field)
+        => JsonHelpers.GetLong(JsonHelpers.Get(field, "spellId"));
 
     private static string InferStateClassification(string name)
     {

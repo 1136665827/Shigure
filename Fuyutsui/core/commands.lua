@@ -70,107 +70,52 @@ function Fuyutsui:SwitchDelay()
     self:NormalizeCharConfig()
 end
 
-local function IsUnitToken(token)
-    if not token or token == "" then return false end
-    local t = string.lower(token)
-    if t == "player" or t == "target" or t == "focus"
-        or t == "mouseover" or t == "cursor" or t == "pet" then
-        return true
-    end
-    return t:match("^party%d+$") or t:match("^raid%d+$") or t:match("^boss%d+$")
-end
-
---- 从宏条目提取核心技能名：去掉 [条件] 与 ; 分支
-local function ExtractMacroSpellName(entry)
-    local s = entry:match("([^;]+)$") or entry
-    s = s:gsub("^%s*%[.-%]%s*", "")
-    return strtrim(s)
-end
-
-local function MacroEntryHasSpell(entry, spellName)
-    if type(entry) ~= "string" or spellName == "" then return false end
-    if ExtractMacroSpellName(entry) == spellName then return true end
-    return entry:find(spellName, 1, true) ~= nil
-end
-
-local function MacroEntryMatchesUnit(entry, unit)
-    if not unit or unit == "" then return true end
-    if not entry:find("%[", 1, true) then return true end
-    local e = string.lower(entry)
-    local u = string.lower(unit)
-    return e:find("@" .. u, 1, true) ~= nil or e:find("target=" .. u, 1, true) ~= nil
-end
-
 local function FindSpellListByName(spellName)
     local list = Fuyutsui.spellsList
     if not list then return nil end
     for spellId, info in pairs(list) do
         if type(info) == "table" and info.name == spellName and info.index then
-            return info.index, spellId
+            return info.index, spellId, info.name
         end
     end
     return nil
 end
 
-local function IsSpellInClassMacros(spellName, unit)
-    local m = Fuyutsui.MacrosList
-    if not m then
-        local classFile = UnitClassBase("player")
-        m = Fuyutsui.ClassMacros and Fuyutsui.ClassMacros[classFile]
+local function FindSpellListById(spellId)
+    local list = Fuyutsui.spellsList
+    if not list then return nil end
+    local info = list[spellId]
+    if type(info) == "table" and info.index and info.name then
+        return info.index, spellId, info.name
     end
-    if not m then return false end
-
-    local function checkList(list)
-        if type(list) ~= "table" then return false end
-        for _, entry in ipairs(list) do
-            if MacroEntryHasSpell(entry, spellName) and MacroEntryMatchesUnit(entry, unit) then
-                return true
-            end
-        end
-        return false
-    end
-
-    return checkList(m.dynamicSpells) or checkList(m.staticSpells) or checkList(m.specialSpells)
+    return nil
 end
 
 function Fuyutsui:InsertSpellCommand(rest)
     rest = strtrim(rest or "")
     if rest == "" then
-        print("|cff00ff00[Fuyutsui]|r 用法: /fu i 技能名称 [单位]")
+        print("|cff00ff00[Fuyutsui]|r 用法: /fu i 技能名称或spellId")
         return
     end
 
-    local spellName, unit
-    local last = rest:match("(%S+)$")
-    if last and IsUnitToken(last) and rest:find("%s", 1, true) then
-        unit = string.lower(last)
-        spellName = strtrim(rest:sub(1, #rest - #last))
-    else
-        spellName = rest
-    end
+    local spellInput = rest
 
-    if spellName == "" then
-        print("|cff00ff00[Fuyutsui]|r 用法: /fu i 技能名称 [单位]")
-        return
-    end
-
-    local index = FindSpellListByName(spellName)
-    if not index then
-        print("|cff00ff00[Fuyutsui]|r 未在 spellsList 中找到技能: " .. spellName)
-        return
-    end
-
-    if not IsSpellInClassMacros(spellName, unit) then
-        if unit then
-            print("|cff00ff00[Fuyutsui]|r 未在 ClassMacros 中找到技能（或单位不匹配）: "
-                .. spellName .. " @" .. unit)
-        else
-            print("|cff00ff00[Fuyutsui]|r 未在 ClassMacros 中找到技能: " .. spellName)
+    local index, spellId, spellName
+    if spellInput:match("^%d+$") then
+        local requestedSpellId = tonumber(spellInput)
+        if requestedSpellId and requestedSpellId > 0 then
+            index, spellId, spellName = FindSpellListById(requestedSpellId)
         end
+    else
+        index, spellId, spellName = FindSpellListByName(spellInput)
+    end
+
+    if not index then
+        print("|cff00ff00[Fuyutsui]|r 未在 spellsList 中找到技能: " .. spellInput)
         return
     end
 
-    self:SetInsertSpell(index, spellName, unit)
+    self:SetInsertSpell(index, spellName, spellId)
 end
 
 --- /fu cd 系列命令统一动作：写 Fuyutsui.BurstTime 唯一真相 + 镜像 c.cooldowns + 打印
@@ -276,7 +221,7 @@ function Fuyutsui:SlashCommand(input, editbox)
             print("延迟已生效，" .. sec .. " 秒后恢复。")
         end
     elseif command == "i" or command:match("^i%s+") then
-        -- 从原始 input 解析技能名（保留中文与大小写单位）
+        -- 从原始 input 解析技能名或 spellId（保留中文技能名）
         local rest = input:match("^[iI]%s+(.*)$") or ""
         self:InsertSpellCommand(rest)
     elseif command == "help" or command == "" then
@@ -294,7 +239,7 @@ function Fuyutsui:SlashCommand(input, editbox)
         print("隐藏快捷控件: /fu hide")
         print("显示快捷控件: /fu show")
         print("临时 delay 标志（db.char.delay 置 1 持续 x 秒后归零）: /fu delay [秒]，省略秒数则为 1 秒")
-        print("插入法术: /fu i 技能名称 [单位]")
+        print("插入法术: /fu i 技能名称或spellId")
         print("帮助: /fu help")
     else
         print("输入 /fu help 查看命令。")

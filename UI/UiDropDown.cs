@@ -3,7 +3,11 @@ using System.Drawing.Drawing2D;
 
 namespace Shigure;
 
-internal sealed record UiDropDownOption(object? Value, string Display, Image? Icon = null)
+internal sealed record UiDropDownOption(
+    object? Value,
+    string Display,
+    Image? Icon = null,
+    string? LeadingText = null)
 {
     public override string ToString() => Display;
 }
@@ -38,7 +42,19 @@ internal static class UiDropDownPopup
         }
         var visibleItems = Math.Clamp(items.Count, 1, maximumVisibleItems);
         var measuredWidth = items.Max(item =>
-            TextRenderer.MeasureText(DisplayText(item.Display), owner.Font).Width);
+        {
+            var width = TextRenderer.MeasureText(DisplayText(item.Display), owner.Font).Width;
+            if (!string.IsNullOrWhiteSpace(item.LeadingText))
+            {
+                width += TextRenderer.MeasureText(item.LeadingText, owner.Font).Width
+                    + (int)Math.Round(8 * scale);
+            }
+            if (item.Icon is not null)
+            {
+                width += (int)Math.Round(36 * scale);
+            }
+            return width;
+        });
         var requestedWidth = Math.Max(
             anchorBounds.Width,
             Math.Max(
@@ -186,6 +202,28 @@ internal static class UiDropDownPopup
         }
 
         var textLeft = e.Bounds.Left + 10;
+        if (!string.IsNullOrWhiteSpace(item.LeadingText))
+        {
+            var leadingWidth = listBox.Items
+                .Cast<UiDropDownOption>()
+                .Where(option => !string.IsNullOrWhiteSpace(option.LeadingText))
+                .Select(option => TextRenderer.MeasureText(option.LeadingText, listBox.Font).Width)
+                .DefaultIfEmpty(0)
+                .Max();
+            var leadingBounds = new Rectangle(
+                textLeft,
+                e.Bounds.Top,
+                leadingWidth,
+                e.Bounds.Height);
+            TextRenderer.DrawText(
+                e.Graphics,
+                item.LeadingText,
+                listBox.Font,
+                leadingBounds,
+                selected ? UiTheme.Accent : UiTheme.Muted,
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
+            textLeft = leadingBounds.Right + 8;
+        }
         if (item.Icon is not null)
         {
             var iconSize = Math.Min(

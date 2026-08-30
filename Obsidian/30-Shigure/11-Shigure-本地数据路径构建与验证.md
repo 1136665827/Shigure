@@ -47,7 +47,6 @@ verified_at: 2026-08-10
 
 - 上级：[[30-Shigure/00-Shigure-MOC]]
 - 启动/随机副本：[[30-Shigure/01-Shigure-启动随机副本与会话协调]]
-- 打包资料：`打包说明.md`
 - 系统边界：[[10-系统/00-Shigure-双项目系统全景]]
 
 ## 范围与非范围
@@ -100,7 +99,7 @@ verified_at: 2026-08-10
 - 应用版本在项目文件中为 1.2.1，并被模块编辑器保存到模块元数据。
 - 项目没有 `PackageReference`；核心只依赖 .NET/WinForms/System.Drawing 和 Win32 P/Invoke。
 - 项目文件声明嵌入 UI assets，并把 `Fuyutsui/**`、配置、Keymap 和 `wow_process.txt` 按规则复制到输出；Fuyutsui 同时明确复制到 publish。模块不随构建/发布复制，由我的文档目录 `{MyDocuments}/Shigure/module` 提供。
-- 实际打包策略还应对照 `打包说明.md`；随机启动器只复制正式输出目录**顶层**运行依赖到临时目录。
+- 实际发布内容以 `Shigure.csproj` 中的规则为准；随机启动器只复制正式输出目录**顶层**运行依赖到临时目录。
 
 ## 当前验证能力
 
@@ -143,7 +142,7 @@ verified_at: 2026-08-10
 
 - 改 `AppPaths` 或随机环境变量会影响所有本地数据；先做迁移/兼容，再改启动器。
 - 新增数据目录必须决定是否随构建复制、是否属于用户可写数据、是否由随机副本读取原目录。
-- 修改内置插件布局或部署服务时，要同步 csproj、README/打包说明、编辑器路径回调和游戏部署验证。
+- 修改内置插件布局或部署服务时，要同步 csproj、README、编辑器路径回调和游戏部署验证。
 - 引入 NuGet 或额外 native 文件要同步 csproj、发布说明和随机复制清单。
 - 增加测试时优先覆盖纯逻辑组件：条件/公式、迁移、Keymap 转换、Lua round-trip；屏幕和 Win32 层可用端口接口隔离。
 
@@ -164,4 +163,4 @@ verified_at: 2026-08-10
 - 启动路径：[[30-Shigure/01-Shigure-启动随机副本与会话协调]]
 - 数据同步：[[30-Shigure/09-Shigure-Fuyutsui配置宏编辑与同步]]
 - 跨项目契约：[[40-跨项目/00-Shigure-跨项目契约-MOC]]
-- 原始项目资料：`README.md`、`CLAUDE.md`、`打包说明.md`
+- 原始项目资料：`README.md`、`CLAUDE.md`

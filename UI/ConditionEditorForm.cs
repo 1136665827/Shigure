@@ -619,7 +619,7 @@ public sealed class ConditionEditorForm : Form
         _conditionsGrid.CellValueChanged += OnGridCellValueChanged;
         _conditionsGrid.CellEndEdit += (_, _) => UpdatePreview();
         _conditionsGrid.CellFormatting += OnConditionsGridCellFormatting;
-        _conditionsGrid.CellClick += OnConditionsGridCellClick;
+        _conditionsGrid.CellMouseClick += OnConditionsGridCellMouseClick;
         _conditionsGrid.CellPainting += OnConditionsGridCellPainting;
         _conditionsGrid.KeyDown += OnConditionsGridKeyDown;
         _conditionsGrid.CellContentClick += (_, e) =>
@@ -662,6 +662,7 @@ public sealed class ConditionEditorForm : Form
                 "一键辅助" => "一键辅助，条件保存技能列表中的 spellId",
                 "插入法术" => "插入法术，条件保存技能列表中的 spellId",
                 "施法技能" => "施法技能，条件保存技能列表中的 spellId",
+                "上个技能" => "上个技能，条件保存技能列表中的 spellId",
                 _ => e.Value?.ToString() ?? string.Empty
             };
             return;
@@ -704,7 +705,7 @@ public sealed class ConditionEditorForm : Form
             SortMode = DataGridViewColumnSortMode.NotSortable
         };
 
-    private void OnConditionsGridCellClick(object? sender, DataGridViewCellEventArgs e)
+    private void OnConditionsGridCellMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
     {
         if (e.RowIndex < 0 || e.ColumnIndex < 0)
         {
@@ -712,6 +713,24 @@ public sealed class ConditionEditorForm : Form
         }
 
         var cell = _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+        if (cell is BossValueCell)
+        {
+            var buttonBounds = UiTheme.GetDropDownButtonBounds(
+                _conditionsGrid,
+                new Rectangle(0, 0, cell.Size.Width, cell.Size.Height));
+            if (buttonBounds.Contains(e.X, e.Y))
+            {
+                ShowBossNumberDropDown(e.RowIndex, e.ColumnIndex);
+            }
+            else if (!cell.ReadOnly)
+            {
+                CloseConditionComboDropDown();
+                _conditionsGrid.CurrentCell = cell;
+                _conditionsGrid.BeginEdit(selectAll: true);
+            }
+            return;
+        }
+
         if (cell is DataGridViewComboBoxCell combo
             && !combo.ReadOnly
             && combo.DisplayStyle != DataGridViewComboBoxDisplayStyle.Nothing)
@@ -730,6 +749,15 @@ public sealed class ConditionEditorForm : Form
 
     private void OnConditionsGridKeyDown(object? sender, KeyEventArgs e)
     {
+        if (_conditionsGrid.CurrentCell is BossValueCell bossCell
+            && (e.KeyCode == Keys.F4 || e.KeyCode == Keys.Down && e.Alt))
+        {
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+            ShowBossNumberDropDown(bossCell.RowIndex, bossCell.ColumnIndex);
+            return;
+        }
+
         if (_conditionsGrid.CurrentCell is not DataGridViewComboBoxCell cell
             || cell.ReadOnly
             || cell.DisplayStyle == DataGridViewComboBoxDisplayStyle.Nothing
@@ -772,11 +800,15 @@ public sealed class ConditionEditorForm : Form
         var items = sourceItems
             .Select(item => item switch
             {
-                FieldItem field => new UiDropDownOption(field.Name, field.Display),
+                FieldItem field => new UiDropDownOption(
+                    field.Name,
+                    field.Display,
+                    ResolveFieldIcon(field)),
                 SpellValueItem spell => new UiDropDownOption(
                     spell.Value,
                     spell.Display,
-                    spell.Missing ? null : SpellIconCatalog.Get(spell.SpellId)),
+                    spell.Missing ? null : SpellIconCatalog.Get(spell.SpellId),
+                    spell.Index?.ToString(CultureInfo.InvariantCulture)),
                 _ => new UiDropDownOption(item.ToString() ?? string.Empty, item.ToString() ?? string.Empty)
             })
             .DistinctBy(item => item.Value?.ToString(), StringComparer.Ordinal)
@@ -818,6 +850,69 @@ public sealed class ConditionEditorForm : Form
         _conditionComboDropDown = dropDown;
     }
 
+    private void ShowBossNumberDropDown(int rowIndex, int columnIndex)
+    {
+        CloseConditionComboDropDown();
+        _conditionsGrid.EndEdit();
+        if (rowIndex < 0 || rowIndex >= _conditionsGrid.Rows.Count
+            || _conditionsGrid.Rows[rowIndex].Cells[columnIndex] is not BossValueCell cell)
+        {
+            return;
+        }
+
+        _conditionsGrid.CurrentCell = cell;
+        var options = new List<UiDropDownOption>
+        {
+            new("0", "非首领战 / -", LeadingText: "0")
+        };
+        options.AddRange(StatusForm.GetBossNumberOptions().Select(boss => new UiDropDownOption(
+            boss.Number.ToString(CultureInfo.InvariantCulture),
+            $"{boss.Dungeon} / {boss.Name}",
+            LeadingText: boss.Number.ToString(CultureInfo.InvariantCulture))));
+
+        var currentValue = cell.Value?.ToString()?.Trim() ?? string.Empty;
+        var cellBounds = _conditionsGrid.GetCellDisplayRectangle(columnIndex, rowIndex, cutOverflow: true);
+        ToolStripDropDown? dropDown = null;
+        dropDown = UiDropDownPopup.Show(
+            _conditionsGrid,
+            cellBounds,
+            options,
+            currentValue,
+            selected =>
+            {
+                cell.Value = selected.Value?.ToString() ?? string.Empty;
+                _conditionsGrid.InvalidateCell(cell);
+                UpdatePreview();
+            },
+            preferredWidth: 390,
+            closed: () =>
+            {
+                if (ReferenceEquals(_conditionComboDropDown, dropDown))
+                {
+                    _conditionComboDropDown = null;
+                }
+            });
+        _conditionComboDropDown = dropDown;
+    }
+
+    private static Image? ResolveFieldIcon(FieldItem field)
+    {
+        if (field.IsCustom
+            || field.Category is not (ConditionFieldCategory.Spell or ConditionFieldCategory.Aura))
+        {
+            return null;
+        }
+
+        if (SpellFieldKey.TryParseSpell(field.Name, out var spellId, out _)
+            || SpellFieldKey.TryParseAura(field.Name, out _, out spellId, out _)
+            || SpellFieldKey.TryParseAuraMember(field.Name, out spellId, out _))
+        {
+            return SpellIconCatalog.Get(spellId);
+        }
+
+        return null;
+    }
+
     private void CloseConditionComboDropDown()
     {
         _conditionComboDropDown?.Close(ToolStripDropDownCloseReason.AppClicked);
@@ -826,14 +921,25 @@ public sealed class ConditionEditorForm : Form
 
     private void OnConditionsGridCellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
     {
-        if (e.RowIndex < 0
-            || e.ColumnIndex < 0
-            || _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex] is not DataGridViewComboBoxCell cell)
+        if (e.RowIndex < 0 || e.ColumnIndex < 0)
         {
             return;
         }
 
-        PaintConditionComboBoxCell(e, cell);
+
+        var cell = _conditionsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+        if (cell is BossValueCell)
+        {
+            UiTheme.PaintDataGridViewComboBoxCell(_conditionsGrid, e, showButton: true);
+            return;
+        }
+
+        if (cell is not DataGridViewComboBoxCell combo)
+        {
+            return;
+        }
+
+        PaintConditionComboBoxCell(e, combo);
     }
 
     private void PaintConditionComboBoxCell(
@@ -1294,6 +1400,17 @@ public sealed class ConditionEditorForm : Form
             return;
         }
 
+        if (string.Equals(field?.Name, "首领战", StringComparison.Ordinal))
+        {
+            var bossValue = rawValue?.Trim() ?? string.Empty;
+            if (!preserveRaw && bossValue.Length == 0)
+            {
+                bossValue = "0";
+            }
+            row.Cells[ValueColumn] = new BossValueCell { Value = bossValue.Length == 0 ? "0" : bossValue };
+            return;
+        }
+
         if (field is { IsCustom: false, Type: ConditionFieldType.Bool })
         {
             var combo = new DataGridViewComboBoxCell
@@ -1345,7 +1462,8 @@ public sealed class ConditionEditorForm : Form
             combo.Items.Add(new SpellValueItem(
                 spell.SpellId.ToString(CultureInfo.InvariantCulture),
                 spell.DisplayName,
-                spell.SpellId));
+                spell.SpellId,
+                spell.Index));
         }
 
         var value = preserveRaw ? rawValue?.Trim() ?? string.Empty : string.Empty;
@@ -1663,8 +1781,11 @@ public sealed class ConditionEditorForm : Form
         string Value,
         string Display,
         long SpellId,
+        int? Index = null,
         bool Missing = false)
     {
         public override string ToString() => Display;
     }
+
+    private sealed class BossValueCell : DataGridViewTextBoxCell;
 }

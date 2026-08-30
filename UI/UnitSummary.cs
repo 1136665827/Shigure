@@ -6,14 +6,16 @@ namespace Shigure;
 /// </summary>
 internal static class UnitSummary
 {
-    public static string Describe(ModuleUnit unit)
+    public static string Describe(ModuleUnit unit, Func<long, string?>? resolveAuraName = null)
     {
         var threshold = DescribeThreshold(
             unit.HealthThreshold,
             unit.HealthThresholdField,
             IsHealingAbsorbKind(unit.Kind) ? 0 : 100);
-        var aura = unit.AuraNames is { Count: > 0 } ? unit.AuraNames[0] : "?";
-        var auras = unit.AuraNames is { Count: > 0 } ? string.Join("/", unit.AuraNames) : "?";
+        var aura = unit.AuraSpellIds is { Count: > 0 } ? FormatAura(unit.AuraSpellIds[0], resolveAuraName) : "?";
+        var auras = unit.AuraSpellIds is { Count: > 0 }
+            ? string.Join("/", unit.AuraSpellIds.Select(id => FormatAura(id, resolveAuraName)))
+            : "?";
         var dir = unit.Reverse ? "逆序" : "正序";
         var roleFilter = DescribeRoleFilter(unit);
         return roleFilter + (unit.Kind switch
@@ -38,23 +40,30 @@ internal static class UnitSummary
         });
     }
 
-    public static string Describe(ModuleCountField count)
+    public static string Describe(ModuleCountField count, Func<long, string?>? resolveAuraName = null)
     {
         var threshold = DescribeThreshold(
             count.HealthThreshold,
             count.HealthThresholdField,
             IsHealingAbsorbKind(count.Kind) ? 0 : 100);
+        var aura = count.AuraSpellId is { } id ? FormatAura(id, resolveAuraName) : "?";
         return count.Kind switch
         {
             CountKind.UnitsBelowHealth => $"血量<{threshold} 的人数",
-            CountKind.UnitsWithoutAuraBelowHealth => $"不带[{count.AuraName}]且血<{threshold} 的人数",
-            CountKind.UnitsWithAuraBelowHealth => $"带[{count.AuraName}]且血<{threshold} 的人数",
-            CountKind.UnitsWithAura => $"带[{count.AuraName}] 的人数",
+            CountKind.UnitsWithoutAuraBelowHealth => $"不带[{aura}]且血<{threshold} 的人数",
+            CountKind.UnitsWithAuraBelowHealth => $"带[{aura}]且血<{threshold} 的人数",
+            CountKind.UnitsWithAura => $"带[{aura}] 的人数",
             CountKind.UnitsAboveHealingAbsorb => $"治疗吸收>{threshold} 的人数",
-            CountKind.UnitsWithoutAuraAboveHealingAbsorb => $"不带[{count.AuraName}]且治疗吸收>{threshold} 的人数",
-            CountKind.UnitsWithAuraAboveHealingAbsorb => $"带[{count.AuraName}]且治疗吸收>{threshold} 的人数",
+            CountKind.UnitsWithoutAuraAboveHealingAbsorb => $"不带[{aura}]且治疗吸收>{threshold} 的人数",
+            CountKind.UnitsWithAuraAboveHealingAbsorb => $"带[{aura}]且治疗吸收>{threshold} 的人数",
             _ => count.Kind.ToString()
         };
+    }
+
+    private static string FormatAura(long spellId, Func<long, string?>? resolveAuraName)
+    {
+        var name = resolveAuraName?.Invoke(spellId);
+        return string.IsNullOrWhiteSpace(name) ? spellId.ToString() : $"{name} / {spellId}";
     }
 
     private static string DescribeThreshold(int? fixedValue, string? field, int defaultValue = 100)

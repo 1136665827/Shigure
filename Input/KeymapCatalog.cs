@@ -95,7 +95,29 @@ public sealed class KeymapCatalog
 
     public IReadOnlyCollection<string> GetFailedSpellNames(int? classId)
     {
-        return _config?.GetFailedSpells(classId).Values.ToList() ?? [];
+        if (classId is null || _config is null)
+        {
+            return [];
+        }
+
+        var ids = _config.GetFailedSpells(classId).Values.ToHashSet();
+        var path = Path.Combine(
+            _baseDirectory,
+            "Fuyutsui",
+            "class",
+            $"{ClassNames.GetConfigFileName(classId.Value)}.lua");
+        try
+        {
+            return ClassBlocksStore.Load(path).SpellsList
+                .Where(spell => ids.Contains(spell.SpellId) && !string.IsNullOrWhiteSpace(spell.Name))
+                .Select(spell => spell.Name.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private KeymapEntries GetEntries(int? classId)

@@ -1,6 +1,6 @@
 ---
 title: Fuyutsui /fu 斜杠命令
-summary: /fu 与 /fuyutsui 命令的用户用法、参数语义、角色配置副作用、状态像素同步和插入法术校验流程。
+summary: /fu 与 /fuyutsui 命令的用户用法、参数语义、角色配置副作用、状态像素同步和按技能名或 spellId 插入法术的流程。
 aliases:
   - Fuyutsui /fu 命令
   - /fu 命令
@@ -32,7 +32,7 @@ source_symbols:
   - Fuyutsui:SwitchCharFlag
   - Fuyutsui:SwitchDelay
   - Fuyutsui:SetInsertSpell
-verified_at: 2026-08-16
+verified_at: 2026-08-30
 ---
 
 # Fuyutsui `/fu` 斜杠命令
@@ -42,7 +42,7 @@ verified_at: 2026-08-16
 相关：[[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]] · [[20-Fuyutsui/04-Fuyutsui-玩家状态]] · [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]
 
 > [!summary] AI 快速摘要
-> `/fu` 是 Fuyutsui 的游戏内命令入口，`/fuyutsui` 是完全等价的长别名。命令可以修改角色级爆发、AOE、输出和药水开关，显示或隐藏快捷控件，临时置位 `delay`，以及按名称向像素状态写入一个待执行法术序号。输入 `/fu` 或 `/fu help` 可在聊天框打印内置帮助。
+> `/fu` 是 Fuyutsui 的游戏内命令入口，`/fuyutsui` 是完全等价的长别名。命令可以修改角色级爆发、AOE、输出和药水开关，显示或隐藏快捷控件，临时置位 `delay`，以及按技能名称或 spellId 从 `Fuyutsui.spellsList` 解析并写入一个待执行法术序号。输入 `/fu` 或 `/fu help` 可在聊天框打印内置帮助。
 
 ## 快速使用
 
@@ -54,12 +54,13 @@ verified_at: 2026-08-16
 /fu dpsmode assistant
 /fu potion off
 /fu delay 3
-/fu i 真言术：盾 mouseover
+/fu i 真言术：盾
+/fu i 232633
 /fu hide
 /fu show
 ```
 
-命令关键字和单位 token 不区分大小写；技能名称从原始输入中提取，并按 `spellsList` 中的显示名称精确匹配。命令首尾空白会被去除。
+命令关键字不区分大小写；插入法术参数从原始输入中提取。纯十进制正整数按 spellId 直接索引 `spellsList`，其他文本按其中的显示名称精确匹配。命令首尾空白会被去除。
 
 ## 完整命令表
 
@@ -81,7 +82,7 @@ verified_at: 2026-08-16
 | `/fu hide` | 隐藏快捷控件，并保存可见性 | `quickButtonShow = false` |
 | `/fu show` | 显示快捷控件，并保存可见性 | `quickButtonShow = true` |
 | `/fu delay [秒]` | 临时启用延迟标志，超时后自动恢复 | `delay = 1 → 0` |
-| `/fu i 技能名称 [单位]` | 校验并短暂写入技能对应的宏序号 | `state.insertSpell = index / 255` |
+| `/fu i 技能名称或spellId` | 仅从 `Fuyutsui.spellsList` 解析并短暂写入技能对应的本地序号 | `state.insertSpell = index / 255` |
 
 除 `/fu` 外，所有示例也可将前缀替换为 `/fuyutsui`。
 
@@ -140,54 +141,47 @@ SlashCommand
 > [!warning] 当前路由使用宽松前缀匹配
 > 分支条件是 `command:match("^delay")`。因此 `/fu delayfoo` 也会进入 `delay` 分支，并因没有解析到秒数而按默认 1 秒执行。调用方应只生成规范形式 `/fu delay` 或 `/fu delay 正数`。
 
-## `/fu i 技能名称 [单位]`
+## `/fu i 技能名称或spellId`
 
-该命令不是直接施法，而是将当前职业宏列表中的一个动作序号短暂写入“插入法术”像素，供下游逻辑识别。
+该命令不是直接施法，而是将当前 `Fuyutsui.spellsList` 中一个技能的本地序号短暂写入“插入法术”像素，供下游逻辑识别。命令不接受目标单位，也不读取或校验 `ClassMacros`。
 
-### 可选单位
-
-末尾参数匹配下列 token 时才被视为单位：
-
-- 固定单位：`player`、`target`、`focus`、`mouseover`、`cursor`、`pet`
-- 编号单位：`partyN`、`raidN`、`bossN`，其中 `N` 是一个或多个数字
-
-代码只验证 token 的文本格式，不验证该单位此刻存在，也不限制编号是否是 WoW 的有效范围。
+推荐优先输入 spellId。名称模式为兼容和手工输入保留；当 `spellsList` 中存在多个同名法术时，名称查找使用 `pairs()` 命中的第一项，结果没有稳定顺序保证。spellId 模式直接读取 `spellsList[spellId]`，因此能精确得到该 ID 对应的本地序号。
 
 ### 校验与写入流程
 
 ```text
-/fu i 技能名称 [单位]
-  → 从末尾识别可选单位
-  → 以技能显示名称精确查找 spellsList
-  → 在当前 ClassMacros 的 dynamic/static/special 列表中验证技能
-  → SetInsertSpell(index, spellName, unit)
+/fu i 技能名称或spellId
+  → 纯十进制正整数：直接读取 spellsList[spellId]
+  → 其他文本：以技能显示名称精确查找 spellsList
+  → SetInsertSpell(index, spellName, spellId)
   → state.insertSpell = index / 255
+  → 聊天提示技能名称、spellId 和本地序号
   → 1.5 秒后清零，或匹配的法术成功施放后提前清零
 ```
 
-单位参数只参与宏条目校验和聊天提示，最终像素只包含 `index / 255`，不包含单位本身。需要还原目标语义的消费者只能依据这个宏序号所对应的 `ClassMacros` 约定判断。
+例如 `/fu i 232633` 在当前 `spellsList` 中存在该条目时，会精确写入其序号并打印类似 `插入法术: 奥术洪流（spellId: 232633，序号: 220）`。`/fu i 奥术洪流` 仍然有效，但同名条目可能导致其选择不同 spellId。
+
+`target`、`player`、`focus` 等单位 token 已不再是命令参数。`/fu i 232633 target` 会把 `232633 target` 当作完整技能文本，并因不在 `spellsList` 中而失败。
 
 常见失败提示：
 
 | 提示 | 原因 |
 | --- | --- |
-| `用法: /fu i 技能名称 [单位]` | 没有提供技能名称 |
-| `未在 spellsList 中找到技能` | 技能显示名称与当前 `spellsList` 不完全一致 |
-| `未在 ClassMacros 中找到技能` | 技能虽在 `spellsList`，但当前职业宏列表没有匹配项 |
-| `未在 ClassMacros 中找到技能（或单位不匹配）` | 提供了单位，但宏列表校验失败 |
+| `用法: /fu i 技能名称或spellId` | 没有提供技能名称或 spellId |
+| `未在 spellsList 中找到技能` | spellId 不存在，或技能显示名称与当前 `spellsList` 不完全一致 |
 
 ### 当前实现边界
 
 - `FindSpellListByName()` 使用 `pairs()` 返回第一个同名项；若 `spellsList` 有重复显示名称，选择结果没有稳定顺序保证。
-- 宏技能判断除了清理条件和分支后比较，还允许任意字面子串命中，可能出现短名称误匹配。
-- `MacroEntryMatchesUnit()` 当前用纯文本模式搜索字面量 `%[`，通常无法识别普通宏中的 `[`；带单位的命令因而可能绕过预期的 `@unit`/`target=unit` 检查。
+- `FindSpellListById()` 只接受当前 `spellsList` 中存在且同时具有 `index`、`name` 的正整数 spellId。
+- 插入命令不检查技能是否存在于 `ClassMacros`，也不接受单位参数。
 - 新的插入命令会取消旧的 1.5 秒 timer，并以新序号覆盖旧状态。
 
 ## 输入解析与错误行为
 
 - `/fu` 注册于插件初始化阶段；`/fuyutsui` 指向同一个 `SlashCommand()`。
 - 命令路由使用转为小写后的输入，因此 `CD ON`、`DPSMODE MANUAL` 等关键字可正常识别。
-- 插入法术从原始输入解析，避免改写中文或技能名称中的大小写。
+- 插入法术从原始输入解析，避免改写中文或技能名称中的大小写；纯数字输入按 spellId 处理。
 - 未知命令只打印 `输入 /fu help 查看命令。`，不会修改状态。
 - 除 `delay` 和 `i` 的参数解析外，其余命令按完整字符串匹配；应使用表格中的规范空格和拼写。
 - 所有依赖角色配置的命令在 `Fuyutsui.db.char` 尚未建立时直接返回。
@@ -200,7 +194,7 @@ SlashCommand
 2. 新字段是否加入 `core/core.lua` 的 `Fuyutsui.defaults.char`。
 3. 是否需要在 `core/stateblocks.lua` 增加 getter，并在职业 `ClassBlocks` 中声明像素位置。
 4. 是否需要同步 `core/quickbutton.lua` 的显示或鼠标操作。
-5. 若改变插入法术索引或单位语义，是否同步 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]。
+5. 若改变插入法术的 spellId、名称或本地序号语义，是否同步 `spellsList` 的生产和消费说明。
 6. 在 WoW 内验证聊天命令、SavedVariables、像素刷新、timer 和快捷控件；静态检查无法完整模拟 WoW API。
 
 ## 源码索引
@@ -208,12 +202,12 @@ SlashCommand
 - `Fuyutsui/core/core.lua:74-81`：注册 `/fu` 与 `/fuyutsui`。
 - `Fuyutsui/core/core.lua:171-185`：角色配置默认值。
 - `Fuyutsui/core/commands.lua:5-80`：角色配置读取、规范化与状态同步。
-- `Fuyutsui/core/commands.lua:82-183`：单位、技能名称、ClassMacros 校验。
-- `Fuyutsui/core/commands.lua:185-303`：全部命令路由与帮助文本。
+- `Fuyutsui/core/commands.lua:72-119`：按技能名称或 spellId 查询 `spellsList` 并写入插入法术。
+- `Fuyutsui/core/commands.lua:121-267`：全部命令路由与帮助文本。
 - `Fuyutsui/core/quickbutton.lua:5-32`：`show`/`hide` 的持久化与可见性刷新。
 - `Fuyutsui/core/spells.lua:64-100`：插入法术的写入、timer 和施法成功清理。
 - `Fuyutsui/core/stateblocks.lua:135-139,292-297`：配置 getter 与兼容分类刷新。
 
 ## 知识图谱
 
-本页只描述 `/fu` 命令入口。角色存档结构和快捷控件交互详见 [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]；配置值如何进入玩家状态见 [[20-Fuyutsui/04-Fuyutsui-玩家状态]]；插入法术所依赖的宏序号、动作条与按键契约见 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]] 和 [[40-跨项目/03-Shigure-ClassMacros到keymap与按键契约]]。
+本页只描述 `/fu` 命令入口。角色存档结构和快捷控件交互详见 [[20-Fuyutsui/10-Fuyutsui-命令快捷按钮与存档]]；配置值如何进入玩家状态见 [[20-Fuyutsui/04-Fuyutsui-玩家状态]]；插入法术的本地序号来自当前 `Fuyutsui.spellsList`，其动作条扫描关系见 [[20-Fuyutsui/09-Fuyutsui-动作条键位扫描]]。
