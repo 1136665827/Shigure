@@ -356,7 +356,8 @@ internal static class FuyutsuiConfigConverter
                     index,
                     name,
                     id,
-                    SpellFieldKey.SpellCooldown);
+                    SpellFieldKey.SpellCooldown,
+                    "冷却");
                 index++;
 
                 var charge = spell.GetBool("charge") == true;
@@ -366,7 +367,8 @@ internal static class FuyutsuiConfigConverter
                         index,
                         EnsureSuffix(name, "充能"),
                         id,
-                        SpellFieldKey.SpellChargeCooldown);
+                        SpellFieldKey.SpellChargeCooldown,
+                        "充能");
                     index++;
                 }
 
@@ -379,7 +381,8 @@ internal static class FuyutsuiConfigConverter
                             barIndex++,
                             EnsureSuffix(name, "层数"),
                             id,
-                            SpellFieldKey.SpellCount);
+                            SpellFieldKey.SpellCount,
+                            "充能层数");
                     }
                 }
 
@@ -392,7 +395,8 @@ internal static class FuyutsuiConfigConverter
                             barIndex++,
                             EnsureSuffix(name, "层数"),
                             id,
-                            SpellFieldKey.SpellCount);
+                            SpellFieldKey.SpellCount,
+                            "施法次数");
                     }
                 }
             }
@@ -633,25 +637,41 @@ internal static class FuyutsuiConfigConverter
         ["type"] = "int"
     };
 
-    private static JsonObject SpellField(int step, string displayName, long spellId, string metric)
+    private static JsonObject SpellField(
+        int step,
+        string displayName,
+        long spellId,
+        string metric,
+        string displayType)
     {
         var field = Field(step, "int");
-        AddSpellMetadata(field, displayName, spellId, metric);
+        AddSpellMetadata(field, displayName, spellId, metric, displayType);
         return field;
     }
 
-    private static JsonObject SpellBarField(int bar, string displayName, long spellId, string metric)
+    private static JsonObject SpellBarField(
+        int bar,
+        string displayName,
+        long spellId,
+        string metric,
+        string displayType)
     {
         var field = BarField(bar);
-        AddSpellMetadata(field, displayName, spellId, metric);
+        AddSpellMetadata(field, displayName, spellId, metric, displayType);
         return field;
     }
 
-    private static void AddSpellMetadata(JsonObject field, string displayName, long spellId, string metric)
+    private static void AddSpellMetadata(
+        JsonObject field,
+        string displayName,
+        long spellId,
+        string metric,
+        string displayType)
     {
         field["displayName"] = displayName;
         field["spellId"] = spellId;
         field["metric"] = metric;
+        field["displayType"] = displayType;
     }
 
     private static JsonObject AuraField(

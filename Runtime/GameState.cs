@@ -19,6 +19,11 @@ public sealed class GameState
             ? auras
             : new Dictionary<string, object?>();
 
+    public IReadOnlyDictionary<string, string> SpellDisplayTypes =>
+        Values.TryGetValue("$spellDisplayTypes", out var value) && value is IReadOnlyDictionary<string, string> displayTypes
+            ? displayTypes
+            : new Dictionary<string, string>();
+
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> Group =>
         Values.TryGetValue("group", out var value) && value is IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>> group
             ? group

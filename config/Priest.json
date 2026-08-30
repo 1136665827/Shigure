@@ -536,49 +536,56 @@
         "type": "int",
         "displayName": "心灵尖啸",
         "spellId": 8122,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "32375.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "群体驱散",
         "spellId": 32375,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "527.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "纯净术",
         "spellId": 527,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "19236.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "绝望祷言",
         "spellId": 19236,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "232633.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "奥术洪流",
         "spellId": 232633,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "47540.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "苦修",
         "spellId": 47540,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "47540.chargeCooldown": {
         "step": 65,
         "type": "int",
         "displayName": "苦修充能",
         "spellId": 47540,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "47540.count": {
         "step": "bar",
@@ -586,21 +593,24 @@
         "type": "int",
         "displayName": "苦修层数",
         "spellId": 47540,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "194509.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "真言术：耀",
         "spellId": 194509,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "194509.chargeCooldown": {
         "step": 67,
         "type": "int",
         "displayName": "真言术：耀充能",
         "spellId": 194509,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "194509.count": {
         "step": "bar",
@@ -608,70 +618,80 @@
         "type": "int",
         "displayName": "真言术：耀层数",
         "spellId": 194509,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "17.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "真言术：盾",
         "spellId": 17,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "62618.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "真言术：障",
         "spellId": 62618,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "421453.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "终极苦修",
         "spellId": 421453,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "472433.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "福音",
         "spellId": 472433,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "8092.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "心灵震爆",
         "spellId": 8092,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "32379.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "暗言术：灭",
         "spellId": 32379,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "34433.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "暗影魔",
         "spellId": 34433,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1235211.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "暗影分流",
         "spellId": 1235211,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "586.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "渐隐术",
         "spellId": 586,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {
@@ -1105,49 +1125,56 @@
         "type": "int",
         "displayName": "心灵尖啸",
         "spellId": 8122,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "32375.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "群体驱散",
         "spellId": 32375,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "527.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "纯净术",
         "spellId": 527,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "19236.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "绝望祷言",
         "spellId": 19236,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "232633.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "奥术洪流",
         "spellId": 232633,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "33076.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "愈合祷言",
         "spellId": 33076,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "33076.chargeCooldown": {
         "step": 63,
         "type": "int",
         "displayName": "愈合祷言充能",
         "spellId": 33076,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "33076.count": {
         "step": "bar",
@@ -1155,21 +1182,24 @@
         "type": "int",
         "displayName": "愈合祷言层数",
         "spellId": 33076,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "2050.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "圣言术：静",
         "spellId": 2050,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2050.chargeCooldown": {
         "step": 65,
         "type": "int",
         "displayName": "圣言术：静充能",
         "spellId": 2050,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "2050.count": {
         "step": "bar",
@@ -1177,56 +1207,64 @@
         "type": "int",
         "displayName": "圣言术：静层数",
         "spellId": 2050,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "88625.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "圣言术：罚",
         "spellId": 88625,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "200183.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "神圣化身",
         "spellId": 200183,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "14914.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "神圣之火",
         "spellId": 14914,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "120517.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "光晕",
         "spellId": 120517,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "64843.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "神圣赞美诗",
         "spellId": 64843,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "586.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "渐隐术",
         "spellId": 586,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "528.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "驱散魔法",
         "spellId": 528,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {
@@ -1739,91 +1777,104 @@
         "type": "int",
         "displayName": "心灵尖啸",
         "spellId": 8122,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "32375.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "群体驱散",
         "spellId": 32375,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "527.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "纯净术",
         "spellId": 527,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "19236.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "绝望祷言",
         "spellId": 19236,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "232633.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "奥术洪流",
         "spellId": 232633,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "8092.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "心灵震爆",
         "spellId": 8092,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "32379.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "暗言术：灭",
         "spellId": 32379,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "263165.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "虚空洪流",
         "spellId": 263165,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "228260.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "虚空形态",
         "spellId": 228260,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1227280.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "触须猛击",
         "spellId": 1227280,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "15286.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "吸血鬼的拥抱",
         "spellId": 15286,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "120644.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "光晕",
         "spellId": 120644,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1242173.cooldown": {
         "step": 77,
         "type": "int",
         "displayName": "虚空齐射",
         "spellId": 1242173,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   }

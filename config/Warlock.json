@@ -294,105 +294,120 @@
         "type": "int",
         "displayName": "恐惧",
         "spellId": 5782,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6789.cooldown": {
         "step": 44,
         "type": "int",
         "displayName": "死亡缠绕",
         "spellId": 6789,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20707.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "灵魂石",
         "spellId": 20707,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "30283.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "暗影之怒",
         "spellId": 30283,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "333889.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "邪能统御",
         "spellId": 333889,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "108416.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "黑暗契约",
         "spellId": 108416,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "111771.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "恶魔传送门",
         "spellId": 111771,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "127174.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "虚弱灾厄",
         "spellId": 127174,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1271802.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "语言灾厄",
         "spellId": 1271802,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48018.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "恶魔法阵",
         "spellId": 48018,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48020.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "恶魔法阵：传送",
         "spellId": 48020,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "205180.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "召唤黑眼",
         "spellId": 205180,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48181.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "鬼影缠身",
         "spellId": 48181,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1257052.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "幽冥收割",
         "spellId": 1257052,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "442726.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "怨毒",
         "spellId": 442726,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -608,84 +623,96 @@
         "type": "int",
         "displayName": "恐惧",
         "spellId": 5782,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6789.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "死亡缠绕",
         "spellId": 6789,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20707.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "灵魂石",
         "spellId": 20707,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "30283.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "暗影之怒",
         "spellId": 30283,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "333889.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "邪能统御",
         "spellId": 333889,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "108416.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "黑暗契约",
         "spellId": 108416,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "111771.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "恶魔传送门",
         "spellId": 111771,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "127174.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "虚弱灾厄",
         "spellId": 127174,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1271802.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "语言灾厄",
         "spellId": 1271802,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48018.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "恶魔法阵",
         "spellId": 48018,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48020.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "恶魔法阵：传送",
         "spellId": 48020,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "196277.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "内爆",
         "spellId": 196277,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "196277.count": {
         "step": "bar",
@@ -693,70 +720,80 @@
         "type": "int",
         "displayName": "内爆层数",
         "spellId": 196277,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "施法次数"
       },
       "265187.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "召唤恶魔暴君",
         "spellId": 265187,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1276467.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "魔典：邪能破坏者",
         "spellId": 1276467,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "105174.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "古尔丹之手",
         "spellId": 105174,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1276672.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "召唤末日守卫",
         "spellId": 1276672,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "104316.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "召唤恐惧猎犬",
         "spellId": 104316,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "264187.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "恶魔之箭",
         "spellId": 264187,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1276452.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "魔典：小鬼领主",
         "spellId": 1276452,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "388215.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "吞噬魔法",
         "spellId": 388215,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "30146.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "召唤恶魔卫士",
         "spellId": 30146,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -962,105 +999,120 @@
         "type": "int",
         "displayName": "恐惧",
         "spellId": 5782,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6789.cooldown": {
         "step": 44,
         "type": "int",
         "displayName": "死亡缠绕",
         "spellId": 6789,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20707.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "灵魂石",
         "spellId": 20707,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "30283.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "暗影之怒",
         "spellId": 30283,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "333889.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "邪能统御",
         "spellId": 333889,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "108416.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "黑暗契约",
         "spellId": 108416,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "111771.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "恶魔传送门",
         "spellId": 111771,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "127174.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "虚弱灾厄",
         "spellId": 127174,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1271802.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "语言灾厄",
         "spellId": 1271802,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48018.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "恶魔法阵",
         "spellId": 48018,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48020.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "恶魔法阵：传送",
         "spellId": 48020,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1122.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "召唤地狱火",
         "spellId": 1122,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6353.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "灵魂之火",
         "spellId": 6353,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "17962.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "燃烧",
         "spellId": 17962,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "17962.chargeCooldown": {
         "step": 57,
         "type": "int",
         "displayName": "燃烧充能",
         "spellId": 17962,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       }
     }
   }

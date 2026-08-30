@@ -283,140 +283,160 @@
         "type": "int",
         "displayName": "毒刃",
         "spellId": 5938,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2094.cooldown": {
         "step": 42,
         "type": "int",
         "displayName": "致盲",
         "spellId": 2094,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1966.cooldown": {
         "step": 43,
         "type": "int",
         "displayName": "佯攻",
         "spellId": 1966,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1856.cooldown": {
         "step": 44,
         "type": "int",
         "displayName": "消失",
         "spellId": 1856,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1833.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "偷袭",
         "spellId": 1833,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "114018.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "潜伏帷幕",
         "spellId": 114018,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "381623.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "菊花茶",
         "spellId": 381623,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "5277.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "闪避",
         "spellId": 5277,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185311.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "猩红之瓶",
         "spellId": 185311,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1725.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "扰乱",
         "spellId": 1725,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2983.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "疾跑",
         "spellId": 2983,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1776.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "凿击",
         "spellId": 1776,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "408.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "肾击",
         "spellId": 408,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "31224.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "暗影斗篷",
         "spellId": 31224,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1766.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "脚踢",
         "spellId": 1766,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "360194.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "死亡印记",
         "spellId": 360194,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1293340.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "死亡印记",
         "spellId": 1293340,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "703.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "锁喉",
         "spellId": 703,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "385627.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "君王之灾",
         "spellId": 385627,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "36554.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "暗影步",
         "spellId": 36554,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -765,175 +785,200 @@
         "type": "int",
         "displayName": "毒刃",
         "spellId": 5938,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2094.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "致盲",
         "spellId": 2094,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1966.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "佯攻",
         "spellId": 1966,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1856.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "消失",
         "spellId": 1856,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1833.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "偷袭",
         "spellId": 1833,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "114018.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "潜伏帷幕",
         "spellId": 114018,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "381623.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "菊花茶",
         "spellId": 381623,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "5277.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "闪避",
         "spellId": 5277,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185311.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "猩红之瓶",
         "spellId": 185311,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1725.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "扰乱",
         "spellId": 1725,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2983.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "疾跑",
         "spellId": 2983,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1776.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "凿击",
         "spellId": 1776,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "408.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "肾击",
         "spellId": 408,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "31224.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "暗影斗篷",
         "spellId": 31224,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1766.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "脚踢",
         "spellId": 1766,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "13750.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "冲动",
         "spellId": 13750,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "51690.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "影舞步",
         "spellId": 51690,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "271877.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "刀锋冲刺",
         "spellId": 271877,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "315341.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "正中眉心",
         "spellId": 315341,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "13877.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "剑刃乱舞",
         "spellId": 13877,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "195475.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "抓钩",
         "spellId": 195475,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "195475.chargeCooldown": {
         "step": 77,
         "type": "int",
         "displayName": "抓钩充能",
         "spellId": 195475,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "1214909.cooldown": {
         "step": 78,
         "type": "int",
         "displayName": "命运骨骰",
         "spellId": 1214909,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "381989.cooldown": {
         "step": 79,
         "type": "int",
         "displayName": "时运继延",
         "spellId": 381989,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1277933.cooldown": {
         "step": 80,
         "type": "int",
         "displayName": "伺机待发",
         "spellId": 1277933,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1149,140 +1194,160 @@
         "type": "int",
         "displayName": "毒刃",
         "spellId": 5938,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2094.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "致盲",
         "spellId": 2094,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1966.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "佯攻",
         "spellId": 1966,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1856.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "消失",
         "spellId": 1856,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1833.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "偷袭",
         "spellId": 1833,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "114018.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "潜伏帷幕",
         "spellId": 114018,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "381623.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "菊花茶",
         "spellId": 381623,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "5277.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "闪避",
         "spellId": 5277,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185311.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "猩红之瓶",
         "spellId": 185311,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1725.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "扰乱",
         "spellId": 1725,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2983.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "疾跑",
         "spellId": 2983,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1776.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "凿击",
         "spellId": 1776,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "408.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "肾击",
         "spellId": 408,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "31224.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "暗影斗篷",
         "spellId": 31224,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1766.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "脚踢",
         "spellId": 1766,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "36554.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "暗影步",
         "spellId": 36554,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "280719.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "影分身",
         "spellId": 280719,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "121471.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "暗影之刃",
         "spellId": 121471,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185313.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "暗影之舞",
         "spellId": 185313,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185313.chargeCooldown": {
         "step": 64,
         "type": "int",
         "displayName": "暗影之舞充能",
         "spellId": 185313,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       }
     }
   }

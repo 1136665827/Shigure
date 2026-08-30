@@ -535,63 +535,72 @@
         "type": "int",
         "displayName": "盲目之光",
         "spellId": 115750,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "853.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "制裁之锤",
         "spellId": 853,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "642.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "圣盾术",
         "spellId": 642,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6940.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "牺牲祝福",
         "spellId": 6940,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1044.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "自由祝福",
         "spellId": 1044,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1022.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "保护祝福",
         "spellId": 1022,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "633.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "圣疗术",
         "spellId": 633,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20473.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "神圣震击",
         "spellId": 20473,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20473.chargeCooldown": {
         "step": 70,
         "type": "int",
         "displayName": "神圣震击充能",
         "spellId": 20473,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "20473.count": {
         "step": "bar",
@@ -599,63 +608,72 @@
         "type": "int",
         "displayName": "神圣震击层数",
         "spellId": 20473,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "4987.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "清洁术",
         "spellId": 4987,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "275773.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "审判",
         "spellId": 275773,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "375576.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "圣洁鸣钟",
         "spellId": 375576,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "114165.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "神圣棱镜",
         "spellId": 114165,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "31821.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "光环掌握",
         "spellId": 31821,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "200025.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "美德道标",
         "spellId": 200025,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "432459.cooldown": {
         "step": 77,
         "type": "int",
         "displayName": "神圣壁垒",
         "spellId": 432459,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "432459.chargeCooldown": {
         "step": 78,
         "type": "int",
         "displayName": "神圣壁垒充能",
         "spellId": 432459,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "432459.count": {
         "step": "bar",
@@ -663,14 +681,16 @@
         "type": "int",
         "displayName": "神圣壁垒层数",
         "spellId": 432459,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "391054.cooldown": {
         "step": 79,
         "type": "int",
         "displayName": "代祷",
         "spellId": 391054,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {
@@ -1071,14 +1091,16 @@
         "type": "int",
         "displayName": "圣洁武器",
         "spellId": 432472,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "432472.chargeCooldown": {
         "step": 61,
         "type": "int",
         "displayName": "圣洁武器充能",
         "spellId": 432472,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "432472.count": {
         "step": "bar",
@@ -1086,21 +1108,24 @@
         "type": "int",
         "displayName": "圣洁武器层数",
         "spellId": 432472,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "432459.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "神圣壁垒",
         "spellId": 432459,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "432459.chargeCooldown": {
         "step": 63,
         "type": "int",
         "displayName": "神圣壁垒充能",
         "spellId": 432459,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "432459.count": {
         "step": "bar",
@@ -1108,28 +1133,32 @@
         "type": "int",
         "displayName": "神圣壁垒层数",
         "spellId": 432459,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "213644.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "清毒术",
         "spellId": 213644,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "275779.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "审判",
         "spellId": 275779,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "275779.chargeCooldown": {
         "step": 66,
         "type": "int",
         "displayName": "审判充能",
         "spellId": 275779,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "275779.count": {
         "step": "bar",
@@ -1137,56 +1166,64 @@
         "type": "int",
         "displayName": "审判层数",
         "spellId": 275779,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "31935.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "复仇者之盾",
         "spellId": 31935,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "26573.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "奉献",
         "spellId": 26573,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "53600.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "正义盾击",
         "spellId": 53600,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "85673.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "荣耀圣令",
         "spellId": 85673,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "96231.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "责难",
         "spellId": 96231,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "204019.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "祝福之锤",
         "spellId": 204019,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "204019.chargeCooldown": {
         "step": 73,
         "type": "int",
         "displayName": "祝福之锤充能",
         "spellId": 204019,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "204019.count": {
         "step": "bar",
@@ -1194,77 +1231,88 @@
         "type": "int",
         "displayName": "祝福之锤层数",
         "spellId": 204019,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "389539.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "戒卫",
         "spellId": 389539,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "375576.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "圣洁鸣钟",
         "spellId": 375576,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "115750.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "盲目之光",
         "spellId": 115750,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "853.cooldown": {
         "step": 77,
         "type": "int",
         "displayName": "制裁之锤",
         "spellId": 853,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "642.cooldown": {
         "step": 78,
         "type": "int",
         "displayName": "圣盾术",
         "spellId": 642,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6940.cooldown": {
         "step": 79,
         "type": "int",
         "displayName": "牺牲祝福",
         "spellId": 6940,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1044.cooldown": {
         "step": 80,
         "type": "int",
         "displayName": "自由祝福",
         "spellId": 1044,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1022.cooldown": {
         "step": 81,
         "type": "int",
         "displayName": "保护祝福",
         "spellId": 1022,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "633.cooldown": {
         "step": 82,
         "type": "int",
         "displayName": "圣疗术",
         "spellId": 633,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "24275.cooldown": {
         "step": 83,
         "type": "int",
         "displayName": "愤怒之锤",
         "spellId": 24275,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {
@@ -1517,105 +1565,120 @@
         "type": "int",
         "displayName": "盲目之光",
         "spellId": 115750,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "853.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "制裁之锤",
         "spellId": 853,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "642.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "圣盾术",
         "spellId": 642,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6940.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "牺牲祝福",
         "spellId": 6940,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1044.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "自由祝福",
         "spellId": 1044,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1022.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "保护祝福",
         "spellId": 1022,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "633.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "圣疗术",
         "spellId": 633,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "213644.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "清毒术",
         "spellId": 213644,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20271.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "审判",
         "spellId": 20271,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "20271.chargeCooldown": {
         "step": 59,
         "type": "int",
         "displayName": "审判充能",
         "spellId": 20271,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "375576.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "圣洁鸣钟",
         "spellId": 375576,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "184575.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "公正之剑",
         "spellId": 184575,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "343527.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "处决宣判",
         "spellId": 343527,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "255937.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "灰烬觉醒",
         "spellId": 255937,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "31884.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "复仇之怒",
         "spellId": 31884,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {

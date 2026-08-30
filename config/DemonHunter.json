@@ -290,119 +290,136 @@
         "type": "int",
         "displayName": "黑暗",
         "spellId": 196718,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "198793.cooldown": {
         "step": 44,
         "type": "int",
         "displayName": "复仇回避",
         "spellId": 198793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185123.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "投掷利刃",
         "spellId": 185123,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185123.chargeCooldown": {
         "step": 46,
         "type": "int",
         "displayName": "投掷利刃充能",
         "spellId": 185123,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "207684.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "悲苦咒符",
         "spellId": 207684,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "217832.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "禁锢",
         "spellId": 217832,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "258920.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "献祭光环",
         "spellId": 258920,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "179057.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "混乱新星",
         "spellId": 179057,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "191427.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "恶魔变形",
         "spellId": 191427,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "232893.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "邪能之刃",
         "spellId": 232893,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "188499.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "刃舞",
         "spellId": 188499,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "162794.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "混乱打击",
         "spellId": 162794,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "198589.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "疾影",
         "spellId": 198589,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "370965.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "恶魔追击",
         "spellId": 370965,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "198013.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "眼棱",
         "spellId": 198013,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "195072.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "邪能冲撞",
         "spellId": 195072,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "258860.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "精华破碎",
         "spellId": 258860,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -833,14 +850,16 @@
         "type": "int",
         "displayName": "破裂",
         "spellId": 263642,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "263642.chargeCooldown": {
         "step": 64,
         "type": "int",
         "displayName": "破裂充能",
         "spellId": 263642,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "263642.count": {
         "step": "bar",
@@ -848,14 +867,16 @@
         "type": "int",
         "displayName": "破裂层数",
         "spellId": 263642,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "228477.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "灵魂裂劈",
         "spellId": 228477,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "228477.count": {
         "step": "bar",
@@ -863,49 +884,56 @@
         "type": "int",
         "displayName": "灵魂裂劈层数",
         "spellId": 228477,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "施法次数"
       },
       "247454.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "幽魂炸弹",
         "spellId": 247454,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "390163.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "怨念咒符",
         "spellId": 390163,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "204596.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "烈焰咒符",
         "spellId": 204596,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "232893.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "邪能之刃",
         "spellId": 232893,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185123.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "投掷利刃",
         "spellId": 185123,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185123.chargeCooldown": {
         "step": 71,
         "type": "int",
         "displayName": "投掷利刃充能",
         "spellId": 185123,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "185123.count": {
         "step": "bar",
@@ -913,42 +941,48 @@
         "type": "int",
         "displayName": "投掷利刃层数",
         "spellId": 185123,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "258920.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "献祭光环",
         "spellId": 258920,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "203720.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "恶魔尖刺",
         "spellId": 203720,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "183752.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "瓦解",
         "spellId": 183752,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "204021.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "烈火烙印",
         "spellId": 204021,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "204021.chargeCooldown": {
         "step": 76,
         "type": "int",
         "displayName": "烈火烙印充能",
         "spellId": 204021,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "204021.count": {
         "step": "bar",
@@ -956,35 +990,40 @@
         "type": "int",
         "displayName": "烈火烙印层数",
         "spellId": 204021,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "212084.cooldown": {
         "step": 77,
         "type": "int",
         "displayName": "邪能毁灭",
         "spellId": 212084,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "187827.cooldown": {
         "step": 78,
         "type": "int",
         "displayName": "恶魔变形",
         "spellId": 187827,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "189110.cooldown": {
         "step": 79,
         "type": "int",
         "displayName": "地狱火撞击",
         "spellId": 189110,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "189110.chargeCooldown": {
         "step": 80,
         "type": "int",
         "displayName": "地狱火撞击充能",
         "spellId": 189110,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "189110.count": {
         "step": "bar",
@@ -992,56 +1031,64 @@
         "type": "int",
         "displayName": "地狱火撞击层数",
         "spellId": 189110,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "196718.cooldown": {
         "step": 81,
         "type": "int",
         "displayName": "黑暗",
         "spellId": 196718,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "198793.cooldown": {
         "step": 82,
         "type": "int",
         "displayName": "复仇回避",
         "spellId": 198793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "207684.cooldown": {
         "step": 83,
         "type": "int",
         "displayName": "悲苦咒符",
         "spellId": 207684,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "217832.cooldown": {
         "step": 84,
         "type": "int",
         "displayName": "禁锢",
         "spellId": 217832,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "179057.cooldown": {
         "step": 85,
         "type": "int",
         "displayName": "混乱新星",
         "spellId": 179057,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "207407.cooldown": {
         "step": 86,
         "type": "int",
         "displayName": "灵魂切削",
         "spellId": 207407,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "202137.cooldown": {
         "step": 87,
         "type": "int",
         "displayName": "沉默咒符",
         "spellId": 202137,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1242,63 +1289,72 @@
         "type": "int",
         "displayName": "黑暗",
         "spellId": 196718,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "198793.cooldown": {
         "step": 43,
         "type": "int",
         "displayName": "复仇回避",
         "spellId": 198793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185123.cooldown": {
         "step": 44,
         "type": "int",
         "displayName": "投掷利刃",
         "spellId": 185123,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "185123.chargeCooldown": {
         "step": 45,
         "type": "int",
         "displayName": "投掷利刃充能",
         "spellId": 185123,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "207684.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "悲苦咒符",
         "spellId": 207684,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "217832.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "禁锢",
         "spellId": 217832,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "258920.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "献祭光环",
         "spellId": 258920,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1234195.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "虚空新星",
         "spellId": 1234195,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1217605.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "虚空变形",
         "spellId": 1217605,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1217605.count": {
         "step": "bar",
@@ -1306,77 +1362,88 @@
         "type": "int",
         "displayName": "虚空变形层数",
         "spellId": 1217605,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "施法次数"
       },
       "1245412.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "虚空之刃",
         "spellId": 1245412,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1234796.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "变换",
         "spellId": 1234796,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1234796.chargeCooldown": {
         "step": 53,
         "type": "int",
         "displayName": "变换充能",
         "spellId": 1234796,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "1226019.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "收割",
         "spellId": 1226019,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "473662.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "吞噬",
         "spellId": 473662,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "198589.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "疾影",
         "spellId": 198589,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "473728.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "虚空射线",
         "spellId": 473728,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1246167.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "恶魔追击",
         "spellId": 1246167,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1239123.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "饥渴斩击",
         "spellId": 1239123,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1245453.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "剔除",
         "spellId": 1245453,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   }

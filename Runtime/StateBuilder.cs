@@ -35,6 +35,7 @@ public sealed class StateBuilder : IRuntimeStateBuilder
         if (JsonHelpers.Get(stateConfig, "spells") is JsonObject spellsConfig)
         {
             result["spells"] = BuildFieldMap(spellsConfig, rowData, barData);
+            result["$spellDisplayTypes"] = BuildSpellDisplayTypes(spellsConfig);
         }
 
         if (JsonHelpers.Get(stateConfig, "auras") is JsonObject aurasConfig)
@@ -67,6 +68,26 @@ public sealed class StateBuilder : IRuntimeStateBuilder
             var value = ConvertRawValue(ResolveRaw(field, rowData, barData), JsonHelpers.GetString(JsonHelpers.Get(field, "type")));
             values[fieldName] = value;
             AddAuraAliases(values, field, value, includeScope: true);
+        }
+
+        return values;
+    }
+
+    private static Dictionary<string, string> BuildSpellDisplayTypes(JsonObject fieldsConfig)
+    {
+        var values = new Dictionary<string, string>();
+        foreach (var (fieldName, node) in fieldsConfig)
+        {
+            if (node is not JsonObject field)
+            {
+                continue;
+            }
+
+            var displayType = JsonHelpers.GetString(JsonHelpers.Get(field, "displayType"));
+            if (!string.IsNullOrWhiteSpace(displayType))
+            {
+                values[fieldName] = displayType;
+            }
         }
 
         return values;

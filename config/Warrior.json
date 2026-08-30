@@ -758,77 +758,88 @@
         "type": "int",
         "displayName": "胜利在望",
         "spellId": 202168,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "376079.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "勇士之矛",
         "spellId": 376079,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6544.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "英勇飞跃",
         "spellId": 6544,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "97462.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "集结呐喊",
         "spellId": 97462,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "46968.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "震荡波",
         "spellId": 46968,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "107570.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "风暴之锤",
         "spellId": 107570,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "384110.cooldown": {
         "step": 77,
         "type": "int",
         "displayName": "破裂投掷",
         "spellId": 384110,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "64382.cooldown": {
         "step": 78,
         "type": "int",
         "displayName": "碎裂投掷",
         "spellId": 64382,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "5246.cooldown": {
         "step": 79,
         "type": "int",
         "displayName": "破胆怒吼",
         "spellId": 5246,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "7384.cooldown": {
         "step": 80,
         "type": "int",
         "displayName": "压制",
         "spellId": 7384,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "7384.chargeCooldown": {
         "step": 81,
         "type": "int",
         "displayName": "压制充能",
         "spellId": 7384,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "7384.count": {
         "step": "bar",
@@ -836,84 +847,96 @@
         "type": "int",
         "displayName": "压制层数",
         "spellId": 7384,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "163201.cooldown": {
         "step": 82,
         "type": "int",
         "displayName": "斩杀",
         "spellId": 163201,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "845.cooldown": {
         "step": 83,
         "type": "int",
         "displayName": "顺劈斩",
         "spellId": 845,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "12294.cooldown": {
         "step": 84,
         "type": "int",
         "displayName": "致死打击",
         "spellId": 12294,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "167105.cooldown": {
         "step": 85,
         "type": "int",
         "displayName": "巨人打击",
         "spellId": 167105,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "436358.cooldown": {
         "step": 86,
         "type": "int",
         "displayName": "崩摧",
         "spellId": 436358,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6552.cooldown": {
         "step": 87,
         "type": "int",
         "displayName": "拳击",
         "spellId": 6552,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "118038.cooldown": {
         "step": 88,
         "type": "int",
         "displayName": "剑在人在",
         "spellId": 118038,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "107574.cooldown": {
         "step": 89,
         "type": "int",
         "displayName": "天神下凡",
         "spellId": 107574,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "227847.cooldown": {
         "step": 90,
         "type": "int",
         "displayName": "剑刃风暴",
         "spellId": 227847,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "260708.cooldown": {
         "step": 91,
         "type": "int",
         "displayName": "横扫攻击",
         "spellId": 260708,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "228920.cooldown": {
         "step": 92,
         "type": "int",
         "displayName": "破坏者",
         "spellId": 228920,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1263,98 +1286,112 @@
         "type": "int",
         "displayName": "胜利在望",
         "spellId": 202168,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "376079.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "勇士之矛",
         "spellId": 376079,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6544.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "英勇飞跃",
         "spellId": 6544,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "97462.cooldown": {
         "step": 54,
         "type": "int",
         "displayName": "集结呐喊",
         "spellId": 97462,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "46968.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "震荡波",
         "spellId": 46968,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "107570.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "风暴之锤",
         "spellId": 107570,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "384110.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "破裂投掷",
         "spellId": 384110,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "64382.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "碎裂投掷",
         "spellId": 64382,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "5246.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "破胆怒吼",
         "spellId": 5246,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1719.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "鲁莽",
         "spellId": 1719,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6552.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "拳击",
         "spellId": 6552,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "23881.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "嗜血",
         "spellId": 23881,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "85288.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "怒击",
         "spellId": 85288,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "85288.chargeCooldown": {
         "step": 64,
         "type": "int",
         "displayName": "怒击充能",
         "spellId": 85288,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "85288.count": {
         "step": "bar",
@@ -1362,49 +1399,56 @@
         "type": "int",
         "displayName": "怒击层数",
         "spellId": 85288,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "184367.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "暴怒",
         "spellId": 184367,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "385059.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "奥丁之怒",
         "spellId": 385059,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "227847.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "剑刃风暴",
         "spellId": 227847,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "107574.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "天神下凡",
         "spellId": 107574,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "435222.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "雷霆轰击",
         "spellId": 435222,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "435222.chargeCooldown": {
         "step": 70,
         "type": "int",
         "displayName": "雷霆轰击充能",
         "spellId": 435222,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "435222.count": {
         "step": "bar",
@@ -1412,42 +1456,48 @@
         "type": "int",
         "displayName": "雷霆轰击层数",
         "spellId": 435222,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "6343.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "雷霆一击",
         "spellId": 6343,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "190411.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "旋风斩",
         "spellId": 190411,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "335096.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "浴血奋战",
         "spellId": 335096,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "335097.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "碎甲猛击",
         "spellId": 335097,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "335097.chargeCooldown": {
         "step": 75,
         "type": "int",
         "displayName": "碎甲猛击充能",
         "spellId": 335097,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "335097.count": {
         "step": "bar",
@@ -1455,14 +1505,16 @@
         "type": "int",
         "displayName": "碎甲猛击层数",
         "spellId": 335097,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "5308.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "斩杀",
         "spellId": 5308,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1689,133 +1741,152 @@
         "type": "int",
         "displayName": "胜利在望",
         "spellId": 202168,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "376079.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "勇士之矛",
         "spellId": 376079,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6544.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "英勇飞跃",
         "spellId": 6544,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "97462.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "集结呐喊",
         "spellId": 97462,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "46968.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "震荡波",
         "spellId": 46968,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "107570.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "风暴之锤",
         "spellId": 107570,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "384110.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "破裂投掷",
         "spellId": 384110,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "64382.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "碎裂投掷",
         "spellId": 64382,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "5246.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "破胆怒吼",
         "spellId": 5246,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2565.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "盾牌格挡",
         "spellId": 2565,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "2565.chargeCooldown": {
         "step": 54,
         "type": "int",
         "displayName": "盾牌格挡充能",
         "spellId": 2565,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "385952.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "盾牌冲锋",
         "spellId": 385952,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "107574.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "天神下凡",
         "spellId": 107574,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1160.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "挫志怒吼",
         "spellId": 1160,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6552.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "拳击",
         "spellId": 6552,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "190456.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "无视苦痛",
         "spellId": 190456,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6572.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "复仇",
         "spellId": 6572,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "163201.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "斩杀",
         "spellId": 163201,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "57755.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "英勇投掷",
         "spellId": 57755,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   }

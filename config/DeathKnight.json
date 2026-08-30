@@ -545,112 +545,128 @@
         "type": "int",
         "displayName": "死亡之握",
         "spellId": 49576,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "51052.cooldown": {
         "step": 70,
         "type": "int",
         "displayName": "反魔法领域",
         "spellId": 51052,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "221562.cooldown": {
         "step": 71,
         "type": "int",
         "displayName": "窒息",
         "spellId": 221562,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "207167.cooldown": {
         "step": 72,
         "type": "int",
         "displayName": "致盲冰雨",
         "spellId": 207167,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "47528.cooldown": {
         "step": 73,
         "type": "int",
         "displayName": "心灵冰冻",
         "spellId": 47528,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "195292.cooldown": {
         "step": 74,
         "type": "int",
         "displayName": "死神的抚摩",
         "spellId": 195292,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "439843.cooldown": {
         "step": 75,
         "type": "int",
         "displayName": "死神印记",
         "spellId": 439843,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "46585.cooldown": {
         "step": 76,
         "type": "int",
         "displayName": "亡者复生",
         "spellId": 46585,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "55233.cooldown": {
         "step": 77,
         "type": "int",
         "displayName": "吸血鬼之血",
         "spellId": 55233,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "48792.cooldown": {
         "step": 78,
         "type": "int",
         "displayName": "冰封之韧",
         "spellId": 48792,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "49039.cooldown": {
         "step": 79,
         "type": "int",
         "displayName": "巫妖之躯",
         "spellId": 49039,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "108199.cooldown": {
         "step": 80,
         "type": "int",
         "displayName": "血魔之握",
         "spellId": 108199,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1263569.cooldown": {
         "step": 81,
         "type": "int",
         "displayName": "憎恶附肢",
         "spellId": 1263569,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1263824.cooldown": {
         "step": 82,
         "type": "int",
         "displayName": "吞噬",
         "spellId": 1263824,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "50842.cooldown": {
         "step": 83,
         "type": "int",
         "displayName": "血液沸腾",
         "spellId": 50842,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "50842.chargeCooldown": {
         "step": 84,
         "type": "int",
         "displayName": "血液沸腾充能",
         "spellId": 50842,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "50842.count": {
         "step": "bar",
@@ -658,21 +674,24 @@
         "type": "int",
         "displayName": "血液沸腾层数",
         "spellId": 50842,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "43265.cooldown": {
         "step": 85,
         "type": "int",
         "displayName": "枯萎凋零",
         "spellId": 43265,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "43265.chargeCooldown": {
         "step": 86,
         "type": "int",
         "displayName": "枯萎凋零充能",
         "spellId": 43265,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "43265.count": {
         "step": "bar",
@@ -680,14 +699,16 @@
         "type": "int",
         "displayName": "枯萎凋零层数",
         "spellId": 43265,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "49028.cooldown": {
         "step": 87,
         "type": "int",
         "displayName": "符文刃舞",
         "spellId": 49028,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1051,63 +1072,72 @@
         "type": "int",
         "displayName": "死亡之握",
         "spellId": 49576,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "51052.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "反魔法领域",
         "spellId": 51052,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "221562.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "窒息",
         "spellId": 221562,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "207167.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "致盲冰雨",
         "spellId": 207167,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "51271.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "冰霜之柱",
         "spellId": 51271,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "279302.cooldown": {
         "step": 64,
         "type": "int",
         "displayName": "冰霜巨龙之怒",
         "spellId": 279302,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "439843.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "死神印记",
         "spellId": 439843,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "47568.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "符文武器增效",
         "spellId": 47568,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "47568.chargeCooldown": {
         "step": 67,
         "type": "int",
         "displayName": "符文武器增效充能",
         "spellId": 47568,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "47568.count": {
         "step": "bar",
@@ -1115,21 +1145,24 @@
         "type": "int",
         "displayName": "符文武器增效层数",
         "spellId": 47568,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "1249658.cooldown": {
         "step": 68,
         "type": "int",
         "displayName": "冰龙吐息",
         "spellId": 1249658,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "47528.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "心灵冰冻",
         "spellId": 47528,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1405,56 +1438,64 @@
         "type": "int",
         "displayName": "死亡之握",
         "spellId": 49576,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "51052.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "反魔法领域",
         "spellId": 51052,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "221562.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "窒息",
         "spellId": 221562,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "207167.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "致盲冰雨",
         "spellId": 207167,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "46584.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "亡者复生",
         "spellId": 46584,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "42650.cooldown": {
         "step": 62,
         "type": "int",
         "displayName": "亡者大军",
         "spellId": 42650,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1247378.cooldown": {
         "step": 63,
         "type": "int",
         "displayName": "腐化",
         "spellId": 1247378,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1247378.chargeCooldown": {
         "step": 64,
         "type": "int",
         "displayName": "腐化充能",
         "spellId": 1247378,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "1247378.count": {
         "step": "bar",
@@ -1462,35 +1503,40 @@
         "type": "int",
         "displayName": "腐化层数",
         "spellId": 1247378,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "1233448.cooldown": {
         "step": 65,
         "type": "int",
         "displayName": "黑暗突变",
         "spellId": 1233448,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "343294.cooldown": {
         "step": 66,
         "type": "int",
         "displayName": "灵魂收割",
         "spellId": 343294,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "43265.cooldown": {
         "step": 67,
         "type": "int",
         "displayName": "枯萎凋零",
         "spellId": 43265,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "43265.chargeCooldown": {
         "step": 68,
         "type": "int",
         "displayName": "枯萎凋零充能",
         "spellId": 43265,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "43265.count": {
         "step": "bar",
@@ -1498,14 +1544,16 @@
         "type": "int",
         "displayName": "枯萎凋零层数",
         "spellId": 43265,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "充能层数"
       },
       "55090.cooldown": {
         "step": 69,
         "type": "int",
         "displayName": "天灾打击",
         "spellId": 55090,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "55090.count": {
         "step": "bar",
@@ -1513,7 +1561,8 @@
         "type": "int",
         "displayName": "天灾打击层数",
         "spellId": 55090,
-        "metric": "count"
+        "metric": "count",
+        "displayType": "施法次数"
       }
     }
   }

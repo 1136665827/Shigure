@@ -306,42 +306,48 @@
         "type": "int",
         "displayName": "树皮术",
         "spellId": 22812,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "132469.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "台风",
         "spellId": 132469,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "99.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "夺魂咆哮",
         "spellId": 99,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "29166.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "激活",
         "spellId": 29166,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "102793.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "乌索尔旋风",
         "spellId": 102793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "78675.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "日光术",
         "spellId": 78675,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -552,35 +558,40 @@
         "type": "int",
         "displayName": "树皮术",
         "spellId": 22812,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "132469.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "台风",
         "spellId": 132469,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "99.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "夺魂咆哮",
         "spellId": 99,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "29166.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "激活",
         "spellId": 29166,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "102793.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "乌索尔旋风",
         "spellId": 102793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -881,98 +892,112 @@
         "type": "int",
         "displayName": "树皮术",
         "spellId": 22812,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "132469.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "台风",
         "spellId": 132469,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "99.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "夺魂咆哮",
         "spellId": 99,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "29166.cooldown": {
         "step": 51,
         "type": "int",
         "displayName": "激活",
         "spellId": 29166,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "102793.cooldown": {
         "step": 52,
         "type": "int",
         "displayName": "乌索尔旋风",
         "spellId": 102793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "22842.cooldown": {
         "step": 53,
         "type": "int",
         "displayName": "狂暴回复",
         "spellId": 22842,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "22842.chargeCooldown": {
         "step": 54,
         "type": "int",
         "displayName": "狂暴回复充能",
         "spellId": 22842,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "61336.cooldown": {
         "step": 55,
         "type": "int",
         "displayName": "生存本能",
         "spellId": 61336,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "102558.cooldown": {
         "step": 56,
         "type": "int",
         "displayName": "化身：乌索克的守护者",
         "spellId": 102558,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1261867.cooldown": {
         "step": 57,
         "type": "int",
         "displayName": "野性之心",
         "spellId": 1261867,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1253799.cooldown": {
         "step": 58,
         "type": "int",
         "displayName": "碎甲咆哮",
         "spellId": 1253799,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1252871.cooldown": {
         "step": 59,
         "type": "int",
         "displayName": "赤红之月",
         "spellId": 1252871,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "6807.cooldown": {
         "step": 60,
         "type": "int",
         "displayName": "重殴",
         "spellId": 6807,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "77758.cooldown": {
         "step": 61,
         "type": "int",
         "displayName": "痛击",
         "spellId": 77758,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     }
   },
@@ -1153,91 +1178,104 @@
         "type": "int",
         "displayName": "树皮术",
         "spellId": 22812,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "132469.cooldown": {
         "step": 39,
         "type": "int",
         "displayName": "台风",
         "spellId": 132469,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "99.cooldown": {
         "step": 40,
         "type": "int",
         "displayName": "夺魂咆哮",
         "spellId": 99,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "29166.cooldown": {
         "step": 41,
         "type": "int",
         "displayName": "激活",
         "spellId": 29166,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "102793.cooldown": {
         "step": 42,
         "type": "int",
         "displayName": "乌索尔旋风",
         "spellId": 102793,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "18562.cooldown": {
         "step": 43,
         "type": "int",
         "displayName": "迅捷治愈",
         "spellId": 18562,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "18562.chargeCooldown": {
         "step": 44,
         "type": "int",
         "displayName": "迅捷治愈充能",
         "spellId": 18562,
-        "metric": "chargeCooldown"
+        "metric": "chargeCooldown",
+        "displayType": "充能"
       },
       "48438.cooldown": {
         "step": 45,
         "type": "int",
         "displayName": "野性成长",
         "spellId": 48438,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "391528.cooldown": {
         "step": 46,
         "type": "int",
         "displayName": "万灵之召",
         "spellId": 391528,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "88423.cooldown": {
         "step": 47,
         "type": "int",
         "displayName": "自然之愈",
         "spellId": 88423,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "102342.cooldown": {
         "step": 48,
         "type": "int",
         "displayName": "铁木树皮",
         "spellId": 102342,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "132158.cooldown": {
         "step": 49,
         "type": "int",
         "displayName": "自然迅捷",
         "spellId": 132158,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       },
       "1261867.cooldown": {
         "step": 50,
         "type": "int",
         "displayName": "野性之心",
         "spellId": 1261867,
-        "metric": "cooldown"
+        "metric": "cooldown",
+        "displayType": "冷却"
       }
     },
     "group": {
