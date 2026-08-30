@@ -64,6 +64,7 @@ public sealed class ModuleEditorControl : UserControl
     private readonly List<ConditionSpell> _currentClassConditionSpells = new();
     private HashSet<string>? _availableConditionFields;
     private HashSet<string>? _availableGroupConditionFields;
+    private Dictionary<string, string>? _conditionFieldDisplayNames;
     // 载入时程序化写入"类型"单元格会触发 CellValueChanged; 置真以跳过"按类型清空数值"的联动。
     private bool _suppressAdjustmentTypeChange;
     private bool _moduleCommandInProgress;
@@ -2192,15 +2193,21 @@ public sealed class ModuleEditorControl : UserControl
     // 字段目录的构造会读取职业配置和动态数值表；缓存后避免每个可见单元格重复做同一份工作。
     private void EnsureConditionFieldValidationCatalog()
     {
-        if (_availableConditionFields is not null && _availableGroupConditionFields is not null)
+        if (_availableConditionFields is not null
+            && _availableGroupConditionFields is not null
+            && _conditionFieldDisplayNames is not null)
         {
             return;
         }
 
+        var conditionFields = BuildConditionFields(includeRuleSettings: true);
         _availableConditionFields = new HashSet<string>(
-            BuildConditionFields(includeRuleSettings: true)
+            conditionFields
                 .Select(field => NormalizeConditionFieldName(field.Name)),
             StringComparer.Ordinal);
+        _conditionFieldDisplayNames = conditionFields
+            .GroupBy(field => NormalizeConditionFieldName(field.Name), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().DisplayName, StringComparer.Ordinal);
 
         var classId = ReadMatchCombo(_classBox);
         var specId = ReadMatchCombo(_specBox);
@@ -2226,6 +2233,7 @@ public sealed class ModuleEditorControl : UserControl
     {
         _availableConditionFields = null;
         _availableGroupConditionFields = null;
+        _conditionFieldDisplayNames = null;
         _rulesGrid.Invalidate();
     }
 
@@ -2262,17 +2270,19 @@ public sealed class ModuleEditorControl : UserControl
     }
 
     // 把主条件、子条件和规则延迟合成可读文本；仅改显示，不改变底层条件表达式。
-    private static string DecorateCondition(
+    private string DecorateCondition(
         string main,
         IReadOnlyList<string>? subs,
         int? delayMs,
         int? logicDelayMs)
     {
-        var conditionText = main;
+        var conditionText = FormatConditionExpressionForDisplay(main);
         if (subs is { Count: > 0 })
         {
-            var any = string.Join(" | ", subs);
-            conditionText = main.Length == 0 ? $"任一({any})" : $"{main}  且任一({any})";
+            var any = string.Join(" | ", subs.Select(FormatConditionExpressionForDisplay));
+            conditionText = conditionText.Length == 0
+                ? $"任一({any})"
+                : $"{conditionText}  且任一({any})";
         }
 
         if (delayMs is > 0)
@@ -2290,6 +2300,136 @@ public sealed class ModuleEditorControl : UserControl
         }
 
         return conditionText;
+    }
+
+    private string FormatConditionExpressionForDisplay(string? expression)
+    {
+        var source = expression?.Trim() ?? string.Empty;
+        if (source.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var terms = ConditionExpression.Parse(source);
+        if (terms.Count == 0)
+        {
+            return source;
+        }
+
+        return ConditionExpression.Build(terms.Select(term =>
+        {
+            var field = FormatConditionFieldForDisplay(term.Field);
+            var value = SpellIdConditionFields.Contains(term.Field)
+                ? FormatConditionSpellValueForDisplay(term.Value)
+                : string.Equals(NormalizeConditionFieldName(term.Field), "首领战", StringComparison.Ordinal)
+                    ? FormatBossValueForDisplay(term.Value)
+                : term.Value;
+            return term with { Field = field, Value = value };
+        }));
+    }
+
+    private string FormatConditionFieldForDisplay(string field)
+    {
+        var normalized = NormalizeConditionFieldName(field);
+        var isSpellReference = SpellFieldKey.TryParseSpell(normalized, out var spellId, out _);
+        var isAuraReference = !isSpellReference
+            && (SpellFieldKey.TryParseAura(normalized, out _, out spellId, out _)
+                || SpellFieldKey.TryParseAuraMember(normalized, out spellId, out _));
+        if (!isSpellReference && !isAuraReference)
+        {
+            return field;
+        }
+
+        var fieldDisplayName = ResolveConditionFieldDisplayName(normalized, spellId);
+        if (!string.IsNullOrWhiteSpace(fieldDisplayName))
+        {
+            return $"{(isSpellReference ? "cd:" : "aura:")}{fieldDisplayName}";
+        }
+
+        var name = ResolveConditionSpellName(spellId, normalized);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return field;
+        }
+
+        return $"{(isSpellReference ? "cd:" : "aura:")}{name}";
+    }
+
+    private string FormatConditionSpellValueForDisplay(string value)
+    {
+        var normalized = value.Trim();
+        if (!long.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spellId)
+            || spellId <= 0)
+        {
+            return value;
+        }
+
+        var name = ResolveConditionSpellName(spellId, null);
+        return string.IsNullOrWhiteSpace(name) ? value : name;
+    }
+
+    private static string FormatBossValueForDisplay(string value)
+    {
+        var normalized = value.Trim();
+        if (!int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out var bossNumber))
+        {
+            return value;
+        }
+
+        if (bossNumber == 0)
+        {
+            return "非首领战";
+        }
+
+        return StatusForm.GetBossNumberOptions()
+                   .FirstOrDefault(option => option.Number == bossNumber)?.Name
+               ?? value;
+    }
+
+    private string? ResolveConditionSpellName(long spellId, string? normalizedField)
+    {
+        var localName = _currentClassConditionSpells
+            .FirstOrDefault(spell => spell.SpellId == spellId)?.Name;
+        if (!string.IsNullOrWhiteSpace(localName))
+        {
+            return localName;
+        }
+
+        var catalogName = SpellIconCatalog.ResolveSuggestionName(spellId, null);
+        if (!string.IsNullOrWhiteSpace(catalogName))
+        {
+            return catalogName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedField))
+        {
+            return ResolveConditionFieldDisplayName(normalizedField, spellId);
+        }
+
+        return null;
+    }
+
+    private string? ResolveConditionFieldDisplayName(string normalizedField, long spellId)
+    {
+        EnsureConditionFieldValidationCatalog();
+        if (!_conditionFieldDisplayNames!.TryGetValue(normalizedField, out var displayName))
+        {
+            return null;
+        }
+
+        var value = displayName;
+        if (value.StartsWith("技能: ", StringComparison.Ordinal))
+        {
+            value = value["技能: ".Length..];
+        }
+
+        var idSuffix = $" / {spellId.ToString(CultureInfo.InvariantCulture)}";
+        if (value.EndsWith(idSuffix, StringComparison.Ordinal))
+        {
+            value = value[..^idSuffix.Length];
+        }
+
+        return value.Trim();
     }
 
     private void OnRulesGridCellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
